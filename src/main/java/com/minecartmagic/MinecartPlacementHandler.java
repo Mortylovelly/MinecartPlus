@@ -16,8 +16,6 @@ import net.minecraft.world.World;
 
 public final class MinecartPlacementHandler {
 
-    private static final String TRACTION_TAG_PREFIX = "minecartmagic:traction_";
-
     private MinecartPlacementHandler() {
     }
 
@@ -35,22 +33,38 @@ public final class MinecartPlacementHandler {
     ) {
         ItemStack stack = player.getStackInHand(hand);
 
+        /*
+         * Работаем только с обычной вагонеткой.
+         */
         if (!stack.isOf(Items.MINECART)) {
             return ActionResult.PASS;
         }
 
-        int tractionLevel = ModEnchantments.getTractionLevel(stack);
+        /*
+         * Получаем настоящее зачарование с предмета.
+         */
+        int tractionLevel =
+                ModEnchantments.getTractionLevel(stack);
 
+        /*
+         * Обычная вагонетка полностью остаётся ванильной.
+         */
         if (tractionLevel <= 0) {
             return ActionResult.PASS;
         }
 
         BlockPos railPos = hitResult.getBlockPos();
 
+        /*
+         * Ставить зачарованную вагонетку можно только на рельсы.
+         */
         if (!AbstractRailBlock.isRail(world, railPos)) {
             return ActionResult.PASS;
         }
 
+        /*
+         * Entity создаём только на сервере.
+         */
         if (world.isClient()) {
             return ActionResult.SUCCESS;
         }
@@ -67,6 +81,9 @@ public final class MinecartPlacementHandler {
         double y = railPos.getY() + 0.0625D;
         double z = railPos.getZ() + 0.5D;
 
+        /*
+         * Проверяем свободно ли место.
+         */
         Box collisionBox = new Box(
                 x - 0.49D,
                 y,
@@ -80,32 +97,48 @@ public final class MinecartPlacementHandler {
             return ActionResult.FAIL;
         }
 
-        MinecartEntity minecart = new MinecartEntity(
-                serverWorld,
-                x,
-                y,
-                z
+        /*
+         * Создаём обычную ванильную вагонетку.
+         */
+        MinecartEntity minecart =
+                new MinecartEntity(
+                        serverWorld,
+                        x,
+                        y,
+                        z
+                );
+
+        /*
+         * Записываем уровень Тяги в command tag Entity.
+         *
+         * 1 = Тяга I
+         * 2 = Тяга II
+         * 3 = Тяга III
+         */
+        minecart.addCommandTag(
+                getTractionTag(tractionLevel)
         );
 
         /*
-         * Сохраняем уровень Тяги непосредственно на Entity.
-         *
-         * Никаких Mixin.
-         * Никаких DataComponentTypes.
-         * Никакого NBT API Entity.
+         * Добавляем Entity в мир.
          */
-        minecart.addCommandTag(
-                TRACTION_TAG_PREFIX + Math.min(tractionLevel, 3)
-        );
-
         serverWorld.spawnEntity(minecart);
 
+        /*
+         * Забираем один предмет в Survival.
+         * В Creative предмет не расходуется.
+         */
         stack.decrementUnlessCreative(1, player);
 
         return ActionResult.SUCCESS;
     }
 
     public static String getTractionTag(int level) {
-        return TRACTION_TAG_PREFIX + Math.min(Math.max(level, 1), 3);
+        return switch (level) {
+            case 1 -> "minecartmagic_traction_1";
+            case 2 -> "minecartmagic_traction_2";
+            case 3 -> "minecartmagic_traction_3";
+            default -> "minecartmagic_traction_0";
+        };
     }
 }
