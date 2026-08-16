@@ -2,9 +2,8 @@ package com.minecartmagic;
 
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.block.AbstractRailBlock;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.vehicle.AbstractMinecartEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.vehicle.MinecartEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.server.world.ServerWorld;
@@ -27,35 +26,46 @@ public final class MinecartPlacementHandler {
     }
 
     private static ActionResult onUseBlock(
-            net.minecraft.entity.player.PlayerEntity player,
+            PlayerEntity player,
             World world,
             Hand hand,
             BlockHitResult hitResult
     ) {
         ItemStack stack = player.getStackInHand(hand);
 
-        // Только обычная вагонетка.
+        /*
+         * Работаем только с обычной вагонеткой.
+         */
         if (!stack.isOf(Items.MINECART)) {
             return ActionResult.PASS;
         }
 
-        int tractionLevel = ModEnchantments.getTractionLevel(stack);
+        /*
+         * Проверяем настоящее зачарование на предмете.
+         */
+        int tractionLevel =
+                ModEnchantments.getTractionLevel(stack);
 
-        // Незачарованная вагонетка должна работать полностью ванильно.
+        /*
+         * Обычная вагонетка должна полностью оставаться
+         * ванильной.
+         */
         if (tractionLevel <= 0) {
             return ActionResult.PASS;
         }
 
         BlockPos railPos = hitResult.getBlockPos();
 
-        // Ставим только на настоящий рельс.
+        /*
+         * Ставить можно только на рельсы.
+         */
         if (!AbstractRailBlock.isRail(world, railPos)) {
             return ActionResult.PASS;
         }
 
         /*
-         * На клиенте просто отменяем ванильную обработку.
-         * Настоящее создание сущности выполняется сервером.
+         * Клиент не создаёт Entity.
+         * Это делает только сервер.
          */
         if (world.isClient()) {
             return ActionResult.SUCCESS;
@@ -73,6 +83,9 @@ public final class MinecartPlacementHandler {
         double y = railPos.getY() + 0.0625D;
         double z = railPos.getZ() + 0.5D;
 
+        /*
+         * Проверяем, свободно ли место.
+         */
         Box collisionBox = new Box(
                 x - 0.49D,
                 y,
@@ -86,37 +99,37 @@ public final class MinecartPlacementHandler {
             return ActionResult.FAIL;
         }
 
-        AbstractMinecartEntity minecart = AbstractMinecartEntity.create(
-                serverWorld,
-                x,
-                y,
-                z,
-                EntityType.MINECART,
-                SpawnReason.SPAWN_ITEM_USE,
-                stack,
-                player
-        );
-
-        if (minecart == null) {
-            return ActionResult.FAIL;
-        }
+        /*
+         * Создаём обычную ванильную вагонетку.
+         *
+         * Никаких SpawnReason.
+         * Никаких Mixin.
+         */
+        MinecartEntity minecart =
+                new MinecartEntity(
+                        serverWorld,
+                        x,
+                        y,
+                        z
+                );
 
         /*
-         * Сохраняем уровень Тяги непосредственно на entity.
-         * Поэтому после установки нам больше НЕ нужно пытаться
-         * получать зачарование через getPickBlockStack().
+         * Передаём вагонетке уровень зачарования.
          */
         MinecartTractionHandler.setTractionLevel(
                 minecart,
                 tractionLevel
         );
 
-        // Видимый индикатор зачарованной вагонетки.
-        minecart.setGlowing(true);
-
+        /*
+         * Добавляем Entity в мир.
+         */
         serverWorld.spawnEntity(minecart);
 
-        // Забираем один предмет только в выживании.
+        /*
+         * Забираем одну вагонетку из руки.
+         * В Creative предмет не расходуется.
+         */
         stack.decrementUnlessCreative(1, player);
 
         return ActionResult.SUCCESS;
