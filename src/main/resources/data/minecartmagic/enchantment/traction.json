@@ -1,21 +1,21 @@
 {
+  "anvil_cost": 5,
   "description": {
     "translate": "enchantment.minecartmagic.traction"
   },
-  "supported_items": "minecraft:minecart",
-  "weight": 1,
+  "effects": {},
+  "max_cost": {
+    "base": 30,
+    "per_level_above_first": 15
+  },
   "max_level": 3,
   "min_cost": {
-    "base": 1,
+    "base": 10,
     "per_level_above_first": 10
   },
-  "max_cost": {
-    "base": 51,
-    "per_level_above_first": 10
-  },
-  "anvil_cost": 4,
   "slots": [
-    "any"
+    "mainhand"
   ],
-  "effects": {}
+  "supported_items": "#minecartmagic:enchantable_minecart",
+  "weight": 10
 }
