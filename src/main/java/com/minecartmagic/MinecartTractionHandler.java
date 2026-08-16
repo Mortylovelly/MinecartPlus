@@ -8,8 +8,8 @@ import net.minecraft.util.math.Vec3d;
 
 public class MinecartTractionHandler {
 
-    private static final double SPEED_MULTIPLIER_PER_LEVEL = 0.30;
-    private static final double MAX_SPEED_MULTIPLIER = 2.50;
+    private static final double SPEED_PER_LEVEL = 0.30;
+    private static final double MAX_MULTIPLIER = 2.50;
 
     public static void init() {
         ServerTickEvents.END_WORLD_TICK.register(MinecartTractionHandler::onWorldTick);
@@ -38,22 +38,23 @@ public class MinecartTractionHandler {
                 continue;
             }
 
-            double multiplier = 1.0 + (SPEED_MULTIPLIER_PER_LEVEL * level);
-            multiplier = Math.min(multiplier, MAX_SPEED_MULTIPLIER);
+            double multiplier = 1.0 + SPEED_PER_LEVEL * level;
+            multiplier = Math.min(multiplier, MAX_MULTIPLIER);
 
             Vec3d velocity = minecart.getVelocity();
 
             double horizontalSpeed = velocity.horizontalLength();
 
-            if (horizontalSpeed <= 0.000001) {
+            if (horizontalSpeed < 0.000001) {
                 continue;
             }
 
-            double maxSpeed = minecart.getMaxSpeed();
+            double vanillaMaxSpeed = minecart.getMaxSpeed();
+            double targetMaxSpeed = vanillaMaxSpeed * multiplier;
 
             double targetSpeed = Math.min(
                     horizontalSpeed * multiplier,
-                    maxSpeed * multiplier
+                    targetMaxSpeed
             );
 
             double scale = targetSpeed / horizontalSpeed;
