@@ -1,21 +1,16 @@
 package com.minecartmagic.mixin;
 
 import com.minecartmagic.ModEnchantments;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(AbstractMinecartEntity.class)
@@ -29,12 +24,11 @@ public abstract class MinecartSpeedMixin {
         at = @At("RETURN")
     )
     private static void minecartmagic$copyTractionFromItem(
-        World world,
+        ServerWorld world,
         double x,
         double y,
         double z,
-        EntityType<?> type,
-        SpawnReason reason,
+        AbstractMinecartEntity.Type type,
         ItemStack stack,
         @Nullable PlayerEntity player,
         CallbackInfoReturnable<AbstractMinecartEntity> cir
@@ -76,45 +70,6 @@ public abstract class MinecartSpeedMixin {
         double multiplier = 1.0 + (level * 0.3);
 
         cir.setReturnValue(baseSpeed * multiplier);
-    }
-
-    @Inject(
-        method = "readCustomDataFromNbt",
-        at = @At("TAIL")
-    )
-    private void minecartmagic$readTraction(
-        NbtCompound nbt,
-        CallbackInfo ci
-    ) {
-        if (!nbt.contains("MinecartMagicTraction")) {
-            minecartmagic$setTractionLevel(0);
-            return;
-        }
-
-        int level = nbt.getInt("MinecartMagicTraction");
-
-        if (level < 0) {
-            level = 0;
-        }
-
-        if (level > 3) {
-            level = 3;
-        }
-
-        minecartmagic$setTractionLevel(level);
-    }
-
-    @Inject(
-        method = "writeCustomDataToNbt",
-        at = @At("TAIL")
-    )
-    private void minecartmagic$writeTraction(
-        NbtCompound nbt,
-        CallbackInfo ci
-    ) {
-        if (minecartmagic$tractionLevel > 0) {
-            nbt.putInt("MinecartMagicTraction", minecartmagic$tractionLevel);
-        }
     }
 
     @Unique
