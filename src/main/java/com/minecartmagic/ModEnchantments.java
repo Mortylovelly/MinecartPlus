@@ -10,28 +10,46 @@ import net.minecraft.util.Identifier;
 
 public final class ModEnchantments {
 
-    public static final RegistryKey<Enchantment> TRACTION_KEY = RegistryKey.of(
-            RegistryKeys.ENCHANTMENT,
-            Identifier.of(MinecartMagicMod.MOD_ID, "traction")
-    );
+    public static final RegistryKey<Enchantment> TRACTION_KEY =
+            RegistryKey.of(
+                    RegistryKeys.ENCHANTMENT,
+                    Identifier.of(
+                            MinecartMagicMod.MOD_ID,
+                            "traction"
+                    )
+            );
 
     private ModEnchantments() {
     }
 
     public static void init() {
-        MinecartMagicMod.LOGGER.info("Minecart Magic enchantments initialized");
+        /*
+         * Ничего регистрировать вручную не нужно.
+         *
+         * Minecraft 1.21.1 загружает enchantment
+         * из data/minecartmagic/enchantment/traction.json.
+         */
     }
 
     public static int getTractionLevel(ItemStack stack) {
-        if (stack == null || stack.isEmpty()) {
-            return 0;
-        }
 
-        var enchantments = EnchantmentHelper.getEnchantments(stack);
+        for (var entry :
+                EnchantmentHelper
+                        .getEnchantments(stack)
+                        .getEnchantmentEntries()) {
 
-        for (RegistryEntry<Enchantment> entry : enchantments.getEnchantments()) {
-            if (entry.matchesKey(TRACTION_KEY)) {
-                return enchantments.getLevel(entry);
+            RegistryEntry<Enchantment> enchantment =
+                    entry.getKey();
+
+            if (enchantment.getKey().isPresent()
+                    && enchantment.getKey()
+                    .get()
+                    .equals(TRACTION_KEY)) {
+
+                return EnchantmentHelper.getLevel(
+                        enchantment,
+                        stack
+                );
             }
         }
 
