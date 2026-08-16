@@ -8,9 +8,6 @@ import net.minecraft.util.math.Vec3d;
 
 public final class MinecartSpeedHandler {
 
-    /*
-     * Область поиска загруженных вагонеток.
-     */
     private static final Box SEARCH_BOX = new Box(
             -30_000_000.0D,
             -2_048.0D,
@@ -21,9 +18,17 @@ public final class MinecartSpeedHandler {
     );
 
     /*
-     * Максимальная ванильная скорость вагонетки.
+     * Максимальная скорость ванильной вагонетки
+     * примерно 0.40 блока/тик.
+     *
+     * Тяга:
+     * I   = 0.60
+     * II  = 0.80
+     * III = 1.00
      */
-    private static final double VANILLA_MAX_SPEED = 0.40D;
+    private static final double SPEED_LEVEL_1 = 0.60D;
+    private static final double SPEED_LEVEL_2 = 0.80D;
+    private static final double SPEED_LEVEL_3 = 1.00D;
 
     private MinecartSpeedHandler() {
     }
@@ -42,20 +47,17 @@ public final class MinecartSpeedHandler {
                 entity -> true
         )) {
 
-            int level = getTractionLevel(minecart);
+            int level = ModEnchantments.getTractionLevel(minecart);
 
             /*
-             * Обычные вагонетки вообще НЕ трогаем.
-             *
-             * Поэтому ванильная скорость обычных вагонеток
-             * не изменяется.
+             * Обычные вагонетки вообще не трогаем.
              */
             if (level <= 0) {
                 continue;
             }
 
             /*
-             * Тяга действует только на рельсах.
+             * Тяга работает только на рельсах.
              */
             if (!minecart.isOnRail()) {
                 continue;
@@ -69,83 +71,51 @@ public final class MinecartSpeedHandler {
             );
 
             /*
-             * Стоящую вагонетку самостоятельно не запускаем.
+             * Вагонетка стоит.
+             * Зачарование само её не запускает.
              */
-            if (horizontalSpeed <= 0.0001D) {
+            if (horizontalSpeed < 0.001D) {
+                continue;
+            }
+
+            double maximumSpeed;
+
+            switch (level) {
+                case 1 -> maximumSpeed = SPEED_LEVEL_1;
+                case 2 -> maximumSpeed = SPEED_LEVEL_2;
+                default -> maximumSpeed = SPEED_LEVEL_3;
+            }
+
+            /*
+             * Если вагонетка уже быстрее максимума этого уровня,
+             * ничего не делаем.
+             */
+            if (horizontalSpeed >= maximumSpeed) {
                 continue;
             }
 
             /*
-             * Тяга:
-             *
-             * I   = +30%
-             * II  = +60%
-             * III = +90%
+             * Направление движения сохраняем.
              */
-            double multiplier = switch (level) {
-                case 1 -> 1.30D;
-                case 2 -> 1.60D;
-                case 3 -> 1.90D;
-                default -> 1.00D;
-            };
+            double directionX = velocity.x / horizontalSpeed;
+            double directionZ = velocity.z / horizontalSpeed;
 
             /*
-             * Максимальная скорость:
+             * Постепенно увеличиваем скорость.
              *
-             * Vanilla = 0.40
-             * Тяга I  = 0.52
-             * Тяга II = 0.64
-             * Тяга III = 0.76
+             * Это важно: мы не телепортируем вагонетку
+             * и не меняем её позицию.
              */
-            double maximumSpeed =
-                    VANILLA_MAX_SPEED * multiplier;
-
-            /*
-             * Увеличиваем текущую скорость,
-             * но не выше максимума уровня.
-             */
-            double targetSpeed = Math.min(
-                    horizontalSpeed * multiplier,
-                    maximumSpeed
+            double newSpeed = Math.min(
+                    maximumSpeed,
+                    horizontalSpeed + 0.035D
             );
-
-            if (targetSpeed <= horizontalSpeed) {
-                continue;
-            }
-
-            /*
-             * Сохраняем направление движения.
-             */
-            double directionX =
-                    velocity.x / horizontalSpeed;
-
-            double directionZ =
-                    velocity.z / horizontalSpeed;
 
             minecart.setVelocity(
-                    directionX * targetSpeed,
+                    directionX * newSpeed,
                     velocity.y,
-                    directionZ * targetSpeed
+                    directionZ * newSpeed
             );
         }
-    }
-
-    private static int getTractionLevel(
-            MinecartEntity minecart
-    ) {
-        /*
-         * Проверяем начиная с III уровня.
-         */
-        for (int level = 3; level >= 1; level--) {
-
-            if (minecart.getCommandTags().contains(
-                    MinecartPlacementHandler
-                            .getTractionTag(level)
-            )) {
-                return level;
-            }
-        }
-
-        return 0;
     }
 }
