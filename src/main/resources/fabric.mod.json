@@ -3,13 +3,11 @@
   "id": "minecartmagic",
   "version": "${version}",
   "name": "Minecart Magic",
-  "description": "Adds new enchantments and mechanics for minecarts.",
+  "description": "Adds enchantments and train mechanics to minecarts.",
   "authors": [
     "Mortylovelly"
   ],
-  "contact": {},
   "license": "MIT",
-  "icon": "assets/minecartmagic/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
@@ -17,7 +15,7 @@
     ]
   },
   "depends": {
-    "fabricloader": ">=0.16.0",
+    "fabricloader": ">=0.16.9",
     "minecraft": "~1.21.1",
     "java": ">=21",
     "fabric-api": "*"
