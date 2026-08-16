@@ -1,10 +1,7 @@
 package com.minecartmagic;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.NbtComponent;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Box;
@@ -12,16 +9,7 @@ import net.minecraft.util.math.Vec3d;
 
 public final class MinecartTractionHandler {
 
-    private static final String TRACTION_KEY = "MinecartMagicTraction";
-
-    /*
-     * Обычная максимальная скорость вагонетки примерно 0.4 блока/тик.
-     *
-     * Тяга I   = x1.30
-     * Тяга II  = x1.60
-     * Тяга III = x1.90
-     */
-    private static final double BASE_SPEED = 0.40D;
+    private static final String TRACTION_TAG_PREFIX = "minecartmagic:traction_";
 
     private MinecartTractionHandler() {
     }
@@ -32,56 +20,67 @@ public final class MinecartTractionHandler {
         );
     }
 
+    /**
+     * Сохраняет уровень Тяги непосредственно на вагонетке.
+     *
+     * Используем command tag, потому что он:
+     * - не требует Mixin;
+     * - сохраняется вместе с Entity;
+     * - доступен на Minecraft 1.21.1;
+     * - не зависит от DataComponent API.
+     */
     public static void setTractionLevel(
             AbstractMinecartEntity minecart,
             int level
     ) {
+        clearTractionLevel(minecart);
+
         if (level <= 0) {
-            clearTractionLevel(minecart);
             return;
         }
 
-        NbtCompound nbt = new NbtCompound();
-        nbt.putInt(TRACTION_KEY, Math.min(level, 3));
+        level = Math.min(level, 3);
 
-        minecart.setComponent(
-                DataComponentTypes.CUSTOM_DATA,
-                NbtComponent.of(nbt)
+        minecart.addCommandTag(
+                TRACTION_TAG_PREFIX + level
         );
+
+        // Визуальный индикатор зачарованной вагонетки.
+        minecart.setGlowing(true);
     }
 
+    /**
+     * Получает уровень Тяги с вагонетки.
+     */
     public static int getTractionLevel(
             AbstractMinecartEntity minecart
     ) {
-        NbtComponent component =
-                minecart.get(DataComponentTypes.CUSTOM_DATA);
+        for (String tag : minecart.getCommandTags()) {
+            if (tag.equals(TRACTION_TAG_PREFIX + "1")) {
+                return 1;
+            }
 
-        if (component == null) {
-            return 0;
+            if (tag.equals(TRACTION_TAG_PREFIX + "2")) {
+                return 2;
+            }
+
+            if (tag.equals(TRACTION_TAG_PREFIX + "3")) {
+                return 3;
+            }
         }
 
-        NbtCompound nbt = component.copyNbt();
-
-        if (!nbt.contains(TRACTION_KEY)) {
-            return 0;
-        }
-
-        return Math.max(
-                0,
-                Math.min(
-                        3,
-                        nbt.getInt(TRACTION_KEY).orElse(0)
-                )
-        );
+        return 0;
     }
 
+    /**
+     * Удаляет уровень Тяги.
+     */
     private static void clearTractionLevel(
             AbstractMinecartEntity minecart
     ) {
-        minecart.setComponent(
-                DataComponentTypes.CUSTOM_DATA,
-                NbtComponent.of(new NbtCompound())
-        );
+        minecart.removeCommandTag(TRACTION_TAG_PREFIX + "1");
+        minecart.removeCommandTag(TRACTION_TAG_PREFIX + "2");
+        minecart.removeCommandTag(TRACTION_TAG_PREFIX + "3");
 
         minecart.setGlowing(false);
     }
@@ -111,6 +110,15 @@ public final class MinecartTractionHandler {
         }
     }
 
+    /**
+     * Применяет ускорение.
+     *
+     * Тяга:
+     *
+     * I   = +30%
+     * II  = +60%
+     * III = +90%
+     */
     private static void updateMinecart(
             AbstractMinecartEntity minecart
     ) {
@@ -120,9 +128,7 @@ public final class MinecartTractionHandler {
             return;
         }
 
-        /*
-         * Тяга работает именно на рельсах.
-         */
+        // Работает только во время движения по рельсам.
         if (!minecart.isOnRail()) {
             return;
         }
@@ -130,16 +136,15 @@ public final class MinecartTractionHandler {
         double multiplier = switch (level) {
             case 1 -> 1.30D;
             case 2 -> 1.60D;
-            default -> 1.90D;
+            case 3 -> 1.90D;
+            default -> 1.0D;
         };
-
-        double maxSpeed = BASE_SPEED * multiplier;
 
         Vec3d velocity = minecart.getVelocity();
 
         double horizontalSpeed = Math.sqrt(
-                velocity.x * velocity.x
-                        + velocity.z * velocity.z
+                velocity.x * velocity.x +
+                velocity.z * velocity.z
         );
 
         if (horizontalSpeed <= 0.00001D) {
@@ -147,20 +152,28 @@ public final class MinecartTractionHandler {
         }
 
         /*
-         * Не разгоняем вагонетку мгновенно до максимума.
-         * Добавляем небольшой процент текущей скорости,
-         * чтобы движение оставалось нормальным.
+         * Ванильная вагонетка примерно 0.4 блока/тик.
+         *
+         * Благодаря тому, что мы увеличиваем уже существующую
+         * скорость после ванильной обработки рельса, нам не
+         * требуется вмешиваться в protected getMaxSpeed().
          */
-        double targetSpeed = Math.min(
-                maxSpeed,
-                horizontalSpeed * 1.08D
+        double vanillaSpeed = 0.40D;
+        double targetSpeed = vanillaSpeed * multiplier;
+
+        /*
+         * Плавное приближение к максимальной скорости.
+         */
+        double newSpeed = Math.min(
+                targetSpeed,
+                horizontalSpeed + 0.025D * multiplier
         );
 
-        if (targetSpeed <= horizontalSpeed) {
+        if (newSpeed <= horizontalSpeed) {
             return;
         }
 
-        double scale = targetSpeed / horizontalSpeed;
+        double scale = newSpeed / horizontalSpeed;
 
         minecart.setVelocity(
                 velocity.x * scale,
