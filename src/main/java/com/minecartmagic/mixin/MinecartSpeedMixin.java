@@ -17,7 +17,7 @@ public class MinecartSpeedMixin {
         ItemStack cartItem = cart.getPickBlockStack();
         
         if (cartItem.getItem() == Items.MINECART) {
-            int level = cartItem.getEnchantments().getLevel(ModEnchantments.TRACTION);
+            int level = cartItem.getEnchantments().getLevel(ModEnchantments.TRACTION_ENTRY);
             if (level > 0) {
                 double baseSpeed = cir.getReturnValue();
                 double multiplier = 1.0 + (level * 0.3); // +30%, +60%, +90%
