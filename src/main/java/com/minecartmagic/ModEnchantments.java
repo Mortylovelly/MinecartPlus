@@ -4,9 +4,8 @@ import net.minecraft.component.ComponentMap;
 import net.minecraft.component.type.AttributeModifierSlot;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.registry.BuiltinRegistries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
@@ -43,18 +42,14 @@ public class ModEnchantments {
     public static final RegistryEntry<Enchantment> TRACTION_ENTRY;
 
     static {
-        Registry.register(
-            (Registry) Registry.REGISTRIES.get(RegistryKeys.ENCHANTMENT),
-            TRACTION_KEY.getValue(),
-            TRACTION
-        );
-        TRACTION_ENTRY = Registry.REGISTRIES.get(RegistryKeys.ENCHANTMENT).getEntry(TRACTION_KEY);
+        Registry.register(BuiltinRegistries.ENCHANTMENT, TRACTION_KEY.getValue(), TRACTION);
+        TRACTION_ENTRY = BuiltinRegistries.ENCHANTMENT.getEntry(TRACTION_KEY);
     }
 
     public static void init() {
     }
 
-    public static int getTractionLevel(ItemStack stack) {
+    public static int getTractionLevel(net.minecraft.item.ItemStack stack) {
         return EnchantmentHelper.getLevel(TRACTION_ENTRY, stack);
     }
 }
