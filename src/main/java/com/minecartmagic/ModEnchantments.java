@@ -7,8 +7,6 @@ import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.entry.RegistryEntryList;
 import net.minecraft.text.Text;
@@ -18,11 +16,6 @@ import java.util.List;
 import java.util.Optional;
 
 public class ModEnchantments {
-    public static final RegistryKey<Enchantment> TRACTION_KEY = RegistryKey.of(
-        RegistryKeys.ENCHANTMENT,
-        Identifier.of("minecartmagic", "traction")
-    );
-
     public static final Enchantment TRACTION = new Enchantment(
         Text.translatable("enchantment.minecartmagic.traction"),
         new Enchantment.Definition(
@@ -42,8 +35,8 @@ public class ModEnchantments {
     public static final RegistryEntry<Enchantment> TRACTION_ENTRY;
 
     static {
-        Registry.register(Registries.ENCHANTMENT, TRACTION_KEY.getValue(), TRACTION);
-        TRACTION_ENTRY = Registries.ENCHANTMENT.getEntry(TRACTION_KEY);
+        Registry.register(Registries.ENCHANTMENT, Identifier.of("minecartmagic", "traction"), TRACTION);
+        TRACTION_ENTRY = Registries.ENCHANTMENT.getEntry(Identifier.of("minecartmagic", "traction"));
     }
 
     public static void init() {
