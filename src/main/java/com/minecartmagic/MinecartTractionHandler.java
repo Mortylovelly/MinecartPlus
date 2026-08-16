@@ -5,79 +5,83 @@ import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Vec3d;
 
-public class MinecartTractionHandler {
+public final class MinecartTractionHandler {
 
-    private static final double LEVEL_1_MULTIPLIER = 1.30;
-    private static final double LEVEL_2_MULTIPLIER = 1.60;
-    private static final double LEVEL_3_MULTIPLIER = 1.90;
+    private static final double BASE_MAX_SPEED = 0.4D;
 
-    public static void init() {
-        ServerTickEvents.END_SERVER_TICK.register(MinecartTractionHandler::onServerTick);
+    private MinecartTractionHandler() {
     }
 
-    private static void onServerTick(MinecraftServer server) {
+    public static void init() {
+        ServerTickEvents.END_SERVER_TICK.register(MinecartTractionHandler::tick);
+    }
+
+    private static void tick(MinecraftServer server) {
         for (ServerWorld world : server.getWorlds()) {
+
+            Box searchBox = new Box(
+                    world.getWorldBorder().getBoundWest(),
+                    world.getBottomY(),
+                    world.getWorldBorder().getBoundNorth(),
+                    world.getWorldBorder().getBoundEast(),
+                    world.getTopY(),
+                    world.getWorldBorder().getBoundSouth()
+            );
 
             for (AbstractMinecartEntity minecart : world.getEntitiesByClass(
                     AbstractMinecartEntity.class,
-                    new Box(
-                            world.getWorldBorder().getBoundWest(),
-                            world.getBottomY(),
-                            world.getWorldBorder().getBoundNorth(),
-                            world.getWorldBorder().getBoundEast(),
-                            world.getTopY(),
-                            world.getWorldBorder().getBoundSouth()
-                    ),
-                    entity -> true
+                    searchBox,
+                    minecart -> true
             )) {
-
-                int level = ModEnchantments.getTractionLevel(
-                        minecart.getPickBlockStack()
-                );
-
-                if (level <= 0) {
-                    continue;
-                }
-
-                double multiplier;
-
-                switch (level) {
-                    case 1 -> multiplier = LEVEL_1_MULTIPLIER;
-                    case 2 -> multiplier = LEVEL_2_MULTIPLIER;
-                    default -> multiplier = LEVEL_3_MULTIPLIER;
-                }
-
-                double velocityX = minecart.getVelocity().x;
-                double velocityY = minecart.getVelocity().y;
-                double velocityZ = minecart.getVelocity().z;
-
-                double horizontalSpeed =
-                        Math.sqrt(
-                                velocityX * velocityX +
-                                velocityZ * velocityZ
-                        );
-
-                if (horizontalSpeed <= 0.0001) {
-                    continue;
-                }
-
-                double boostedSpeed = horizontalSpeed * multiplier;
-
-                double maxSpeed = 0.4;
-
-                if (boostedSpeed > maxSpeed) {
-                    boostedSpeed = maxSpeed;
-                }
-
-                double scale = boostedSpeed / horizontalSpeed;
-
-                minecart.setVelocity(
-                        velocityX * scale,
-                        velocityY,
-                        velocityZ * scale
-                );
+                applyTraction(minecart);
             }
         }
+    }
+
+    private static void applyTraction(AbstractMinecartEntity minecart) {
+        int level = ModEnchantments.getTractionLevel(
+                minecart.getPickBlockStack()
+        );
+
+        if (level <= 0) {
+            return;
+        }
+
+        if (!minecart.isOnRail()) {
+            return;
+        }
+
+        Vec3d velocity = minecart.getVelocity();
+
+        double horizontalSpeed = Math.sqrt(
+                velocity.x * velocity.x +
+                velocity.z * velocity.z
+        );
+
+        if (horizontalSpeed <= BASE_MAX_SPEED) {
+            return;
+        }
+
+        double multiplier = switch (level) {
+            case 1 -> 1.30D;
+            case 2 -> 1.60D;
+            default -> 1.90D;
+        };
+
+        double maxSpeed = BASE_MAX_SPEED * multiplier;
+
+        if (horizontalSpeed <= maxSpeed) {
+            return;
+        }
+
+        double scale = maxSpeed / horizontalSpeed;
+
+        minecart.setVelocity(
+                velocity.x * scale,
+                velocity.y,
+                velocity.z * scale
+        );
     }
 }
