@@ -3,6 +3,7 @@ package com.minecartmagic;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 
 public class MinecartTractionHandler {
@@ -15,9 +16,19 @@ public class MinecartTractionHandler {
     }
 
     private static void onWorldTick(ServerWorld world) {
+        Box worldBox = new Box(
+                -30_000_000,
+                world.getBottomY(),
+                -30_000_000,
+                30_000_000,
+                world.getTopY(),
+                30_000_000
+        );
+
         for (AbstractMinecartEntity minecart : world.getEntitiesByClass(
                 AbstractMinecartEntity.class,
-                minecart -> minecart.isAlive()
+                worldBox,
+                AbstractMinecartEntity::isAlive
         )) {
             int level = ModEnchantments.getTractionLevel(
                     minecart.getPickBlockStack()
@@ -32,32 +43,26 @@ public class MinecartTractionHandler {
 
             Vec3d velocity = minecart.getVelocity();
 
-            if (velocity.horizontalLengthSquared() <= 0.000001) {
+            double horizontalSpeed = velocity.horizontalLength();
+
+            if (horizontalSpeed <= 0.000001) {
                 continue;
             }
 
-            Vec3d boostedVelocity = new Vec3d(
-                    velocity.x * multiplier,
-                    velocity.y,
-                    velocity.z * multiplier
+            double maxSpeed = minecart.getMaxSpeed();
+
+            double targetSpeed = Math.min(
+                    horizontalSpeed * multiplier,
+                    maxSpeed * multiplier
             );
 
-            double maxHorizontalSpeed =
-                    minecart.getMaxSpeed(world) * multiplier;
+            double scale = targetSpeed / horizontalSpeed;
 
-            double horizontalSpeed = boostedVelocity.horizontalLength();
-
-            if (horizontalSpeed > maxHorizontalSpeed) {
-                double scale = maxHorizontalSpeed / horizontalSpeed;
-
-                boostedVelocity = new Vec3d(
-                        boostedVelocity.x * scale,
-                        boostedVelocity.y,
-                        boostedVelocity.z * scale
-                );
-            }
-
-            minecart.setVelocity(boostedVelocity);
+            minecart.setVelocity(
+                    velocity.x * scale,
+                    velocity.y,
+                    velocity.z * scale
+            );
         }
     }
 }
