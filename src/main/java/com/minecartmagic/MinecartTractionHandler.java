@@ -3,21 +3,25 @@ package com.minecartmagic;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.TypeFilter;
 import net.minecraft.util.math.Vec3d;
 
-public class MinecartTractionHandler {
+public final class MinecartTractionHandler {
 
-    private static final double SPEED_MULTIPLIER_PER_LEVEL = 0.30D;
+    private static final double VANILLA_MAX_SPEED = 0.40D;
+    private static final double SPEED_PER_LEVEL = 0.30D;
 
-    public static void init() {
-        ServerTickEvents.END_WORLD_TICK.register(MinecartTractionHandler::onWorldTick);
+    private MinecartTractionHandler() {
     }
 
-    private static void onWorldTick(ServerWorld world) {
-        for (AbstractMinecartEntity minecart : world.getEntitiesByClass(
-                AbstractMinecartEntity.class,
-                minecart -> minecart.getBoundingBox().expand(0.1D),
-                minecart -> ModEnchantments.getTractionLevel(minecart.getPickBlockStack()) > 0
+    public static void init() {
+        ServerTickEvents.END_WORLD_TICK.register(MinecartTractionHandler::tick);
+    }
+
+    private static void tick(ServerWorld world) {
+        for (AbstractMinecartEntity minecart : world.getEntitiesByType(
+                TypeFilter.instanceOf(AbstractMinecartEntity.class),
+                minecart -> true
         )) {
             int level = ModEnchantments.getTractionLevel(minecart.getPickBlockStack());
 
@@ -25,11 +29,22 @@ public class MinecartTractionHandler {
                 continue;
             }
 
-            double multiplier = 1.0D + (SPEED_MULTIPLIER_PER_LEVEL * level);
-
             Vec3d velocity = minecart.getVelocity();
 
-            if (velocity.lengthSquared() > 0.000001D) {
+            double horizontalSpeed = Math.sqrt(
+                    velocity.x * velocity.x +
+                    velocity.z * velocity.z
+            );
+
+            if (horizontalSpeed < 0.00001D) {
+                continue;
+            }
+
+            double targetSpeed = VANILLA_MAX_SPEED * (1.0D + SPEED_PER_LEVEL * level);
+
+            if (horizontalSpeed < targetSpeed) {
+                double multiplier = targetSpeed / horizontalSpeed;
+
                 minecart.setVelocity(
                         velocity.x * multiplier,
                         velocity.y,
