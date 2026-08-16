@@ -18,17 +18,9 @@ public final class MinecartSpeedHandler {
     );
 
     /*
-     * Максимальная скорость ванильной вагонетки
-     * примерно 0.40 блока/тик.
-     *
-     * Тяга:
-     * I   = 0.60
-     * II  = 0.80
-     * III = 1.00
+     * Базовая максимальная скорость ванильной вагонетки.
      */
-    private static final double SPEED_LEVEL_1 = 0.60D;
-    private static final double SPEED_LEVEL_2 = 0.80D;
-    private static final double SPEED_LEVEL_3 = 1.00D;
+    private static final double VANILLA_MAX_SPEED = 0.40D;
 
     private MinecartSpeedHandler() {
     }
@@ -47,10 +39,14 @@ public final class MinecartSpeedHandler {
                 entity -> true
         )) {
 
-            int level = ModEnchantments.getTractionLevel(minecart);
+            /*
+             * Получаем уровень Тяги из command tag,
+             * который ставится при размещении зачарованной вагонетки.
+             */
+            int level = getTractionLevel(minecart);
 
             /*
-             * Обычные вагонетки вообще не трогаем.
+             * Обычные вагонетки вообще не изменяем.
              */
             if (level <= 0) {
                 continue;
@@ -71,51 +67,86 @@ public final class MinecartSpeedHandler {
             );
 
             /*
-             * Вагонетка стоит.
-             * Зачарование само её не запускает.
+             * Стоящую вагонетку самостоятельно не запускаем.
              */
-            if (horizontalSpeed < 0.001D) {
-                continue;
-            }
-
-            double maximumSpeed;
-
-            switch (level) {
-                case 1 -> maximumSpeed = SPEED_LEVEL_1;
-                case 2 -> maximumSpeed = SPEED_LEVEL_2;
-                default -> maximumSpeed = SPEED_LEVEL_3;
-            }
-
-            /*
-             * Если вагонетка уже быстрее максимума этого уровня,
-             * ничего не делаем.
-             */
-            if (horizontalSpeed >= maximumSpeed) {
+            if (horizontalSpeed <= 0.0001D) {
                 continue;
             }
 
             /*
-             * Направление движения сохраняем.
-             */
-            double directionX = velocity.x / horizontalSpeed;
-            double directionZ = velocity.z / horizontalSpeed;
-
-            /*
-             * Постепенно увеличиваем скорость.
+             * Тяга:
              *
-             * Это важно: мы не телепортируем вагонетку
-             * и не меняем её позицию.
+             * I   = +30%
+             * II  = +60%
+             * III = +90%
              */
-            double newSpeed = Math.min(
+            double multiplier = switch (level) {
+                case 1 -> 1.30D;
+                case 2 -> 1.60D;
+                case 3 -> 1.90D;
+                default -> 1.00D;
+            };
+
+            /*
+             * Новый предел скорости.
+             *
+             * Vanilla: 0.40
+             * I:       0.52
+             * II:      0.64
+             * III:     0.76
+             */
+            double maximumSpeed =
+                    VANILLA_MAX_SPEED * multiplier;
+
+            /*
+             * Ускоряем вагонетку постепенно.
+             */
+            double targetSpeed = Math.min(
                     maximumSpeed,
                     horizontalSpeed + 0.035D
             );
 
+            if (targetSpeed <= horizontalSpeed) {
+                continue;
+            }
+
+            /*
+             * Сохраняем направление движения.
+             */
+            double directionX =
+                    velocity.x / horizontalSpeed;
+
+            double directionZ =
+                    velocity.z / horizontalSpeed;
+
             minecart.setVelocity(
-                    directionX * newSpeed,
+                    directionX * targetSpeed,
                     velocity.y,
-                    directionZ * newSpeed
+                    directionZ * targetSpeed
             );
         }
+    }
+
+    /*
+     * Получаем уровень Тяги непосредственно
+     * из command tags Entity.
+     */
+    private static int getTractionLevel(
+            MinecartEntity minecart
+    ) {
+
+        /*
+         * Проверяем от максимального уровня к минимальному.
+         */
+        for (int level = 3; level >= 1; level--) {
+
+            if (minecart.getCommandTags().contains(
+                    MinecartPlacementHandler.getTractionTag(level)
+            )) {
+                return level;
+            }
+        }
+
+        return 0;
     }
 }
