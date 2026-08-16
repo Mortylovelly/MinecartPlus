@@ -1,11 +1,11 @@
 package com.minecartmagic;
 
+import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.enchantment.Enchantment;
 import net.minecraft.util.Identifier;
 
 public final class ModEnchantments {
@@ -19,18 +19,20 @@ public final class ModEnchantments {
     }
 
     public static void init() {
-        // Enchantments in Minecraft 1.21.1 are data-driven.
-        // The actual enchantment is defined in:
-        // data/minecartmagic/enchantment/traction.json
     }
 
     public static int getTractionLevel(ItemStack stack) {
-        for (var entry : EnchantmentHelper.getEnchantments(stack).getEnchantmentEntries()) {
-            RegistryEntry<Enchantment> enchantment = entry.getKey();
+        if (stack == null || stack.isEmpty()) {
+            return 0;
+        }
 
-            if (enchantment.getKey().isPresent()
-                    && enchantment.getKey().get().equals(TRACTION_KEY)) {
-                return EnchantmentHelper.getLevel(enchantment, stack);
+        for (RegistryEntry<Enchantment> entry :
+                EnchantmentHelper.getEnchantments(stack).getEnchantments()) {
+
+            if (entry.getKey().isPresent()
+                    && entry.getKey().get().equals(TRACTION_KEY)) {
+
+                return EnchantmentHelper.getLevel(entry, stack);
             }
         }
 
