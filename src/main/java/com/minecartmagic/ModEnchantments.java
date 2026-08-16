@@ -17,6 +17,9 @@ public final class ModEnchantments {
                     Identifier.of(MinecartMagicMod.MOD_ID, "traction")
             );
 
+    private static final String TRACTION_TAG_PREFIX =
+            "minecartmagic_traction_";
+
     private ModEnchantments() {
     }
 
@@ -24,7 +27,7 @@ public final class ModEnchantments {
     }
 
     /*
-     * Получение уровня Тяги с предмета-вагонетки.
+     * Получение Тяги с предмета-вагонетки.
      */
     public static int getTractionLevel(ItemStack stack) {
 
@@ -49,35 +52,54 @@ public final class ModEnchantments {
     }
 
     /*
-     * Получение уровня Тяги с установленной вагонетки.
+     * Получение Тяги с установленной вагонетки.
      *
-     * Уровень сохраняется непосредственно в persistent data
-     * Entity и поэтому не зависит от ItemStack после установки.
+     * Minecraft 1.21.1 на Fabric не имеет Forge-style
+     * getPersistentData(), поэтому используем command tags Entity.
      */
     public static int getTractionLevel(MinecartEntity minecart) {
 
-        return minecart.getPersistentData()
-                .getInt("minecartmagic_traction");
+        for (String tag : minecart.getCommandTags()) {
+
+            if (!tag.startsWith(TRACTION_TAG_PREFIX)) {
+                continue;
+            }
+
+            String value =
+                    tag.substring(TRACTION_TAG_PREFIX.length());
+
+            try {
+                return Integer.parseInt(value);
+            } catch (NumberFormatException ignored) {
+                return 0;
+            }
+        }
+
+        return 0;
     }
 
     /*
-     * Записываем уровень Тяги на вагонетку.
+     * Сохраняем уровень Тяги на вагонетку.
      */
     public static void setTractionLevel(
             MinecartEntity minecart,
             int level
     ) {
 
+        /*
+         * Сначала удаляем старый уровень,
+         * чтобы никогда не осталось двух тегов.
+         */
+        minecart.getCommandTags().removeIf(
+                tag -> tag.startsWith(TRACTION_TAG_PREFIX)
+        );
+
         if (level <= 0) {
-            minecart.getPersistentData()
-                    .remove("minecartmagic_traction");
             return;
         }
 
-        minecart.getPersistentData()
-                .putInt(
-                        "minecartmagic_traction",
-                        level
-                );
+        minecart.addCommandTag(
+                TRACTION_TAG_PREFIX + level
+        );
     }
 }
