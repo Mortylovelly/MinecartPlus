@@ -13,6 +13,7 @@ public class MinecartMagicMod implements ModInitializer {
     @Override
     public void onInitialize() {
         ModEnchantments.init();
+        MinecartPlacementHandler.init();
         MinecartTractionHandler.init();
 
         LOGGER.info("Minecart Magic loaded!");
