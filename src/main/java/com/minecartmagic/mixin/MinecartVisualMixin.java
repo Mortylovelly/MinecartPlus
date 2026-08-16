@@ -17,7 +17,7 @@ public class MinecartVisualMixin {
         ItemStack cartItem = cart.getPickBlockStack();
         
         if (cartItem.getItem() == Items.MINECART) {
-            if (cartItem.getEnchantments().getLevel(ModEnchantments.TRACTION_ENTRY) > 0) {
+            if (ModEnchantments.getTractionLevel(cartItem) > 0) {
                 cir.setReturnValue(true);
             }
         }
