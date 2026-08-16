@@ -1,3 +1,4 @@
+```java
 package com.minecartmagic.mixin;
 
 import com.minecartmagic.ModEnchantments;
@@ -86,7 +87,12 @@ public abstract class MinecartSpeedMixin {
         NbtCompound nbt,
         CallbackInfo ci
     ) {
-        int level = nbt.getInt("MinecartMagicTraction", 0);
+        if (!nbt.contains("MinecartMagicTraction")) {
+            minecartmagic$setTractionLevel(0);
+            return;
+        }
+
+        int level = nbt.getInt("MinecartMagicTraction");
 
         if (level < 0) {
             level = 0;
@@ -120,3 +126,4 @@ public abstract class MinecartSpeedMixin {
         minecart.setGlowing(minecartmagic$tractionLevel > 0);
     }
 }
+```
