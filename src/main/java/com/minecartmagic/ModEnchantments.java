@@ -1,40 +1,40 @@
 package com.minecartmagic;
 
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.tags.ItemTags;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.util.Identifier;
 
 public class ModEnchantments {
-    public static final Enchantment TRACTION = Registry.register(
-        BuiltInRegistries.ENCHANTMENT,
-        ResourceLocation.fromNamespaceAndPath("minecartmagic", "traction"),
-        new Enchantment(
-            new Enchantment.Definition(
-                BuiltInRegistries.ITEM.getOrCreateTag(ItemTags.MINECART),
-                1,
-                3,
-                new Enchantment.Cost(10, 0),
-                new Enchantment.Cost(20, 0),
-                10,
-                new EquipmentSlot[]{EquipmentSlot.MAINHAND}
-            )
+    public static final Enchantment TRACTION = new Enchantment(
+        new Enchantment.Definition(
+            RegistryEntryList.of(
+                RegistryEntry.of(Items.MINECART)
+            ),
+            1,
+            3,
+            new Enchantment.Cost(10, 0),
+            new Enchantment.Cost(20, 0),
+            10,
+            new EquipmentSlot[]{EquipmentSlot.MAINHAND}
         )
+    );
+
+    public static final RegistryEntry<Enchantment> TRACTION_ENTRY = Registry.registerReference(
+        RegistryKeys.ENCHANTMENT,
+        Identifier.of("minecartmagic", "traction"),
+        TRACTION
     );
 
     public static void init() {
     }
 
-    public static boolean isMinecart(ItemStack stack) {
-        return stack.getItem() == Items.MINECART;
-    }
-
     public static int getTractionLevel(ItemStack stack) {
-        return EnchantmentHelper.getItemEnchantmentLevel(TRACTION, stack);
+        return EnchantmentHelper.getLevel(TRACTION_ENTRY, stack);
     }
 }
