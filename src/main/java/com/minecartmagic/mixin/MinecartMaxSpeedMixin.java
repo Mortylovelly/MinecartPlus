@@ -1,6 +1,6 @@
 package com.minecartmagic.mixin;
 
-import com.minecartmagic.ModEnchantments;
+import com.minecartmagic.MinecartPlacementHandler;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.entity.vehicle.MinecartEntity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -19,43 +19,38 @@ public abstract class MinecartMaxSpeedMixin {
     private void minecartmagic$increaseMaxSpeed(
             CallbackInfoReturnable<Double> cir
     ) {
-
-        /*
-         * Mixin находится на AbstractMinecartEntity,
-         * поэтому проверяем, что это именно обычная
-         * rideable MinecartEntity.
-         */
         if (!((Object) this instanceof MinecartEntity minecart)) {
             return;
         }
 
-        int level =
-                ModEnchantments.getTractionLevel(minecart);
+        int level = 0;
 
-        /*
-         * Без зачарования абсолютно ничего
-         * не меняем в ванильной вагонетке.
-         */
+        for (int i = 3; i >= 1; i--) {
+            if (minecart.getCommandTags().contains(
+                    MinecartPlacementHandler.getTractionTag(i)
+            )) {
+                level = i;
+                break;
+            }
+        }
+
         if (level <= 0) {
             return;
         }
 
-        double vanillaSpeed =
-                cir.getReturnValue();
+        double vanillaSpeed = cir.getReturnValue();
 
         /*
-         * Тяга I   = 1.5x
-         * Тяга II  = 2.0x
-         * Тяга III = 2.5x
+         * Тяга I   = 1.60x
+         * Тяга II  = 2.20x
+         * Тяга III = 2.80x
          */
         double multiplier = switch (level) {
-            case 1 -> 1.50D;
-            case 2 -> 2.00D;
-            default -> 2.50D;
+            case 1 -> 1.60D;
+            case 2 -> 2.20D;
+            default -> 2.80D;
         };
 
-        cir.setReturnValue(
-                vanillaSpeed * multiplier
-        );
+        cir.setReturnValue(vanillaSpeed * multiplier);
     }
 }
