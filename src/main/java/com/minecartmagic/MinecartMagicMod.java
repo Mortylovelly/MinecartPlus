@@ -8,13 +8,17 @@ import org.slf4j.LoggerFactory;
 public class MinecartMagicMod implements ModInitializer {
 
     public static final String MOD_ID = "minecartmagic";
+
     public static final Logger LOGGER =
             LoggerFactory.getLogger(MOD_ID);
 
     @Override
     public void onInitialize() {
+
         ModEnchantments.init();
+
         MinecartPlacementHandler.init();
+
         MinecartSpeedHandler.init();
 
         LOGGER.info("Minecart Magic loaded!");
