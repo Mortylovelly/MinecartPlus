@@ -19,6 +19,7 @@ public final class ModEnchantments {
     }
 
     public static void init() {
+        MinecartMagicMod.LOGGER.info("Minecart Magic enchantments initialized");
     }
 
     public static int getTractionLevel(ItemStack stack) {
@@ -29,9 +30,7 @@ public final class ModEnchantments {
         for (RegistryEntry<Enchantment> entry :
                 EnchantmentHelper.getEnchantments(stack).getEnchantments()) {
 
-            if (entry.getKey().isPresent()
-                    && entry.getKey().get().equals(TRACTION_KEY)) {
-
+            if (entry.matchesKey(TRACTION_KEY)) {
                 return EnchantmentHelper.getLevel(entry, stack);
             }
         }
