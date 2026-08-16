@@ -27,11 +27,11 @@ public final class ModEnchantments {
             return 0;
         }
 
-        for (RegistryEntry<Enchantment> entry :
-                EnchantmentHelper.getEnchantments(stack).getEnchantments()) {
+        var enchantments = EnchantmentHelper.getEnchantments(stack);
 
+        for (RegistryEntry<Enchantment> entry : enchantments.getEnchantments()) {
             if (entry.matchesKey(TRACTION_KEY)) {
-                return EnchantmentHelper.getLevel(entry, stack);
+                return enchantments.getLevel(entry);
             }
         }
 
