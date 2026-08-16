@@ -46,25 +46,34 @@ public abstract class MinecartDropMixin {
         }
 
         /*
-         * Получаем настоящее зачарование из динамического
-         * реестра Minecraft 1.21.1.
+         * Получаем реестр зачарований через getRegistryManager().
+         * В этой версии mappings нужен обычный get().
          */
         var enchantmentRegistry =
                 minecart.getWorld()
                         .getRegistryManager()
-                        .getOrThrow(RegistryKeys.ENCHANTMENT);
+                        .get(RegistryKeys.ENCHANTMENT);
+
+        if (enchantmentRegistry.isEmpty()) {
+            return;
+        }
 
         RegistryEntry<Enchantment> traction =
-                enchantmentRegistry
-                        .getOrThrow(ModEnchantments.TRACTION);
+                enchantmentRegistry.get()
+                        .getEntry(ModEnchantments.TRACTION_KEY)
+                        .orElse(null);
+
+        if (traction == null) {
+            return;
+        }
 
         /*
-         * Создаём обычную вагонетку как ItemStack.
+         * Создаём обычную вагонетку.
          */
         ItemStack stack = new ItemStack(Items.MINECART);
 
         /*
-         * Накладываем настоящее зачарование Тяга.
+         * Добавляем настоящее зачарование Тяга.
          */
         ItemEnchantmentsComponent.Builder enchantments =
                 new ItemEnchantmentsComponent.Builder(
@@ -74,10 +83,7 @@ public abstract class MinecartDropMixin {
                         )
                 );
 
-        enchantments.set(
-                traction,
-                level
-        );
+        enchantments.set(traction, level);
 
         stack.set(
                 DataComponentTypes.ENCHANTMENTS,
@@ -86,12 +92,13 @@ public abstract class MinecartDropMixin {
 
         /*
          * Выбрасываем именно зачарованную вагонетку.
-         *
-         * Ванильный dropItems больше не выполняется,
-         * поэтому второй обычной вагонетки не будет.
          */
         minecart.dropStack(stack);
 
+        /*
+         * Запрещаем ванильному dropItems()
+         * дополнительно выбросить обычную вагонетку.
+         */
         ci.cancel();
     }
 }
