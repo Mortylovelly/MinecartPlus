@@ -14,13 +14,19 @@ public class ModEnchantments {
         Identifier.of("minecartmagic", "traction")
     );
 
-    public static final RegistryEntry<Enchantment> TRACTION_ENTRY =
-        RegistryEntry.of(TRACTION_KEY);
-
     public static void init() {
     }
 
     public static int getTractionLevel(ItemStack stack) {
-        return EnchantmentHelper.getLevel(TRACTION_ENTRY, stack);
+        for (var entry : EnchantmentHelper.getEnchantments(stack).getEnchantmentEntries()) {
+            RegistryEntry<Enchantment> enchantment = entry.getKey();
+
+            if (enchantment.getKey().isPresent()
+                && enchantment.getKey().get().equals(TRACTION_KEY)) {
+                return EnchantmentHelper.getLevel(enchantment, stack);
+            }
+        }
+
+        return 0;
     }
 }
