@@ -3,9 +3,9 @@ package com.minecartmagic;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.Item;
-import net.minecraft.registry.BuiltinRegistries;
-import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.Registries;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.entry.RegistryEntryList;
 import net.minecraft.registry.tag.TagKey;
@@ -16,23 +16,23 @@ public class ModEnchantments {
     public static final TagKey<Enchantment> TRACTION_TAG = TagKey.of(RegistryKeys.ENCHANTMENT, Identifier.of("minecartmagic", "traction_tag"));
 
     public static final Enchantment TRACTION = Registry.register(
-        BuiltinRegistries.ENCHANTMENT,
+        RegistryKeys.ENCHANTMENT,
         Identifier.of("minecartmagic", "traction"),
         new Enchantment(
             new Enchantment.Definition(
                 Registries.ITEM.getOrCreateEntryList(ENCHANTABLE_MINECART),
                 TRACTION_TAG,
-                1,
-                3,
-                Enchantment.Cost.constant(10),
-                Enchantment.Cost.constant(20),
-                10,
+                1, // weight
+                3, // max level
+                Enchantment.constantCost(10),
+                Enchantment.constantCost(20),
+                10, // anvil cost
                 new EquipmentSlot[]{EquipmentSlot.MAINHAND}
             )
         )
     );
 
-    public static final RegistryEntry<Enchantment> TRACTION_ENTRY = BuiltinRegistries.ENCHANTMENT.getEntry(TRACTION).orElseThrow();
+    public static final RegistryEntry<Enchantment> TRACTION_ENTRY = Registry.getEntry(RegistryKeys.ENCHANTMENT, Identifier.of("minecartmagic", "traction"));
 
     public static void init() {}
 }
