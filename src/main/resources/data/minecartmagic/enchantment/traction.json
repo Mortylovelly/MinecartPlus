@@ -13,8 +13,8 @@
     "per_level_above_first": 10
   },
   "slots": [
-    "mainhand"
+    "any"
   ],
-  "supported_items": "#minecraft:enchantable/durability",
+  "supported_items": "#minecartmagic:traction_enchantable",
   "weight": 10
 }
