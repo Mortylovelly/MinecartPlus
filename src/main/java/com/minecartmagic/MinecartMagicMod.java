@@ -1,6 +1,7 @@
 package com.minecartmagic;
 
 import net.fabricmc.api.ModInitializer;
+import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,5 +12,9 @@ public class MinecartMagicMod implements ModInitializer {
     @Override
     public void onInitialize() {
         LOGGER.info("Minecart Magic loaded!");
+    }
+
+    public static Identifier id(String path) {
+        return Identifier.of(MOD_ID, path);
     }
 }
