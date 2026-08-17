@@ -43,20 +43,6 @@ public final class ModEnchantments {
     public static void init() {
     }
 
-    public static int getTractionLevel(ItemStack stack) {
-        return getItemEnchantmentLevel(
-                stack,
-                TRACTION_KEY
-        );
-    }
-
-    public static int getTailwindLevel(ItemStack stack) {
-        return getItemEnchantmentLevel(
-                stack,
-                TAILWIND_KEY
-        );
-    }
-
     private static int getItemEnchantmentLevel(
             ItemStack stack,
             RegistryKey<Enchantment> key
@@ -85,41 +71,30 @@ public final class ModEnchantments {
         return 0;
     }
 
+    public static int getTractionLevel(ItemStack stack) {
+        return getItemEnchantmentLevel(
+                stack,
+                TRACTION_KEY
+        );
+    }
+
+    public static int getTailwindLevel(ItemStack stack) {
+        return getItemEnchantmentLevel(
+                stack,
+                TAILWIND_KEY
+        );
+    }
+
     public static int getTractionLevel(
             AbstractMinecartEntity minecart
     ) {
-        int trackedLevel =
-                MinecartTractionData.get(minecart);
-
-        if (trackedLevel > 0) {
-            return trackedLevel;
-        }
-
-        for (String tag : minecart.getCommandTags()) {
-
-            if (!tag.startsWith(TRACTION_TAG_PREFIX)) {
-                continue;
-            }
-
-            String value =
-                    tag.substring(
-                            TRACTION_TAG_PREFIX.length()
-                    );
-
-            try {
-                int level =
-                        Integer.parseInt(value);
-
-                if (level > 0) {
-                    return level;
-                }
-
-            } catch (NumberFormatException ignored) {
-                return 0;
-            }
-        }
-
-        return 0;
+        return minecart.getAttached(
+                MinecartMagicAttachments.TRACTION_LEVEL
+        ) != null
+                ? minecart.getAttached(
+                        MinecartMagicAttachments.TRACTION_LEVEL
+                )
+                : 0;
     }
 
     public static int getTractionLevel(
@@ -134,24 +109,22 @@ public final class ModEnchantments {
             AbstractMinecartEntity minecart,
             int level
     ) {
+        minecart.setAttached(
+                MinecartMagicAttachments.TRACTION_LEVEL,
+                Math.max(0, level)
+        );
+
         minecart.getCommandTags().removeIf(
                 tag -> tag.startsWith(
                         TRACTION_TAG_PREFIX
                 )
         );
 
-        MinecartTractionData.set(
-                minecart,
-                level
-        );
-
-        if (level <= 0) {
-            return;
+        if (level > 0) {
+            minecart.addCommandTag(
+                    TRACTION_TAG_PREFIX + level
+            );
         }
-
-        minecart.addCommandTag(
-                TRACTION_TAG_PREFIX + level
-        );
     }
 
     public static void setTractionLevel(
@@ -167,56 +140,35 @@ public final class ModEnchantments {
     public static int getTailwindLevel(
             BoatEntity boat
     ) {
-        int trackedLevel =
-                BoatTailwindData.get(boat);
-
-        if (trackedLevel > 0) {
-            return trackedLevel;
-        }
-
-        for (String tag : boat.getCommandTags()) {
-
-            if (!tag.startsWith(TAILWIND_TAG_PREFIX)) {
-                continue;
-            }
-
-            String value =
-                    tag.substring(
-                            TAILWIND_TAG_PREFIX.length()
-                    );
-
-            try {
-                return Integer.parseInt(value);
-            } catch (NumberFormatException ignored) {
-                return 0;
-            }
-        }
-
-        return 0;
+        return boat.getAttached(
+                MinecartMagicAttachments.TAILWIND_LEVEL
+        ) != null
+                ? boat.getAttached(
+                        MinecartMagicAttachments.TAILWIND_LEVEL
+                )
+                : 0;
     }
 
     public static void setTailwindLevel(
             BoatEntity boat,
             int level
     ) {
+        boat.setAttached(
+                MinecartMagicAttachments.TAILWIND_LEVEL,
+                Math.max(0, level)
+        );
+
         boat.getCommandTags().removeIf(
                 tag -> tag.startsWith(
                         TAILWIND_TAG_PREFIX
                 )
         );
 
-        BoatTailwindData.set(
-                boat,
-                level
-        );
-
-        if (level <= 0) {
-            return;
+        if (level > 0) {
+            boat.addCommandTag(
+                    TAILWIND_TAG_PREFIX + level
+            );
         }
-
-        boat.addCommandTag(
-                TAILWIND_TAG_PREFIX + level
-        );
     }
 
     public static String getTractionTag(int level) {
