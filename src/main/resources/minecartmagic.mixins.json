@@ -6,10 +6,15 @@
   "mixins": [
     "MinecartMaxSpeedMixin",
     "MinecartDropItemMixin",
-    "MinecartDataMixin"
+    "MinecartDataMixin",
+    "BoatTailwindDataMixin",
+    "BoatTailwindPlacementMixin",
+    "BoatTailwindSpeedMixin",
+    "BoatTailwindDropMixin"
   ],
   "client": [
-    "MinecartGlintMixin"
+    "MinecartGlintMixin",
+    "BoatTailwindGlintMixin"
   ],
   "injectors": {
     "defaultRequire": 1
