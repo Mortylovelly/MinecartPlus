@@ -88,13 +88,32 @@ public final class ModEnchantments {
     public static int getTractionLevel(
             AbstractMinecartEntity minecart
     ) {
-        return minecart.getAttached(
-                MinecartMagicAttachments.TRACTION_LEVEL
-        ) != null
-                ? minecart.getAttached(
+        Integer level =
+                minecart.getAttached(
                         MinecartMagicAttachments.TRACTION_LEVEL
-                )
-                : 0;
+                );
+
+        if (level != null && level > 0) {
+            return level;
+        }
+
+        for (String tag : minecart.getCommandTags()) {
+            if (!tag.startsWith(TRACTION_TAG_PREFIX)) {
+                continue;
+            }
+
+            try {
+                return Integer.parseInt(
+                        tag.substring(
+                                TRACTION_TAG_PREFIX.length()
+                        )
+                );
+            } catch (NumberFormatException ignored) {
+                return 0;
+            }
+        }
+
+        return 0;
     }
 
     public static int getTractionLevel(
@@ -109,20 +128,20 @@ public final class ModEnchantments {
             AbstractMinecartEntity minecart,
             int level
     ) {
+        int safeLevel = Math.max(0, level);
+
         minecart.setAttached(
                 MinecartMagicAttachments.TRACTION_LEVEL,
-                Math.max(0, level)
+                safeLevel
         );
 
         minecart.getCommandTags().removeIf(
-                tag -> tag.startsWith(
-                        TRACTION_TAG_PREFIX
-                )
+                tag -> tag.startsWith(TRACTION_TAG_PREFIX)
         );
 
-        if (level > 0) {
+        if (safeLevel > 0) {
             minecart.addCommandTag(
-                    TRACTION_TAG_PREFIX + level
+                    TRACTION_TAG_PREFIX + safeLevel
             );
         }
     }
@@ -140,33 +159,52 @@ public final class ModEnchantments {
     public static int getTailwindLevel(
             BoatEntity boat
     ) {
-        return boat.getAttached(
-                MinecartMagicAttachments.TAILWIND_LEVEL
-        ) != null
-                ? boat.getAttached(
+        Integer level =
+                boat.getAttached(
                         MinecartMagicAttachments.TAILWIND_LEVEL
-                )
-                : 0;
+                );
+
+        if (level != null && level > 0) {
+            return level;
+        }
+
+        for (String tag : boat.getCommandTags()) {
+            if (!tag.startsWith(TAILWIND_TAG_PREFIX)) {
+                continue;
+            }
+
+            try {
+                return Integer.parseInt(
+                        tag.substring(
+                                TAILWIND_TAG_PREFIX.length()
+                        )
+                );
+            } catch (NumberFormatException ignored) {
+                return 0;
+            }
+        }
+
+        return 0;
     }
 
     public static void setTailwindLevel(
             BoatEntity boat,
             int level
     ) {
+        int safeLevel = Math.max(0, level);
+
         boat.setAttached(
                 MinecartMagicAttachments.TAILWIND_LEVEL,
-                Math.max(0, level)
+                safeLevel
         );
 
         boat.getCommandTags().removeIf(
-                tag -> tag.startsWith(
-                        TAILWIND_TAG_PREFIX
-                )
+                tag -> tag.startsWith(TAILWIND_TAG_PREFIX)
         );
 
-        if (level > 0) {
+        if (safeLevel > 0) {
             boat.addCommandTag(
-                    TAILWIND_TAG_PREFIX + level
+                    TAILWIND_TAG_PREFIX + safeLevel
             );
         }
     }
