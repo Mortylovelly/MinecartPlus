@@ -1,6 +1,7 @@
 package com.minecartmagic.mixin;
 
 import com.minecartmagic.ModEnchantments;
+import net.minecraft.client.model.Model;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
@@ -8,6 +9,7 @@ import net.minecraft.client.render.entity.MinecartEntityRenderer;
 import net.minecraft.client.render.entity.model.EntityModel;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
+import net.minecraft.entity.vehicle.MinecartEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -22,7 +24,10 @@ public abstract class MinecartGlintMixin {
 
     @Inject(
             method = "render",
-            at = @At("TAIL")
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/model/Model;render(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumer;II)V"
+            )
     )
     private void minecartmagic$renderTractionGlint(
             AbstractMinecartEntity minecart,
@@ -33,7 +38,7 @@ public abstract class MinecartGlintMixin {
             int light,
             CallbackInfo ci
     ) {
-        if (!(minecart instanceof net.minecraft.entity.vehicle.MinecartEntity normalMinecart)) {
+        if (!(minecart instanceof MinecartEntity normalMinecart)) {
             return;
         }
 
@@ -43,13 +48,13 @@ public abstract class MinecartGlintMixin {
             return;
         }
 
-        VertexConsumer glint = vertexConsumers.getBuffer(
+        VertexConsumer glintConsumer = vertexConsumers.getBuffer(
                 RenderLayer.getDirectEntityGlint()
         );
 
         model.render(
                 matrices,
-                glint,
+                glintConsumer,
                 light,
                 0
         );
