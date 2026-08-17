@@ -2,7 +2,7 @@ package com.minecartmagic.mixin;
 
 import com.minecartmagic.ModEnchantments;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-
+import net.minecraft.server.world.ServerWorld;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -12,11 +12,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MinecartMaxSpeedMixin {
 
     @Inject(
-            method = "getMaxSpeed()D",
+            method = "getMaxSpeed",
             at = @At("RETURN"),
             cancellable = true
     )
     private void minecartmagic$increaseMaxSpeed(
+            ServerWorld world,
             CallbackInfoReturnable<Double> cir
     ) {
         AbstractMinecartEntity minecart =
