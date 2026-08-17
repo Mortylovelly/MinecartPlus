@@ -21,6 +21,9 @@ public abstract class BoatTailwindSpeedMixin {
         BoatEntity boat =
                 (BoatEntity) (Object) this;
 
+        /*
+         * Скорость лодки рассчитываем на сервере.
+         */
         if (boat.getEntityWorld().isClient()) {
             return;
         }
@@ -36,23 +39,25 @@ public abstract class BoatTailwindSpeedMixin {
          * Попутный ветер:
          *
          * I   = 0.60 блока/тик
-         * II  = 0.82 блока/тик
-         * III = 1.05 блока/тик
-         *
-         * Это заметно быстрее обычной лодки,
-         * но слабее наших максимальных значений Тяги.
+         * II  = 0.80 блока/тик
+         * III = 1.00 блока/тик
          */
         double maxSpeed = switch (level) {
             case 1 -> 0.60D;
-            case 2 -> 0.82D;
-            default -> 1.05D;
+            case 2 -> 0.80D;
+            default -> 1.00D;
         };
 
         /*
-         * Эффект работает именно на воде.
-         * На льду и других поверхностях ванильная
-         * физика лодки остаётся без изменений.
+         * Чем выше уровень, тем быстрее лодка набирает
+         * максимальную скорость.
          */
+        double acceleration = switch (level) {
+            case 1 -> 0.035D;
+            case 2 -> 0.050D;
+            default -> 0.065D;
+        };
+
         if (!boat.isTouchingWater()) {
             return;
         }
@@ -66,12 +71,33 @@ public abstract class BoatTailwindSpeedMixin {
                                 + velocity.z * velocity.z
                 );
 
-        if (horizontalSpeed <= maxSpeed) {
+        /*
+         * Если лодка практически стоит, ничего не
+         * создаём искусственно. Ваниль сама начнёт движение
+         * после гребли игрока.
+         */
+        if (horizontalSpeed <= 0.0001D) {
             return;
         }
 
+        /*
+         * Уже достигли максимальной скорости.
+         */
+        if (horizontalSpeed >= maxSpeed) {
+            return;
+        }
+
+        /*
+         * Плавно увеличиваем текущую скорость.
+         */
+        double newSpeed =
+                Math.min(
+                        horizontalSpeed + acceleration,
+                        maxSpeed
+                );
+
         double scale =
-                maxSpeed / horizontalSpeed;
+                newSpeed / horizontalSpeed;
 
         boat.setVelocity(
                 velocity.x * scale,
