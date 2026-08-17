@@ -3,6 +3,7 @@ package com.minecartmagic;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
+import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.entity.vehicle.MinecartEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.RegistryKey;
@@ -21,8 +22,20 @@ public final class ModEnchantments {
                     )
             );
 
+    public static final RegistryKey<Enchantment> TAILWIND_KEY =
+            RegistryKey.of(
+                    RegistryKeys.ENCHANTMENT,
+                    Identifier.of(
+                            MinecartMagicMod.MOD_ID,
+                            "tailwind"
+                    )
+            );
+
     private static final String TRACTION_TAG_PREFIX =
             "minecartmagic_traction_";
+
+    private static final String TAILWIND_TAG_PREFIX =
+            "minecartmagic_tailwind_";
 
     private ModEnchantments() {
     }
@@ -31,6 +44,23 @@ public final class ModEnchantments {
     }
 
     public static int getTractionLevel(ItemStack stack) {
+        return getItemEnchantmentLevel(
+                stack,
+                TRACTION_KEY
+        );
+    }
+
+    public static int getTailwindLevel(ItemStack stack) {
+        return getItemEnchantmentLevel(
+                stack,
+                TAILWIND_KEY
+        );
+    }
+
+    private static int getItemEnchantmentLevel(
+            ItemStack stack,
+            RegistryKey<Enchantment> key
+    ) {
         if (stack == null || stack.isEmpty()) {
             return 0;
         }
@@ -43,7 +73,7 @@ public final class ModEnchantments {
                     entry.getKey();
 
             if (enchantment.getKey().isPresent()
-                    && enchantment.getKey().get().equals(TRACTION_KEY)) {
+                    && enchantment.getKey().get().equals(key)) {
 
                 return EnchantmentHelper.getLevel(
                         enchantment,
@@ -65,10 +95,6 @@ public final class ModEnchantments {
             return trackedLevel;
         }
 
-        /*
-         * Резервное чтение старого command tag.
-         * Это сохраняет совместимость со старыми вагонетками.
-         */
         for (String tag : minecart.getCommandTags()) {
 
             if (!tag.startsWith(TRACTION_TAG_PREFIX)) {
@@ -96,11 +122,6 @@ public final class ModEnchantments {
         return 0;
     }
 
-    /*
-     * Старый метод оставляем специально,
-     * чтобы не ломать уже существующий код,
-     * который работает с обычной MinecartEntity.
-     */
     public static int getTractionLevel(
             MinecartEntity minecart
     ) {
@@ -133,10 +154,6 @@ public final class ModEnchantments {
         );
     }
 
-    /*
-     * Старый overload тоже сохраняем,
-     * чтобы существующий код не сломался.
-     */
     public static void setTractionLevel(
             MinecartEntity minecart,
             int level
@@ -147,7 +164,66 @@ public final class ModEnchantments {
         );
     }
 
+    public static int getTailwindLevel(
+            BoatEntity boat
+    ) {
+        int trackedLevel =
+                BoatTailwindData.get(boat);
+
+        if (trackedLevel > 0) {
+            return trackedLevel;
+        }
+
+        for (String tag : boat.getCommandTags()) {
+
+            if (!tag.startsWith(TAILWIND_TAG_PREFIX)) {
+                continue;
+            }
+
+            String value =
+                    tag.substring(
+                            TAILWIND_TAG_PREFIX.length()
+                    );
+
+            try {
+                return Integer.parseInt(value);
+            } catch (NumberFormatException ignored) {
+                return 0;
+            }
+        }
+
+        return 0;
+    }
+
+    public static void setTailwindLevel(
+            BoatEntity boat,
+            int level
+    ) {
+        boat.getCommandTags().removeIf(
+                tag -> tag.startsWith(
+                        TAILWIND_TAG_PREFIX
+                )
+        );
+
+        BoatTailwindData.set(
+                boat,
+                level
+        );
+
+        if (level <= 0) {
+            return;
+        }
+
+        boat.addCommandTag(
+                TAILWIND_TAG_PREFIX + level
+        );
+    }
+
     public static String getTractionTag(int level) {
         return TRACTION_TAG_PREFIX + level;
+    }
+
+    public static String getTailwindTag(int level) {
+        return TAILWIND_TAG_PREFIX + level;
     }
 }
