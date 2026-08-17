@@ -4,7 +4,6 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "MinecartMaxSpeedMixin",
-    "MinecartDropMixin"
   ],
   "injectors": {
     "defaultRequire": 1
