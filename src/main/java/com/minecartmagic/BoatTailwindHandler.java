@@ -19,12 +19,15 @@ public final class BoatTailwindHandler {
     private static void onWorldTick(
             ServerWorld world
     ) {
-        for (BoatEntity boat :
-                world.getEntitiesByClass(
-                        BoatEntity.class,
-                        boat -> boat.isAlive()
-                                && boat.isTouchingWater()
-                )) {
+        for (var entity : world.iterateEntities()) {
+
+            if (!(entity instanceof BoatEntity boat)) {
+                continue;
+            }
+
+            if (!boat.isAlive() || !boat.isTouchingWater()) {
+                continue;
+            }
 
             int level =
                     ModEnchantments.getTailwindLevel(boat);
@@ -33,12 +36,24 @@ public final class BoatTailwindHandler {
                 continue;
             }
 
+            /*
+             * Попутный ветер:
+             *
+             * I   = 0.60 блока/тик
+             * II  = 0.80 блока/тик
+             * III = 1.00 блока/тик
+             */
             double maxSpeed = switch (level) {
                 case 1 -> 0.60D;
                 case 2 -> 0.80D;
                 default -> 1.00D;
             };
 
+            /*
+             * Скорость набирается постепенно,
+             * чтобы лодка не получала резкий телепорт
+             * скорости каждый тик.
+             */
             double acceleration = switch (level) {
                 case 1 -> 0.020D;
                 case 2 -> 0.032D;
@@ -54,6 +69,10 @@ public final class BoatTailwindHandler {
                                     + velocity.z * velocity.z
                     );
 
+            /*
+             * Лодка стоит — ждём, пока ванильная
+             * физика сама начнёт движение.
+             */
             if (horizontalSpeed <= 0.00001D) {
                 continue;
             }
