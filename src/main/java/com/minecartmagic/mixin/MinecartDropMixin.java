@@ -6,6 +6,7 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.entity.vehicle.MinecartEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -17,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(MinecartEntity.class)
+@Mixin(AbstractMinecartEntity.class)
 public abstract class MinecartDropMixin {
 
     @Inject(
@@ -29,14 +30,19 @@ public abstract class MinecartDropMixin {
             DamageSource source,
             CallbackInfo ci
     ) {
-        MinecartEntity minecart =
-                (MinecartEntity) (Object) this;
+        /*
+         * Mixin применяется ко всем AbstractMinecartEntity,
+         * поэтому нас интересует только обычная вагонетка.
+         */
+        if (!((Object) this instanceof MinecartEntity minecart)) {
+            return;
+        }
 
         int level = 0;
 
         /*
-         * Определяем уровень Тяги,
-         * сохранённый на вагонетке.
+         * Получаем уровень Тяги, который был сохранён
+         * на вагонетке при установке на рельсы.
          */
         for (int i = 3; i >= 1; i--) {
             if (minecart.getCommandTags().contains(
@@ -48,8 +54,8 @@ public abstract class MinecartDropMixin {
         }
 
         /*
-         * Обычная вагонетка.
-         * Оставляем ванильное выпадение.
+         * Если зачарования нет —
+         * полностью оставляем ванильное выпадение.
          */
         if (level <= 0) {
             return;
@@ -64,7 +70,7 @@ public abstract class MinecartDropMixin {
                         .get(RegistryKeys.ENCHANTMENT);
 
         /*
-         * Получаем настоящее зачарование Тяга.
+         * Находим наше настоящее зачарование Тяга.
          */
         RegistryEntry<Enchantment> traction =
                 enchantmentRegistry
@@ -76,12 +82,12 @@ public abstract class MinecartDropMixin {
         }
 
         /*
-         * Создаём ItemStack обычной вагонетки.
+         * Создаём обычную вагонетку.
          */
         ItemStack stack = new ItemStack(Items.MINECART);
 
         /*
-         * Берём текущие зачарования предмета.
+         * Получаем текущие зачарования ItemStack.
          */
         ItemEnchantmentsComponent currentEnchantments =
                 stack.getOrDefault(
@@ -95,7 +101,8 @@ public abstract class MinecartDropMixin {
                 );
 
         /*
-         * Добавляем настоящее Тяга.
+         * Возвращаем настоящее зачарование Тяга
+         * с тем же уровнем.
          */
         enchantments.set(
                 traction,
@@ -113,8 +120,8 @@ public abstract class MinecartDropMixin {
         minecart.dropStack(stack);
 
         /*
-         * Не даём ванильному коду выбросить
-         * ещё одну обычную вагонетку.
+         * Полностью отменяем ванильный dropItems(),
+         * чтобы обычная вагонетка дополнительно не выпала.
          */
         ci.cancel();
     }
