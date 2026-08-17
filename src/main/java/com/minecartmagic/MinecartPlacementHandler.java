@@ -4,7 +4,6 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.block.AbstractRailBlock;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.entity.vehicle.MinecartEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.server.world.ServerWorld;
@@ -133,10 +132,6 @@ public final class MinecartPlacementHandler {
             return AbstractMinecartEntity.Type.TNT;
         }
 
-        if (stack.isOf(Items.SPAWNER_MINECART)) {
-            return AbstractMinecartEntity.Type.SPAWNER;
-        }
-
         if (stack.isOf(Items.COMMAND_BLOCK_MINECART)) {
             return AbstractMinecartEntity.Type.COMMAND_BLOCK;
         }
@@ -145,6 +140,11 @@ public final class MinecartPlacementHandler {
     }
 
     public static String getTractionTag(int level) {
-        return ModEnchantments.getTractionTag(level);
+        return switch (level) {
+            case 1 -> "minecartmagic_traction_1";
+            case 2 -> "minecartmagic_traction_2";
+            case 3 -> "minecartmagic_traction_3";
+            default -> "minecartmagic_traction_0";
+        };
     }
 }
