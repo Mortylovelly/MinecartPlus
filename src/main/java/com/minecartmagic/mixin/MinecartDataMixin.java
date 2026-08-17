@@ -19,9 +19,11 @@ public abstract class MinecartDataMixin {
             DataTracker.Builder builder,
             CallbackInfo ci
     ) {
-        builder.add(
-                MinecartTractionData.TRACTION_LEVEL,
-                0
-        );
+        if (!builder.isUsed()) {
+            builder.add(
+                    MinecartTractionData.TRACTION_LEVEL,
+                    0
+            );
+        }
     }
 }
