@@ -2,6 +2,7 @@ package com.minecartmagic;
 
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.entity.vehicle.MinecartEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.RegistryKey;
@@ -26,10 +27,10 @@ public final class ModEnchantments {
     public static void init() {
     }
 
-    /*
-     * Получение Тяги с предмета-вагонетки.
-     */
     public static int getTractionLevel(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return 0;
+        }
 
         for (var entry :
                 EnchantmentHelper.getEnchantments(stack)
@@ -51,14 +52,9 @@ public final class ModEnchantments {
         return 0;
     }
 
-    /*
-     * Получение Тяги с установленной вагонетки.
-     *
-     * Minecraft 1.21.1 на Fabric не имеет Forge-style
-     * getPersistentData(), поэтому используем command tags Entity.
-     */
-    public static int getTractionLevel(MinecartEntity minecart) {
-
+    public static int getTractionLevel(
+            AbstractMinecartEntity minecart
+    ) {
         for (String tag : minecart.getCommandTags()) {
 
             if (!tag.startsWith(TRACTION_TAG_PREFIX)) {
@@ -78,18 +74,10 @@ public final class ModEnchantments {
         return 0;
     }
 
-    /*
-     * Сохраняем уровень Тяги на вагонетку.
-     */
     public static void setTractionLevel(
-            MinecartEntity minecart,
+            AbstractMinecartEntity minecart,
             int level
     ) {
-
-        /*
-         * Сначала удаляем старый уровень,
-         * чтобы никогда не осталось двух тегов.
-         */
         minecart.getCommandTags().removeIf(
                 tag -> tag.startsWith(TRACTION_TAG_PREFIX)
         );
@@ -101,5 +89,9 @@ public final class ModEnchantments {
         minecart.addCommandTag(
                 TRACTION_TAG_PREFIX + level
         );
+    }
+
+    public static String getTractionTag(int level) {
+        return TRACTION_TAG_PREFIX + level;
     }
 }
