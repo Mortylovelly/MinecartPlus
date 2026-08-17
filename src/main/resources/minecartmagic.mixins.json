@@ -7,9 +7,6 @@
     "MinecartMaxSpeedMixin",
     "MinecartDropItemMixin"
   ],
-  "client": [
-    "MinecartGlintMixin"
-  ],
   "injectors": {
     "defaultRequire": 1
   }
