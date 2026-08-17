@@ -4,7 +4,6 @@ import com.minecartmagic.ModEnchantments;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.VertexConsumers;
 import net.minecraft.client.render.entity.MinecartEntityRenderer;
 import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.client.util.math.MatrixStack;
@@ -78,25 +77,11 @@ public class MinecartGlintMixin {
             return vertexConsumers.getBuffer(layer);
         }
 
-        VertexConsumer glint1 =
-                ItemRenderer.getItemGlintConsumer(
-                        vertexConsumers,
-                        layer,
-                        false,
-                        true
-                );
-
-        VertexConsumer glint2 =
-                ItemRenderer.getItemGlintConsumer(
-                        vertexConsumers,
-                        layer,
-                        false,
-                        true
-                );
-
-        return VertexConsumers.union(
-                glint1,
-                glint2
+        return ItemRenderer.getItemGlintConsumer(
+                vertexConsumers,
+                layer,
+                false,
+                true
         );
     }
 }
