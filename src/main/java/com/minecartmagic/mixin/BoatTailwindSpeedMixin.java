@@ -21,13 +21,6 @@ public abstract class BoatTailwindSpeedMixin {
         BoatEntity boat =
                 (BoatEntity) (Object) this;
 
-        /*
-         * Скорость лодки рассчитываем на сервере.
-         */
-        if (boat.getEntityWorld().isClient()) {
-            return;
-        }
-
         int level =
                 ModEnchantments.getTailwindLevel(boat);
 
@@ -35,32 +28,21 @@ public abstract class BoatTailwindSpeedMixin {
             return;
         }
 
-        /*
-         * Попутный ветер:
-         *
-         * I   = 0.60 блока/тик
-         * II  = 0.80 блока/тик
-         * III = 1.00 блока/тик
-         */
+        if (!boat.isTouchingWater()) {
+            return;
+        }
+
         double maxSpeed = switch (level) {
             case 1 -> 0.60D;
             case 2 -> 0.80D;
             default -> 1.00D;
         };
 
-        /*
-         * Чем выше уровень, тем быстрее лодка набирает
-         * максимальную скорость.
-         */
         double acceleration = switch (level) {
-            case 1 -> 0.035D;
-            case 2 -> 0.050D;
-            default -> 0.065D;
+            case 1 -> 0.020D;
+            case 2 -> 0.032D;
+            default -> 0.045D;
         };
-
-        if (!boat.isTouchingWater()) {
-            return;
-        }
 
         Vec3d velocity =
                 boat.getVelocity();
@@ -71,25 +53,14 @@ public abstract class BoatTailwindSpeedMixin {
                                 + velocity.z * velocity.z
                 );
 
-        /*
-         * Если лодка практически стоит, ничего не
-         * создаём искусственно. Ваниль сама начнёт движение
-         * после гребли игрока.
-         */
-        if (horizontalSpeed <= 0.0001D) {
+        if (horizontalSpeed <= 0.00001D) {
             return;
         }
 
-        /*
-         * Уже достигли максимальной скорости.
-         */
         if (horizontalSpeed >= maxSpeed) {
             return;
         }
 
-        /*
-         * Плавно увеличиваем текущую скорость.
-         */
         double newSpeed =
                 Math.min(
                         horizontalSpeed + acceleration,
