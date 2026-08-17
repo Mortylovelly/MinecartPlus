@@ -5,39 +5,53 @@ import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.MinecartEntityRenderer;
+import net.minecraft.client.render.entity.model.EntityModel;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.entity.vehicle.MinecartEntity;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(MinecartEntityRenderer.class)
-public class MinecartGlintMixin {
+public abstract class MinecartGlintMixin {
 
-    @Redirect(
+    @Shadow
+    protected EntityModel<AbstractMinecartEntity> model;
+
+    @Inject(
             method = "render",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/render/VertexConsumerProvider;getBuffer(Lnet/minecraft/client/render/RenderLayer;)Lnet/minecraft/client/render/VertexConsumer;"
-            )
+            at = @At("TAIL")
     )
-    private VertexConsumer minecartmagic$useTractionGlint(
+    private void minecartmagic$renderTractionGlint(
+            AbstractMinecartEntity minecart,
+            float yaw,
+            float tickDelta,
+            MatrixStack matrices,
             VertexConsumerProvider vertexConsumers,
-            RenderLayer originalLayer,
-            AbstractMinecartEntity minecart
+            int light,
+            CallbackInfo ci
     ) {
-        if (minecart instanceof MinecartEntity normalMinecart) {
-            int tractionLevel = ModEnchantments.getTractionLevel(
-                    normalMinecart
-            );
-
-            if (tractionLevel > 0) {
-                return vertexConsumers.getBuffer(
-                        RenderLayer.getDirectEntityGlint()
-                );
-            }
+        if (!(minecart instanceof net.minecraft.entity.vehicle.MinecartEntity normalMinecart)) {
+            return;
         }
 
-        return vertexConsumers.getBuffer(originalLayer);
+        int tractionLevel = ModEnchantments.getTractionLevel(normalMinecart);
+
+        if (tractionLevel <= 0) {
+            return;
+        }
+
+        VertexConsumer glint = vertexConsumers.getBuffer(
+                RenderLayer.getDirectEntityGlint()
+        );
+
+        model.render(
+                matrices,
+                glint,
+                light,
+                0
+        );
     }
 }
