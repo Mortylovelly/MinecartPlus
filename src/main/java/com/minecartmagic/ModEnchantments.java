@@ -55,8 +55,18 @@ public final class ModEnchantments {
     public static int getTractionLevel(
             AbstractMinecartEntity minecart
     ) {
-        for (String tag : minecart.getCommandTags()) {
+        int trackedLevel =
+                MinecartTractionData.get(minecart);
 
+        if (trackedLevel > 0) {
+            return trackedLevel;
+        }
+
+        /*
+         * Fallback для серверной сущности и старых вагонеток,
+         * которые уже существовали до добавления DataTracker.
+         */
+        for (String tag : minecart.getCommandTags()) {
             if (!tag.startsWith(TRACTION_TAG_PREFIX)) {
                 continue;
             }
@@ -65,7 +75,13 @@ public final class ModEnchantments {
                     tag.substring(TRACTION_TAG_PREFIX.length());
 
             try {
-                return Integer.parseInt(value);
+                int level = Integer.parseInt(value);
+
+                if (level > 0 && !minecart.getEntityWorld().isClient()) {
+                    MinecartTractionData.set(minecart, level);
+                }
+
+                return level;
             } catch (NumberFormatException ignored) {
                 return 0;
             }
@@ -74,12 +90,25 @@ public final class ModEnchantments {
         return 0;
     }
 
+    public static int getTractionLevel(
+            MinecartEntity minecart
+    ) {
+        return getTractionLevel(
+                (AbstractMinecartEntity) minecart
+        );
+    }
+
     public static void setTractionLevel(
             AbstractMinecartEntity minecart,
             int level
     ) {
         minecart.getCommandTags().removeIf(
                 tag -> tag.startsWith(TRACTION_TAG_PREFIX)
+        );
+
+        MinecartTractionData.set(
+                minecart,
+                level
         );
 
         if (level <= 0) {
