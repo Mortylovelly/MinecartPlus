@@ -4,8 +4,8 @@ import com.minecartmagic.ModEnchantments;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.VertexConsumers;
 import net.minecraft.client.render.entity.MinecartEntityRenderer;
+import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.entity.vehicle.MinecartEntity;
@@ -23,6 +23,10 @@ public class MinecartGlintMixin {
     private static final ThreadLocal<AbstractMinecartEntity> MINECART_MAGIC$CURRENT_MINECART =
             new ThreadLocal<>();
 
+    @Unique
+    private static final ThreadLocal<VertexConsumerProvider> MINECART_MAGIC$CURRENT_CONSUMERS =
+            new ThreadLocal<>();
+
     @Inject(
             method = "render",
             at = @At("HEAD")
@@ -37,6 +41,7 @@ public class MinecartGlintMixin {
             CallbackInfo ci
     ) {
         MINECART_MAGIC$CURRENT_MINECART.set(minecart);
+        MINECART_MAGIC$CURRENT_CONSUMERS.set(vertexConsumers);
     }
 
     @Inject(
@@ -52,6 +57,7 @@ public class MinecartGlintMixin {
             int light,
             CallbackInfo ci
     ) {
+        MINECART_MAGIC$CURRENT_CONSUMERS.remove();
         MINECART_MAGIC$CURRENT_MINECART.remove();
     }
 
@@ -80,17 +86,20 @@ public class MinecartGlintMixin {
             return vertexConsumers.getBuffer(originalLayer);
         }
 
-        VertexConsumer normalConsumer =
-                vertexConsumers.getBuffer(originalLayer);
-
-        VertexConsumer glintConsumer =
-                vertexConsumers.getBuffer(
-                        RenderLayer.getDirectEntityGlint()
-                );
-
-        return VertexConsumers.union(
-                normalConsumer,
-                glintConsumer
+        /*
+         * Используем обычный vanilla entity enchantment glint.
+         *
+         * Для entity Minecraft использует ENTITY_GLINT,
+         * а не DIRECT_ENTITY_GLINT.
+         *
+         * ItemRenderer сам объединяет обычный consumer
+         * и glint consumer правильным способом.
+         */
+        return ItemRenderer.getItemGlintConsumer(
+                vertexConsumers,
+                originalLayer,
+                false,
+                true
         );
     }
 }
