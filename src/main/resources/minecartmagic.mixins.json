@@ -7,7 +7,6 @@
     "MinecartMaxSpeedMixin",
     "MinecartDropItemMixin",
     "BoatTailwindPlacementMixin",
-    "BoatTailwindSpeedMixin",
     "BoatTailwindDropMixin"
   ],
   "client": [
