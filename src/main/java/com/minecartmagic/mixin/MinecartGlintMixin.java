@@ -7,9 +7,10 @@ import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.MinecartEntityRenderer;
 import net.minecraft.client.render.entity.model.EntityModel;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.render.item.ItemRenderer;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
+import net.minecraft.entity.vehicle.MinecartEntity;
 import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -45,9 +46,17 @@ public abstract class MinecartGlintMixin {
             VertexConsumerProvider vertexConsumers,
             int renderLight
     ) {
+        // Обычный ванильный рендер.
         model.render(matrices, vertices, light, overlay);
 
-        if (ModEnchantments.getTractionLevel(minecart.getPickBlockStack()) <= 0) {
+        // Тяга хранится на установленной вагонетке в command tag,
+        // поэтому getPickBlockStack() здесь использовать нельзя.
+        if (!(minecart instanceof MinecartEntity normalMinecart)) {
+            return;
+        }
+
+        int tractionLevel = ModEnchantments.getTractionLevel(normalMinecart);
+        if (tractionLevel <= 0) {
             return;
         }
 
@@ -61,6 +70,8 @@ public abstract class MinecartGlintMixin {
                 true
         );
 
+        // Второй проход той же 3D-модели — поверх неё накладывается
+        // настоящий ванильный enchantment glint.
         model.render(matrices, glint, light, OverlayTexture.DEFAULT_UV);
     }
 }
