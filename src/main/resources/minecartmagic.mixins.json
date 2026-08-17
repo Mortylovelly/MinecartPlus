@@ -6,8 +6,6 @@
   "mixins": [
     "MinecartMaxSpeedMixin",
     "MinecartDropItemMixin",
-    "MinecartDataMixin",
-    "BoatTailwindDataMixin",
     "BoatTailwindPlacementMixin",
     "BoatTailwindSpeedMixin",
     "BoatTailwindDropMixin"
