@@ -6,6 +6,7 @@ import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.MinecartEntityRenderer;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
+import net.minecraft.entity.vehicle.MinecartEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -25,14 +26,16 @@ public class MinecartGlintMixin {
             RenderLayer originalLayer,
             AbstractMinecartEntity minecart
     ) {
-        int tractionLevel = ModEnchantments.getTractionLevel(
-                minecart
-        );
-
-        if (tractionLevel > 0) {
-            return vertexConsumers.getBuffer(
-                    RenderLayer.getDirectEntityGlint()
+        if (minecart instanceof MinecartEntity normalMinecart) {
+            int tractionLevel = ModEnchantments.getTractionLevel(
+                    normalMinecart
             );
+
+            if (tractionLevel > 0) {
+                return vertexConsumers.getBuffer(
+                        RenderLayer.getDirectEntityGlint()
+                );
+            }
         }
 
         return vertexConsumers.getBuffer(originalLayer);
