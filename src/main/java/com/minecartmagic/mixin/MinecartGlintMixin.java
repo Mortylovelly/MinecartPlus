@@ -1,14 +1,11 @@
 package com.minecartmagic.mixin;
 
 import com.minecartmagic.ModEnchantments;
-import net.minecraft.client.model.Model;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.MinecartEntityRenderer;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.entity.vehicle.MinecartEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -20,68 +17,24 @@ public class MinecartGlintMixin {
             method = "render",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/model/Model;render(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumer;II)V"
+                    target = "Lnet/minecraft/client/render/VertexConsumerProvider;getBuffer(Lnet/minecraft/client/render/RenderLayer;)Lnet/minecraft/client/render/VertexConsumer;"
             )
     )
-    private void minecartmagic$renderTractionGlint(
-            Model model,
-            MatrixStack matrices,
-            VertexConsumer vertices,
-            int light,
-            int overlay,
-            AbstractMinecartEntity minecart,
-            float yaw,
-            float tickDelta,
-            MatrixStack renderMatrices,
+    private VertexConsumer minecartmagic$useTractionGlint(
             VertexConsumerProvider vertexConsumers,
-            int renderLight
+            RenderLayer originalLayer,
+            AbstractMinecartEntity minecart
     ) {
-        /*
-         * Сначала выполняем обычный ванильный рендер модели.
-         */
-        model.render(
-                matrices,
-                vertices,
-                light,
-                overlay
+        int tractionLevel = ModEnchantments.getTractionLevel(
+                minecart
         );
 
-        /*
-         * Тяга хранится на установленной MinecartEntity
-         * через command tag.
-         */
-        if (!(minecart instanceof MinecartEntity normalMinecart)) {
-            return;
+        if (tractionLevel > 0) {
+            return vertexConsumers.getBuffer(
+                    RenderLayer.getDirectEntityGlint()
+            );
         }
 
-        int tractionLevel =
-                ModEnchantments.getTractionLevel(normalMinecart);
-
-        if (tractionLevel <= 0) {
-            return;
-        }
-
-        /*
-         * Настоящий ванильный ENTITY GLINT.
-         *
-         * Это именно RenderLayer для 3D-сущностей,
-         * а не ItemRenderer item-glint.
-         */
-        VertexConsumer glint =
-                vertexConsumers.getBuffer(
-                        RenderLayer.getDirectEntityGlint()
-                );
-
-        /*
-         * Повторно рисуем ту же самую 3D-модель
-         * в том же положении, но через entity glint.
-         */
-        model.render(
-                matrices,
-                glint,
-                light,
-                overlay,
-                0xFFFFFFFF
-        );
+        return vertexConsumers.getBuffer(originalLayer);
     }
 }
