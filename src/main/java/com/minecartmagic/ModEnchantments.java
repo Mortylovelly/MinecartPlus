@@ -15,7 +15,10 @@ public final class ModEnchantments {
     public static final RegistryKey<Enchantment> TRACTION_KEY =
             RegistryKey.of(
                     RegistryKeys.ENCHANTMENT,
-                    Identifier.of(MinecartMagicMod.MOD_ID, "traction")
+                    Identifier.of(
+                            MinecartMagicMod.MOD_ID,
+                            "traction"
+                    )
             );
 
     private static final String TRACTION_TAG_PREFIX =
@@ -63,25 +66,28 @@ public final class ModEnchantments {
         }
 
         /*
-         * Fallback для серверной сущности и старых вагонеток,
-         * которые уже существовали до добавления DataTracker.
+         * Резервное чтение старого command tag.
+         * Это сохраняет совместимость со старыми вагонетками.
          */
         for (String tag : minecart.getCommandTags()) {
+
             if (!tag.startsWith(TRACTION_TAG_PREFIX)) {
                 continue;
             }
 
             String value =
-                    tag.substring(TRACTION_TAG_PREFIX.length());
+                    tag.substring(
+                            TRACTION_TAG_PREFIX.length()
+                    );
 
             try {
-                int level = Integer.parseInt(value);
+                int level =
+                        Integer.parseInt(value);
 
-                if (level > 0 && !minecart.getEntityWorld().isClient()) {
-                    MinecartTractionData.set(minecart, level);
+                if (level > 0) {
+                    return level;
                 }
 
-                return level;
             } catch (NumberFormatException ignored) {
                 return 0;
             }
@@ -90,6 +96,11 @@ public final class ModEnchantments {
         return 0;
     }
 
+    /*
+     * Старый метод оставляем специально,
+     * чтобы не ломать уже существующий код,
+     * который работает с обычной MinecartEntity.
+     */
     public static int getTractionLevel(
             MinecartEntity minecart
     ) {
@@ -103,7 +114,9 @@ public final class ModEnchantments {
             int level
     ) {
         minecart.getCommandTags().removeIf(
-                tag -> tag.startsWith(TRACTION_TAG_PREFIX)
+                tag -> tag.startsWith(
+                        TRACTION_TAG_PREFIX
+                )
         );
 
         MinecartTractionData.set(
@@ -117,6 +130,20 @@ public final class ModEnchantments {
 
         minecart.addCommandTag(
                 TRACTION_TAG_PREFIX + level
+        );
+    }
+
+    /*
+     * Старый overload тоже сохраняем,
+     * чтобы существующий код не сломался.
+     */
+    public static void setTractionLevel(
+            MinecartEntity minecart,
+            int level
+    ) {
+        setTractionLevel(
+                (AbstractMinecartEntity) minecart,
+                level
         );
     }
 
