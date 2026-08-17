@@ -1,9 +1,10 @@
 package com.minecartmagic.mixin;
 
 import com.minecartmagic.ModEnchantments;
+import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.MinecartEntityRenderer;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.util.math.MatrixStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -13,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MinecartGlintMixin {
 
     @Inject(
-            method = "render(Lnet/minecraft/entity/vehicle/AbstractMinecartEntity;FFLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V",
+            method = "render",
             at = @At("HEAD")
     )
     private void minecartmagic$renderTractionGlint(
@@ -21,7 +22,7 @@ public class MinecartGlintMixin {
             float yaw,
             float tickDelta,
             MatrixStack matrices,
-            net.minecraft.client.render.VertexConsumerProvider vertexConsumers,
+            VertexConsumerProvider vertexConsumers,
             int light,
             CallbackInfo ci
     ) {
@@ -33,7 +34,7 @@ public class MinecartGlintMixin {
             return;
         }
 
-        // Пока только проверяем корректное подключение Mixin.
-        // Рендер самого glint добавим следующим безопасным этапом.
+        // Диагностический этап:
+        // проверяем, что Mixin корректно подключается к MinecartEntityRenderer.
     }
 }
