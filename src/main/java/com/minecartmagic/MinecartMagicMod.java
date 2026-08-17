@@ -14,17 +14,19 @@ public class MinecartMagicMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        MinecartMagicAttachments.init();
 
         ModEnchantments.init();
 
-        MinecartPlacementHandler.init();
-
-        MinecartSpeedHandler.init();
+        MinecartTractionHandler.init();
 
         LOGGER.info("Minecart Magic loaded!");
     }
 
     public static Identifier id(String path) {
-        return Identifier.of(MOD_ID, path);
+        return Identifier.of(
+                MOD_ID,
+                path
+        );
     }
 }
