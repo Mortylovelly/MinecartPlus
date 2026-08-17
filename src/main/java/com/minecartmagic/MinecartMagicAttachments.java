@@ -33,4 +33,9 @@ public final class MinecartMagicAttachments {
 
     private MinecartMagicAttachments() {
     }
+
+    public static void init() {
+        TRACTION_LEVEL.toString();
+        TAILWIND_LEVEL.toString();
+    }
 }
