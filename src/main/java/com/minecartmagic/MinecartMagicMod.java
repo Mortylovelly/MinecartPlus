@@ -20,6 +20,8 @@ public class MinecartMagicMod implements ModInitializer {
 
         MinecartTractionHandler.init();
 
+        BoatTailwindHandler.init();
+
         LOGGER.info("Minecart Magic loaded!");
     }
 
