@@ -17,8 +17,8 @@ public class SelfPropellingBoatScreen
                     "textures/gui/container/furnace.png"
             );
 
-    private static final int BACKGROUND_WIDTH = 176;
-    private static final int BACKGROUND_HEIGHT = 166;
+    private static final int WIDTH = 176;
+    private static final int HEIGHT = 166;
 
     public SelfPropellingBoatScreen(
             SelfPropellingBoatScreenHandler handler,
@@ -32,10 +32,10 @@ public class SelfPropellingBoatScreen
         );
 
         backgroundWidth =
-                BACKGROUND_WIDTH;
+                WIDTH;
 
         backgroundHeight =
-                BACKGROUND_HEIGHT;
+                HEIGHT;
     }
 
     @Override
@@ -45,14 +45,17 @@ public class SelfPropellingBoatScreen
             int mouseX,
             int mouseY
     ) {
+
         int x =
-                (width - backgroundWidth) / 2;
+                (width - backgroundWidth)
+                        / 2;
 
         int y =
-                (height - backgroundHeight) / 2;
+                (height - backgroundHeight)
+                        / 2;
 
         /*
-         * Full vanilla furnace GUI.
+         * Внешняя ванильная рамка.
          */
         context.drawTexture(
                 FURNACE_TEXTURE,
@@ -60,20 +63,67 @@ public class SelfPropellingBoatScreen
                 y,
                 0,
                 0,
-                BACKGROUND_WIDTH,
-                BACKGROUND_HEIGHT,
+                WIDTH,
+                HEIGHT,
                 256,
                 256
         );
 
         /*
-         * Vanilla-style flame.
+         * Убираем INPUT SLOT печки.
          *
-         * Texture region:
-         * U = 176
-         * V = 0
-         * W = 14
-         * H = 14
+         * Это не наш слот.
+         */
+        drawPanelOver(
+                context,
+                x + 56,
+                y + 17,
+                18,
+                18
+        );
+
+        /*
+         * Убираем OUTPUT SLOT.
+         */
+        drawPanelOver(
+                context,
+                x + 116,
+                y + 36,
+                18,
+                18
+        );
+
+        /*
+         * Убираем стрелку переплавки.
+         */
+        drawPanelOver(
+                context,
+                x + 79,
+                y + 34,
+                26,
+                16
+        );
+
+        /*
+         * Наш единственный топливный слот.
+         *
+         * Используем именно участок
+         * ванильной furnace texture.
+         */
+        context.drawTexture(
+                FURNACE_TEXTURE,
+                x + 79,
+                y + 72,
+                56,
+                53,
+                18,
+                18,
+                256,
+                256
+        );
+
+        /*
+         * Индикатор огня.
          */
         int flameHeight =
                 handler.getFuelProgress();
@@ -82,8 +132,9 @@ public class SelfPropellingBoatScreen
 
             context.drawTexture(
                     FURNACE_TEXTURE,
-                    x + 56,
-                    y + 36 + 14 - flameHeight,
+                    x + 80,
+                    y + 38
+                            + (14 - flameHeight),
                     176,
                     14 - flameHeight,
                     14,
@@ -94,12 +145,34 @@ public class SelfPropellingBoatScreen
         }
     }
 
+    private void drawPanelOver(
+            DrawContext context,
+            int x,
+            int y,
+            int width,
+            int height
+    ) {
+
+        /*
+         * Цвет внутренней панели ванильных
+         * контейнеров.
+         */
+        context.fill(
+                x,
+                y,
+                x + width,
+                y + height,
+                0xFFC6C6C6
+        );
+    }
+
     @Override
     protected void drawForeground(
             DrawContext context,
             int mouseX,
             int mouseY
     ) {
+
         context.drawText(
                 textRenderer,
                 title,
