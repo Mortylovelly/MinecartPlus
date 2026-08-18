@@ -1,5 +1,7 @@
 {
   "enchantment.minecartmagic.traction": "Тяга",
   "enchantment.minecartmagic.tailwind": "Попутный ветер",
-  "item.minecartmagic.self_propelling_boat": "Самоходная лодка"
+  "item.minecartmagic.self_propelling_boat": "Самоходная лодка",
+  "container.minecartmagic.self_propelling_boat": "Самоходная лодка",
+  "container.minecartmagic.fuel": "Топливо"
 }
