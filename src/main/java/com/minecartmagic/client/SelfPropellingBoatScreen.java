@@ -8,9 +8,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 public class SelfPropellingBoatScreen
-        extends HandledScreen<
-                SelfPropellingBoatScreenHandler
-                > {
+        extends HandledScreen<SelfPropellingBoatScreenHandler> {
 
     private static final Identifier FURNACE_TEXTURE =
             Identifier.ofVanilla(
@@ -31,11 +29,8 @@ public class SelfPropellingBoatScreen
                 title
         );
 
-        backgroundWidth =
-                WIDTH;
-
-        backgroundHeight =
-                HEIGHT;
+        backgroundWidth = WIDTH;
+        backgroundHeight = HEIGHT;
     }
 
     @Override
@@ -45,17 +40,14 @@ public class SelfPropellingBoatScreen
             int mouseX,
             int mouseY
     ) {
-
         int x =
-                (width - backgroundWidth)
-                        / 2;
+                (width - backgroundWidth) / 2;
 
         int y =
-                (height - backgroundHeight)
-                        / 2;
+                (height - backgroundHeight) / 2;
 
         /*
-         * Внешняя ванильная рамка.
+         * Весь ванильный фон.
          */
         context.drawTexture(
                 FURNACE_TEXTURE,
@@ -70,11 +62,15 @@ public class SelfPropellingBoatScreen
         );
 
         /*
-         * Убираем INPUT SLOT печки.
-         *
-         * Это не наш слот.
+         * -------------------------------------------------
+         * Убираем НЕ нужные визуальные элементы печки.
+         * -------------------------------------------------
          */
-        drawPanelOver(
+
+        /*
+         * Верхний INPUT SLOT.
+         */
+        cover(
                 context,
                 x + 56,
                 y + 17,
@@ -83,9 +79,9 @@ public class SelfPropellingBoatScreen
         );
 
         /*
-         * Убираем OUTPUT SLOT.
+         * OUTPUT SLOT.
          */
-        drawPanelOver(
+        cover(
                 context,
                 x + 116,
                 y + 36,
@@ -94,9 +90,9 @@ public class SelfPropellingBoatScreen
         );
 
         /*
-         * Убираем стрелку переплавки.
+         * Стрелка переплавки.
          */
-        drawPanelOver(
+        cover(
                 context,
                 x + 79,
                 y + 34,
@@ -105,25 +101,24 @@ public class SelfPropellingBoatScreen
         );
 
         /*
-         * Наш единственный топливный слот.
+         * -------------------------------------------------
+         * ЕДИНСТВЕННЫЙ слот самоходной лодки.
          *
-         * Используем именно участок
-         * ванильной furnace texture.
+         * Это ровно та же координата, что у настоящего
+         * FuelSlot в ScreenHandler:
+         *
+         * x = 79
+         * y = 37
+         * -------------------------------------------------
          */
-        context.drawTexture(
-                FURNACE_TEXTURE,
+        drawVanillaSlot(
+                context,
                 x + 79,
-                y + 72,
-                56,
-                53,
-                18,
-                18,
-                256,
-                256
+                y + 37
         );
 
         /*
-         * Индикатор огня.
+         * Пламя.
          */
         int flameHeight =
                 handler.getFuelProgress();
@@ -133,7 +128,7 @@ public class SelfPropellingBoatScreen
             context.drawTexture(
                     FURNACE_TEXTURE,
                     x + 80,
-                    y + 38
+                    y + 42
                             + (14 - flameHeight),
                     176,
                     14 - flameHeight,
@@ -145,18 +140,40 @@ public class SelfPropellingBoatScreen
         }
     }
 
-    private void drawPanelOver(
+    /*
+     * Рисует один обычный vanilla slot.
+     *
+     * Берём его прямо из GUI-текстуры печи.
+     */
+    private void drawVanillaSlot(
+            DrawContext context,
+            int x,
+            int y
+    ) {
+        context.drawTexture(
+                FURNACE_TEXTURE,
+                x,
+                y,
+                56,
+                53,
+                18,
+                18,
+                256,
+                256
+        );
+    }
+
+    /*
+     * Перекрывает часть обычной печной GUI,
+     * которая нам не нужна.
+     */
+    private void cover(
             DrawContext context,
             int x,
             int y,
             int width,
             int height
     ) {
-
-        /*
-         * Цвет внутренней панели ванильных
-         * контейнеров.
-         */
         context.fill(
                 x,
                 y,
