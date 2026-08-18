@@ -22,49 +22,46 @@ public abstract class SelfPropellingBoatVelocityMixin {
             at = @At("HEAD"),
             cancellable = true
     )
-    private void minecartmagic$handleSelfPropelledVelocity(
+    private void minecartmagic$selfPropellingVelocity(
             CallbackInfo ci
     ) {
         BoatEntity boat =
                 (BoatEntity) (Object) this;
 
-        if (!(boat instanceof SelfPropellingBoatEntity selfPropellingBoat)) {
+        if (!(boat
+                instanceof SelfPropellingBoatEntity selfPropellingBoat)) {
             return;
         }
 
         /*
-         * БЕЗ топлива:
+         * NO FUEL:
          *
-         * вообще ничего не меняем.
+         * Completely vanilla BoatEntity.
          *
-         * Значит BoatEntity полностью ванильная:
-         * W/A/S/D работают как обычно.
+         * W/A/S/D work normally.
          */
         if (!selfPropellingBoat.hasFuel()) {
             return;
         }
 
-        boolean clientSide =
-                selfPropellingBoat.getWorld().isClient();
-
+        /*
+         * Engine mode:
+         *
+         * W = ignored
+         * S = ignored
+         * A/D = steering
+         */
         selfPropellingBoat.applySelfPropulsion(
                 pressingLeft,
                 pressingRight,
-                clientSide
+                selfPropellingBoat
+                        .getWorld()
+                        .isClient()
         );
 
         /*
-         * Только теперь отключаем ванильную
-         * физику лодки.
-         *
-         * Это предотвращает:
-         *
-         * W → движение
-         * S → задний ход
-         * ванильное торможение
-         * перезапись нашей скорости
-         *
-         * при работающем двигателе.
+         * Prevent vanilla boat movement from
+         * overwriting the engine velocity.
          */
         ci.cancel();
     }
