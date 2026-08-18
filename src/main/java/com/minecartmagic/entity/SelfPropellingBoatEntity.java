@@ -45,20 +45,18 @@ public class SelfPropellingBoatEntity
     private static final int MAX_PASSENGERS = 1;
 
     /*
-     * Базовая скорость двигателя без Tailwind.
-     *
-     * Она используется только тогда,
-     * когда реально горит топливо.
+     * Скорость самоходной лодки БЕЗ зачарования
+     * при работающем двигателе.
      */
     private static final double BASE_ENGINE_SPEED = 0.45D;
 
     /*
-     * Плавность разгона.
+     * Скорость разгона.
      */
     private static final double ACCELERATION = 0.025D;
 
     /*
-     * Скорость поворота A/D.
+     * Скорость руления A/D.
      */
     private static final float STEERING_SPEED = 2.5F;
 
@@ -74,9 +72,6 @@ public class SelfPropellingBoatEntity
                 world
         );
 
-        /*
-         * Пока используется дубовый вариант.
-         */
         setVariant(Type.OAK);
     }
 
@@ -184,14 +179,13 @@ public class SelfPropellingBoatEntity
                 fuelStack.getItem();
 
         /*
-         * Забираем только один предмет
-         * из стака.
+         * Расходуется только один предмет.
          */
         fuelStack.decrement(1);
 
         /*
-         * Например:
-         * lava bucket -> empty bucket.
+         * Lava bucket -> empty bucket
+         * и аналогичные остатки.
          */
         if (fuelStack.isEmpty()
                 && fuelItem.hasRecipeRemainder()) {
@@ -219,36 +213,29 @@ public class SelfPropellingBoatEntity
             return;
         }
 
-        /*
-         * Подхватываем следующий предмет,
-         * когда текущего топлива больше нет.
-         */
         if (getBurnTime() <= 0) {
             startBurningFuel();
         }
 
-        /*
-         * Один тик расхода.
-         */
         if (getBurnTime() > 0) {
-
             setBurnTime(
                     getBurnTime() - 1
             );
         }
 
-        /*
-         * Топливо полностью закончилось.
-         */
         if (getBurnTime() <= 0) {
-
             setBurnTime(0);
             setFuelTime(0);
         }
     }
 
     /*
-     * Максимальная скорость двигателя.
+     * =====================================================
+     * TAILWIND ДЛЯ ДВИГАТЕЛЯ
+     * =====================================================
+     *
+     * Здесь НЕ используется BoatTailwindSpeedMixin.
+     * Двигатель сам определяет свой лимит.
      *
      * Без чар:
      *   0.45
@@ -261,13 +248,8 @@ public class SelfPropellingBoatEntity
      *
      * Tailwind III:
      *   0.84
-     *
-     * ВАЖНО:
-     * это только режим работающего двигателя.
-     * Без топлива самоходная лодка остаётся
-     * обычной лодкой.
      */
-    public double getMaximumSpeed() {
+    private double getEngineMaxSpeed() {
 
         int level =
                 ModEnchantments.getTailwindLevel(
@@ -283,15 +265,14 @@ public class SelfPropellingBoatEntity
     }
 
     /*
-     * Управление.
-     *
-     * Без топлива:
-     * W/A/S/D полностью ванильные.
-     *
-     * С топливом:
-     * A/D = руль
-     * W/S = отключены.
+     * Оставляем этот метод публичным,
+     * поскольку он может использоваться другими
+     * частями мода.
      */
+    public double getMaximumSpeed() {
+        return getEngineMaxSpeed();
+    }
+
     @Override
     public void setInputs(
             boolean pressingLeft,
@@ -300,37 +281,40 @@ public class SelfPropellingBoatEntity
             boolean pressingBack
     ) {
 
-        if (hasFuel()) {
+        /*
+         * Без топлива:
+         * полностью обычная лодка.
+         */
+        if (!hasFuel()) {
 
             super.setInputs(
                     pressingLeft,
                     pressingRight,
-                    false,
-                    false
+                    pressingForward,
+                    pressingBack
             );
 
             return;
         }
 
+        /*
+         * С топливом:
+         * A/D остаются рулём.
+         * W/S отключены.
+         */
         super.setInputs(
                 pressingLeft,
                 pressingRight,
-                pressingForward,
-                pressingBack
+                false,
+                false
         );
     }
 
     /*
-     * Главный двигатель.
+     * Двигатель.
      *
-     * ВАЖНО:
-     * вертикальную скорость мы здесь вообще
-     * не трогаем.
-     *
-     * Вода/гравитация полностью остаются
-     * ванильными.
-     *
-     * Мы меняем только X/Z.
+     * Вертикальную скорость НИКОГДА не меняем.
+     * Вода/гравитация остаются ванильными.
      */
     public void applySelfPropulsion(
             boolean pressingLeft,
@@ -343,14 +327,14 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * На суше двигатель не работает.
+         * Двигатель работает только в воде.
          */
         if (!isTouchingWater()) {
             return;
         }
 
         /*
-         * A/D меняют курс.
+         * Руление.
          */
         if (clientSide) {
 
@@ -393,10 +377,7 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Старая скорость только по направлению
-         * носа.
-         *
-         * Боковой и задний glide уничтожаем.
+         * Текущая скорость только вдоль носа.
          */
         double forwardSpeed =
                 velocity.x * forward.x
@@ -409,43 +390,45 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Максимальная скорость именно двигателя.
-         *
-         * Чтобы Tailwind действительно влиял
-         * независимо от того, какую скорость
-         * дала ванильная BoatEntity.
+         * Получаем ЛИМИТ непосредственно
+         * из уровня Tailwind на этой entity.
          */
         double maximumSpeed =
-                getMaximumSpeed();
+                getEngineMaxSpeed();
 
         /*
-         * Плавный разгон.
+         * Разгоняемся.
          */
         double targetSpeed =
                 forwardSpeed
                         + ACCELERATION;
 
         /*
-         * Гарантируем, что после запуска двигателя
-         * он действительно способен выйти
-         * на свой двигательным лимит.
+         * Ограничение собственным двигателем.
          */
         targetSpeed =
                 Math.min(
-                        maximumSpeed,
-                        Math.max(
-                                targetSpeed,
-                                Math.min(
-                                        maximumSpeed,
-                                        BASE_ENGINE_SPEED
-                                )
-                        )
+                        targetSpeed,
+                        maximumSpeed
                 );
 
         /*
-         * Меняем ТОЛЬКО X/Z.
+         * Имеет значение именно уровень чар.
          *
-         * velocity.y оставляем ванильной.
+         * Даже если ванильная скорость перед этим
+         * стала маленькой, двигатель всё равно
+         * выходит на свой правильный максимум.
+         */
+        if (targetSpeed < BASE_ENGINE_SPEED) {
+            targetSpeed =
+                    Math.min(
+                            BASE_ENGINE_SPEED,
+                            maximumSpeed
+                    );
+        }
+
+        /*
+         * Меняем ТОЛЬКО горизонтальное движение.
          */
         setVelocity(
                 forward.x * targetSpeed,
@@ -469,7 +452,7 @@ public class SelfPropellingBoatEntity
 
         /*
          * Shift + ПКМ снаружи:
-         * открыть GUI.
+         * открыть меню топлива.
          */
         if (player.isSneaking()
                 && !getPassengerList().contains(player)) {
@@ -486,9 +469,6 @@ public class SelfPropellingBoatEntity
             );
         }
 
-        /*
-         * Обычная посадка / выход.
-         */
         return super.interact(
                 player,
                 hand
@@ -498,20 +478,10 @@ public class SelfPropellingBoatEntity
     @Override
     public void tick() {
 
-        /*
-         * Расход топлива.
-         */
         tickFuel();
 
         /*
-         * Оригинальный BoatEntity.tick().
-         *
-         * Поэтому сохраняются:
-         * - гравитация;
-         * - вода;
-         * - плавучесть;
-         * - столкновения;
-         * - пассажир.
+         * Оригинальная BoatEntity физика.
          */
         super.tick();
     }
@@ -548,23 +518,19 @@ public class SelfPropellingBoatEntity
                 );
 
         if (!fuelStack.isEmpty()) {
-
             dropStack(
                     fuelStack
             );
         }
 
         /*
-         * Возвращаем саму лодку.
+         * Возвращаем лодку.
          */
         ItemStack boatStack =
                 new ItemStack(
                         ModItems.SELF_PROPELLING_BOAT
                 );
 
-        /*
-         * Сохраняем Tailwind.
-         */
         int tailwindLevel =
                 ModEnchantments.getTailwindLevel(
                         this
