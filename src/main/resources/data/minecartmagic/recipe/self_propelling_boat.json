@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:oak_boat",
+    "minecraft:furnace"
+  ],
+  "result": {
+    "id": "minecartmagic:self_propelling_boat",
+    "count": 1
+  }
+}
