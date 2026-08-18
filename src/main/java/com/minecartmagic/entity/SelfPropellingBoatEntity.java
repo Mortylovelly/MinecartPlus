@@ -3,6 +3,9 @@ package com.minecartmagic.entity;
 import com.minecartmagic.ModEnchantments;
 import com.minecartmagic.ModItems;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.vehicle.BoatEntity;
@@ -18,6 +21,12 @@ import net.minecraft.world.World;
 
 public class SelfPropellingBoatEntity extends BoatEntity {
 
+    private static final TrackedData<Integer> FUEL =
+            DataTracker.registerData(
+                    SelfPropellingBoatEntity.class,
+                    TrackedDataHandlerRegistry.INTEGER
+            );
+
     private static final int MAX_FUEL = 3200;
     private static final int FUEL_PER_COAL = 1600;
 
@@ -25,11 +34,11 @@ public class SelfPropellingBoatEntity extends BoatEntity {
     private static final double ACCELERATION = 0.025D;
 
     /*
-     * Скорость поворота A/D в градусах за тик.
+     * Управление рулём:
+     * A = влево
+     * D = вправо
      */
     private static final float STEERING_SPEED = 2.5F;
-
-    private int fuel;
 
     public SelfPropellingBoatEntity(
             EntityType<? extends SelfPropellingBoatEntity> entityType,
@@ -37,15 +46,34 @@ public class SelfPropellingBoatEntity extends BoatEntity {
     ) {
         super(entityType, world);
 
-        /*
-         * Пока доступна только одна версия:
-         * дубовая.
-         */
         setVariant(Type.OAK);
     }
 
+    @Override
+    protected void initDataTracker(
+            DataTracker.Builder builder
+    ) {
+        super.initDataTracker(builder);
+
+        builder.add(
+                FUEL,
+                0
+        );
+    }
+
+    /*
+     * Самоходная лодка имеет только одно место.
+     *
+     * BoatEntity использует этот лимит при проверке
+     * возможности посадки пассажира.
+     */
+    @Override
+    protected int getMaxPassengers() {
+        return 1;
+    }
+
     public int getFuel() {
-        return fuel;
+        return getDataTracker().get(FUEL);
     }
 
     public int getMaxFuel() {
@@ -53,16 +81,22 @@ public class SelfPropellingBoatEntity extends BoatEntity {
     }
 
     public boolean hasFuel() {
-        return fuel > 0;
+        return getFuel() > 0;
     }
 
     public void setFuel(int fuel) {
-        this.fuel = Math.max(
-                0,
-                Math.min(
-                        MAX_FUEL,
-                        fuel
-                )
+        int clamped =
+                Math.max(
+                        0,
+                        Math.min(
+                                MAX_FUEL,
+                                fuel
+                        )
+                );
+
+        getDataTracker().set(
+                FUEL,
+                clamped
         );
     }
 
@@ -72,13 +106,12 @@ public class SelfPropellingBoatEntity extends BoatEntity {
             return false;
         }
 
-        if (fuel >= MAX_FUEL) {
+        if (getFuel() >= MAX_FUEL) {
             return false;
         }
 
-        fuel = Math.min(
-                MAX_FUEL,
-                fuel + FUEL_PER_COAL
+        setFuel(
+                getFuel() + FUEL_PER_COAL
         );
 
         return true;
@@ -115,47 +148,57 @@ public class SelfPropellingBoatEntity extends BoatEntity {
     }
 
     /**
-     * Полностью автономный режим.
+     * Самоходный режим.
      *
      * С топливом:
      *
+     * W = ничего
+     * S = ничего
      * A = поворот влево
      * D = поворот вправо
-     * W = игнорируется
-     * S = игнорируется
      *
-     * Лодка сама постоянно получает тягу вперёд.
+     * Двигатель всегда толкает лодку вперёд.
+     *
+     * clientSide = true:
+     * используется локальный ввод игрока.
+     *
+     * clientSide = false:
+     * сервер просто использует уже актуальный yaw лодки.
      */
     public void applySelfPropulsion(
             boolean pressingLeft,
-            boolean pressingRight
+            boolean pressingRight,
+            boolean clientSide
     ) {
-        if (getWorld().isClient()) {
-            return;
-        }
-
         if (!hasFuel()) {
             return;
         }
 
-        if (!isTouchingWater()) {
-            return;
+        /*
+         * Если это сервер — не пытаемся читать
+         * клиентский A/D напрямую.
+         *
+         * Сервер получает актуальный yaw лодки
+         * через обычную синхронизацию транспорта.
+         */
+        if (clientSide) {
+
+            if (pressingLeft && !pressingRight) {
+                setYaw(
+                        getYaw() - STEERING_SPEED
+                );
+            } else if (pressingRight && !pressingLeft) {
+                setYaw(
+                        getYaw() + STEERING_SPEED
+                );
+            }
         }
 
         /*
-         * A / D управляют направлением.
-         *
-         * Одновременно нажатые A+D
-         * не дают вращения.
+         * Самоходный двигатель работает только на воде.
          */
-        if (pressingLeft && !pressingRight) {
-            setYaw(
-                    getYaw() - STEERING_SPEED
-            );
-        } else if (pressingRight && !pressingLeft) {
-            setYaw(
-                    getYaw() + STEERING_SPEED
-            );
+        if (!isTouchingWater()) {
+            return;
         }
 
         Vec3d forward =
@@ -176,31 +219,34 @@ public class SelfPropellingBoatEntity extends BoatEntity {
         double targetSpeed;
 
         if (horizontalSpeed < maxSpeed) {
-
             targetSpeed =
                     Math.min(
                             maxSpeed,
                             horizontalSpeed
                                     + ACCELERATION
                     );
-
         } else {
-
             targetSpeed =
                     maxSpeed;
         }
 
         /*
-         * Одну единицу топлива за тик.
+         * Только сервер действительно расходует топливо.
+         *
+         * На клиенте топливо будет синхронизировано
+         * через DataTracker.
          */
-        fuel--;
+        if (!clientSide) {
+            setFuel(
+                    getFuel() - 1
+            );
+        }
 
         /*
          * Полностью задаём горизонтальную скорость
          * по текущему носу лодки.
          *
-         * Поэтому старый боковой/random glide
-         * не сохраняется.
+         * Никаких старых случайных push-векторов.
          */
         setVelocity(
                 forward.x * targetSpeed,
@@ -226,27 +272,25 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
         /*
          * Уголь / древесный уголь:
-         * заправляем двигатель.
+         * заправка двигателя.
          */
         if (stack.isOf(Items.COAL)
                 || stack.isOf(Items.CHARCOAL)) {
 
-            if (fuel >= MAX_FUEL) {
+            if (getFuel() >= MAX_FUEL) {
                 return ActionResult.FAIL;
             }
 
             if (!getWorld().isClient()) {
 
-                addFuel(stack);
+                if (addFuel(stack)) {
 
-                /*
-                 * Creative не расходует уголь.
-                 */
-                if (!player.getAbilities().creativeMode) {
-                    stack.decrement(1);
+                    if (!player.getAbilities().creativeMode) {
+                        stack.decrement(1);
+                    }
+
+                    player.swingHand(hand);
                 }
-
-                player.swingHand(hand);
             }
 
             return ActionResult.success(
@@ -255,13 +299,12 @@ public class SelfPropellingBoatEntity extends BoatEntity {
         }
 
         /*
-         * Если это не топливо —
-         * используем полностью ванильное
-         * поведение BoatEntity.
+         * Без топлива здесь работает обычная
+         * посадка BoatEntity.
          *
-         * Благодаря этому без топлива:
-         *
-         * W/A/S/D = обычная лодка.
+         * С топливом посадка тоже обычная:
+         * пассажир остаётся внутри, но наша
+         * физика игнорирует W/S.
          */
         return super.interact(
                 player,
@@ -272,21 +315,10 @@ public class SelfPropellingBoatEntity extends BoatEntity {
     @Override
     public void tick() {
         /*
-         * Ничего не переопределяем.
+         * Мы не вмешиваемся в сам tick.
          *
-         * BoatEntity.tick() занимается:
-         * пассажиром,
-         * посадкой,
-         * выходом,
-         * ориентацией,
-         * обычной физикой.
-         *
-         * Когда топлива нет —
-         * всё работает ванильно.
-         *
-         * Когда топливо есть —
-         * SelfPropellingBoatVelocityMixin
-         * перехватывает updateVelocity().
+         * Перехват физики производится
+         * SelfPropellingBoatVelocityMixin.
          */
         super.tick();
     }
@@ -302,7 +334,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
         /*
          * Creative:
-         * ломаем без выпадения предмета.
+         * предмет не выпадает.
          */
         if (source.getAttacker()
                 instanceof PlayerEntity player
@@ -319,7 +351,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
                 );
 
         /*
-         * Сохраняем Tailwind.
+         * Tailwind сохраняется.
          */
         int tailwindLevel =
                 ModEnchantments.getTailwindLevel(this);
@@ -358,7 +390,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
         nbt.putInt(
                 "Fuel",
-                fuel
+                getFuel()
         );
     }
 
