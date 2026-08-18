@@ -3,5 +3,7 @@
   "enchantment.minecartmagic.tailwind": "Tailwind",
   "item.minecartmagic.self_propelling_boat": "Self-Propelling Boat",
   "container.minecartmagic.self_propelling_boat": "Self-Propelling Boat",
-  "container.minecartmagic.fuel": "Fuel"
+  "container.minecartmagic.fuel": "Fuel",
+  "container.minecartmagic.fuel_count": "Reserve: %s",
+  "container.minecartmagic.burn_time": "Burning: %s s"
 }
