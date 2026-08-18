@@ -33,24 +33,38 @@ public abstract class SelfPropellingBoatVelocityMixin {
         }
 
         /*
-         * Только лодка с топливом переходит
-         * в самоходный режим.
+         * БЕЗ топлива:
          *
-         * Без топлива vanilla updateVelocity()
-         * продолжает работать полностью нормально.
+         * вообще ничего не меняем.
+         *
+         * Значит BoatEntity полностью ванильная:
+         * W/A/S/D работают как обычно.
          */
         if (!selfPropellingBoat.hasFuel()) {
             return;
         }
 
+        boolean clientSide =
+                selfPropellingBoat.getWorld().isClient();
+
         selfPropellingBoat.applySelfPropulsion(
                 pressingLeft,
-                pressingRight
+                pressingRight,
+                clientSide
         );
 
         /*
-         * Не даём ванильной BoatEntity повторно
-         * обработать W/S/A/D и перезаписать скорость.
+         * Только теперь отключаем ванильную
+         * физику лодки.
+         *
+         * Это предотвращает:
+         *
+         * W → движение
+         * S → задний ход
+         * ванильное торможение
+         * перезапись нашей скорости
+         *
+         * при работающем двигателе.
          */
         ci.cancel();
     }
