@@ -10,13 +10,11 @@ import net.minecraft.util.Identifier;
 public class SelfPropellingBoatScreen
         extends HandledScreen<SelfPropellingBoatScreenHandler> {
 
-    /*
-     * Используем только маленькие куски
-     * ванильной furnace texture:
-     *
-     * - рамка слота;
-     * - анимированный огонь.
-     */
+    private static final Identifier INVENTORY_TEXTURE =
+            Identifier.ofVanilla(
+                    "textures/gui/container/inventory.png"
+            );
+
     private static final Identifier FURNACE_TEXTURE =
             Identifier.ofVanilla(
                     "textures/gui/container/furnace.png"
@@ -26,9 +24,12 @@ public class SelfPropellingBoatScreen
     private static final int HEIGHT = 166;
 
     /*
-     * Верхняя панель.
+     * Верхняя часть меню самоходной лодки.
+     *
+     * Нижние 90 пикселей будут настоящим
+     * ванильным инвентарём игрока.
      */
-    private static final int PANEL_TOP_HEIGHT = 70;
+    private static final int TOP_HEIGHT = 76;
 
     public SelfPropellingBoatScreen(
             SelfPropellingBoatScreenHandler handler,
@@ -41,11 +42,15 @@ public class SelfPropellingBoatScreen
                 title
         );
 
-        backgroundWidth =
-                WIDTH;
+        backgroundWidth = WIDTH;
+        backgroundHeight = HEIGHT;
 
-        backgroundHeight =
-                HEIGHT;
+        /*
+         * HandledScreen иначе сам будет рисовать
+         * затемнение/фон за GUI.
+         */
+        playerInventoryTitleX = 8;
+        playerInventoryTitleY = 74;
     }
 
     @Override
@@ -56,48 +61,61 @@ public class SelfPropellingBoatScreen
             int mouseY
     ) {
         int x =
-                (width - backgroundWidth) / 2;
+                (width - backgroundWidth)
+                        / 2;
 
         int y =
-                (height - backgroundHeight) / 2;
+                (height - backgroundHeight)
+                        / 2;
 
         /*
          * =================================================
-         * ВЕРХНЯЯ ПАНЕЛЬ — МЕНЮ ЛОДКИ
+         * ВЕРХНЯЯ ЧАСТЬ — НАША ПАНЕЛЬ ЛОДКИ
          * =================================================
          */
 
         /*
-         * Тёмная внешняя рамка.
+         * Внешняя тёмная рамка.
          */
         context.fill(
                 x,
                 y,
                 x + WIDTH,
-                y + PANEL_TOP_HEIGHT,
+                y + TOP_HEIGHT,
                 0xFF373737
         );
 
         /*
-         * Основная светлая панель.
+         * Основная внутренняя панель.
          */
         context.fill(
                 x + 1,
                 y + 1,
                 x + WIDTH - 1,
-                y + PANEL_TOP_HEIGHT - 1,
+                y + TOP_HEIGHT - 1,
                 0xFFC6C6C6
         );
 
         /*
-         * Верхняя подсветка.
+         * Светлая верхняя грань.
          */
         context.fill(
                 x + 2,
                 y + 2,
                 x + WIDTH - 2,
                 y + 3,
-                0xFFE2E2E2
+                0xFFE8E8E8
+        );
+
+        /*
+         * Темнее по нижнему краю.
+         */
+        context.fill(
+                x + 2,
+                y + TOP_HEIGHT - 3,
+                x + WIDTH - 2,
+                y + TOP_HEIGHT - 2,
+                0xFF8A8A8A
         );
 
         /*
@@ -106,20 +124,19 @@ public class SelfPropellingBoatScreen
          * =================================================
          */
 
-        int fuelSlotX =
+        int fuelX =
                 x + 79;
 
-        int fuelSlotY =
+        int fuelY =
                 y + 36;
 
         /*
-         * Рамка слота берётся напрямую
-         * из ванильной furnace texture.
+         * Только 18x18 ванильного слота.
          */
         context.drawTexture(
                 FURNACE_TEXTURE,
-                fuelSlotX,
-                fuelSlotY,
+                fuelX,
+                fuelY,
                 56,
                 53,
                 18,
@@ -130,30 +147,20 @@ public class SelfPropellingBoatScreen
 
         /*
          * =================================================
-         * ОГОНЬ
+         * АНИМИРОВАННЫЙ ОГОНЬ
          * =================================================
-         *
-         * Это тот же flame sprite,
-         * который используется ванильной печью.
-         *
-         * Высота меняется каждый тик.
          */
+
         int flameHeight =
                 handler.getFuelProgress();
 
         if (flameHeight > 0) {
 
-            int flameX =
-                    x + 103;
-
-            int flameY =
-                    y + 43
-                            + (14 - flameHeight);
-
             context.drawTexture(
                     FURNACE_TEXTURE,
-                    flameX,
-                    flameY,
+                    x + 103,
+                    y + 44
+                            + (14 - flameHeight),
                     176,
                     14 - flameHeight,
                     14,
@@ -165,39 +172,35 @@ public class SelfPropellingBoatScreen
 
         /*
          * =================================================
-         * ШКАЛА ТОПЛИВА
+         * ШКАЛА ОСТАВШЕГОСЯ ГОРЕНИЯ
          * =================================================
-         *
-         * Отдельная вертикальная шкала.
-         *
-         * Полностью заполнена:
-         * 100%
-         *
-         * Пустая:
-         * 0%
          */
+
         int gaugeX =
                 x + 126;
 
         int gaugeY =
-                y + 15;
+                y + 18;
 
-        int gaugeWidth = 12;
-        int gaugeHeight = 40;
+        int gaugeWidth =
+                12;
+
+        int gaugeHeight =
+                42;
 
         /*
-         * Внешняя рамка.
+         * Тёмная рамка.
          */
         context.fill(
                 gaugeX,
                 gaugeY,
                 gaugeX + gaugeWidth,
                 gaugeY + gaugeHeight,
-                0xFF373737
+                0xFF3A3A3A
         );
 
         /*
-         * Внутренняя область.
+         * Внутренний тёмный фон.
          */
         context.fill(
                 gaugeX + 2,
@@ -207,13 +210,13 @@ public class SelfPropellingBoatScreen
                 0xFF555555
         );
 
-        int fuelPercent =
+        int percent =
                 handler.getFuelPercent();
 
         int filledHeight =
                 Math.round(
                         (gaugeHeight - 4)
-                                * fuelPercent
+                                * percent
                                 / 100.0F
                 );
 
@@ -225,6 +228,9 @@ public class SelfPropellingBoatScreen
                             - 2
                             - filledHeight;
 
+            /*
+             * Основное заполнение.
+             */
             context.fill(
                     gaugeX + 3,
                     top,
@@ -234,14 +240,14 @@ public class SelfPropellingBoatScreen
             );
 
             /*
-             * Маленькая подсветка шкалы.
+             * Подсветка.
              */
             context.fill(
                     gaugeX + 3,
                     top,
                     gaugeX + 4,
                     gaugeY + gaugeHeight - 2,
-                    0xFFFFC85C
+                    0xFFFFCF69
             );
         }
 
@@ -250,39 +256,35 @@ public class SelfPropellingBoatScreen
          * РАЗДЕЛИТЕЛЬ
          * =================================================
          */
-
         context.fill(
                 x,
-                y + PANEL_TOP_HEIGHT,
+                y + TOP_HEIGHT,
                 x + WIDTH,
-                y + PANEL_TOP_HEIGHT + 1,
-                0xFF373737
+                y + TOP_HEIGHT + 1,
+                0xFF555555
         );
 
         /*
          * =================================================
-         * НИЖНЯЯ ЧАСТЬ — ИНВЕНТАРЬ ИГРОКА
+         * НИЖНЯЯ ЧАСТЬ — НАСТОЯЩИЙ VANILLA INVENTORY
          * =================================================
          *
-         * Теперь здесь НЕ белый фон.
+         * Берём именно кусок vanilla inventory.png,
+         * а не рисуем его вручную.
+         *
+         * В inventory.png нижняя часть стандартного
+         * инвентаря начинается примерно с Y=76.
          */
-        context.fill(
+        context.drawTexture(
+                INVENTORY_TEXTURE,
                 x,
-                y + PANEL_TOP_HEIGHT + 1,
-                x + WIDTH,
-                y + HEIGHT,
-                0xFF3F3F3F
-        );
-
-        /*
-         * Более светлая внутренняя область.
-         */
-        context.fill(
-                x + 4,
-                y + PANEL_TOP_HEIGHT + 5,
-                x + WIDTH - 4,
-                y + HEIGHT - 4,
-                0xFF8B8B8B
+                y + TOP_HEIGHT + 1,
+                0,
+                76,
+                WIDTH,
+                HEIGHT - TOP_HEIGHT - 1,
+                256,
+                256
         );
     }
 
@@ -293,7 +295,7 @@ public class SelfPropellingBoatScreen
             int mouseY
     ) {
         /*
-         * Название меню.
+         * Название.
          */
         context.drawText(
                 textRenderer,
@@ -319,7 +321,7 @@ public class SelfPropellingBoatScreen
         );
 
         /*
-         * Сколько топлива осталось в слоте.
+         * Запас топлива в слоте.
          */
         int fuelCount =
                 handler.getFuelStackCount();
@@ -337,8 +339,7 @@ public class SelfPropellingBoatScreen
         );
 
         /*
-         * Сколько секунд осталось
-         * у текущего топлива.
+         * Время горения текущего топлива.
          */
         int seconds =
                 handler.getRemainingSeconds();
@@ -356,14 +357,17 @@ public class SelfPropellingBoatScreen
         );
 
         /*
-         * Подпись над инвентарём игрока.
+         * Название инвентаря.
+         *
+         * Оно находится ровно там же, где
+         * у vanilla inventory screen.
          */
         context.drawText(
                 textRenderer,
                 playerInventoryTitle,
                 8,
                 74,
-                0xFFFFFF,
+                0x404040,
                 false
         );
     }
