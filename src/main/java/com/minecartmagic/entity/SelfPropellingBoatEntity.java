@@ -24,6 +24,14 @@ public class SelfPropellingBoatEntity extends BoatEntity {
     private static final double BASE_MAX_SPEED = 0.35D;
     private static final double ACCELERATION = 0.025D;
 
+    /*
+     * Скорость поворота от A/D.
+     *
+     * Это именно управление направлением лодки,
+     * а не изменение скорости двигателя.
+     */
+    private static final float STEERING_SPEED = 2.5F;
+
     private int fuel;
 
     public SelfPropellingBoatEntity(
@@ -37,6 +45,22 @@ public class SelfPropellingBoatEntity extends BoatEntity {
          * дубовая самоходная лодка.
          */
         setVariant(Type.OAK);
+    }
+
+    /**
+     * Самоходная лодка может иметь пассажира,
+     * но пассажир НЕ должен становиться ванильным
+     * controlling passenger BoatEntity.
+     *
+     * Это главное отличие от обычной лодки.
+     *
+     * Благодаря этому ванильная BoatEntity не пытается
+     * включать собственную управляемую лодочную физику
+     * поверх нашего двигателя.
+     */
+    @Override
+    public PlayerEntity getControllingPassenger() {
+        return null;
     }
 
     public int getFuel() {
@@ -92,50 +116,75 @@ public class SelfPropellingBoatEntity extends BoatEntity {
                 * getTailwindMultiplier();
     }
 
-    /**
-     * Вычисляет направление строго по текущему
-     * yaw самой лодки.
-     *
-     * Никакого сохранённого направления нет.
-     */
     private Vec3d getForwardDirection() {
-        float yaw = getYaw();
-
-        double radians =
-                Math.toRadians(yaw);
+        double yawRadians =
+                Math.toRadians(getYaw());
 
         return new Vec3d(
-                -Math.sin(radians),
+                -Math.sin(yawRadians),
                 0.0D,
-                Math.cos(radians)
-        ).normalize();
+                Math.cos(yawRadians)
+        );
     }
 
     /**
-     * Самоходный двигатель.
+     * Собственное управление самоходной лодкой.
      *
-     * Вызывается ПОСЛЕ полного BoatEntity.tick().
+     * A:
+     * поворот влево.
      *
-     * Поэтому:
+     * D:
+     * поворот вправо.
      *
-     * - пассажир уже обработан;
-     * - A/D уже обработаны;
-     * - yaw уже актуален;
-     * - ванильная физика уже закончила работу;
-     * - W/S не нужны двигателю.
+     * W:
+     * полностью игнорируется.
+     *
+     * S:
+     * полностью игнорируется.
+     *
+     * Двигатель всегда толкает лодку строго вперёд
+     * относительно её текущего yaw.
      */
-    public void applySelfPropulsion() {
-
+    public void handleSelfPropulsion(
+            boolean pressingLeft,
+            boolean pressingRight
+    ) {
+        /*
+         * На клиенте не выполняем авторитетную
+         * физику двигателя.
+         */
         if (getWorld().isClient()) {
             return;
         }
 
+        /*
+         * Управлять направлением можно только
+         * когда есть пассажир.
+         */
+        if (!getPassengerList().isEmpty()) {
+
+            if (pressingLeft && !pressingRight) {
+                setYaw(
+                        getYaw() - STEERING_SPEED
+                );
+            }
+
+            if (pressingRight && !pressingLeft) {
+                setYaw(
+                        getYaw() + STEERING_SPEED
+                );
+            }
+        }
+
+        /*
+         * Нет топлива.
+         */
         if (fuel <= 0) {
             return;
         }
 
         /*
-         * Двигатель работает только на воде.
+         * Двигатель работает только в воде.
          */
         if (!isTouchingWater()) {
             return;
@@ -156,10 +205,6 @@ public class SelfPropellingBoatEntity extends BoatEntity {
         double maxSpeed =
                 getMaximumSpeed();
 
-        /*
-         * Если лодка уже достигла максимальной скорости,
-         * просто удерживаем скорость по носу.
-         */
         double newSpeed;
 
         if (horizontalSpeed < maxSpeed) {
@@ -178,10 +223,14 @@ public class SelfPropellingBoatEntity extends BoatEntity {
         }
 
         /*
-         * Одно топливо за один серверный тик.
+         * Расход топлива.
          */
         fuel--;
 
+        /*
+         * Сбрасываем старое боковое/заднее движение
+         * и задаём скорость строго по носу.
+         */
         setVelocity(
                 forward.x * newSpeed,
                 velocity.y,
@@ -206,7 +255,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
         /*
          * Уголь / древесный уголь:
-         * заправляем двигатель.
+         * заправка двигателя.
          */
         if (stack.isOf(Items.COAL)
                 || stack.isOf(Items.CHARCOAL)) {
@@ -219,9 +268,6 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
                 addFuel(stack);
 
-                /*
-                 * В Creative уголь не расходуется.
-                 */
                 if (!player.getAbilities().creativeMode) {
                     stack.decrement(1);
                 }
@@ -235,8 +281,8 @@ public class SelfPropellingBoatEntity extends BoatEntity {
         }
 
         /*
-         * Остальное отдаём ванильной лодке:
-         * посадка, выход и т.д.
+         * Любое другое взаимодействие —
+         * ванильная посадка / выход.
          */
         return super.interact(
                 player,
@@ -247,10 +293,12 @@ public class SelfPropellingBoatEntity extends BoatEntity {
     @Override
     public void tick() {
         /*
-         * Никакого собственного движения здесь нет.
+         * Вся ванильная логика BoatEntity
+         * всё ещё выполняется.
          *
-         * Всё движение двигателя подключается
-         * отдельным Mixin в самом конце tick().
+         * Но наш getControllingPassenger()
+         * возвращает null, поэтому пассажир больше
+         * не включает ванильную систему управления.
          */
         super.tick();
     }
@@ -266,7 +314,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
         /*
          * Creative:
-         * лодка исчезает без выпадения предмета.
+         * предмет не выпадает.
          */
         if (source.getAttacker()
                 instanceof PlayerEntity player
