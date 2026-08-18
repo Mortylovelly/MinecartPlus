@@ -45,25 +45,14 @@ public class SelfPropellingBoatEntity
     private static final int MAX_PASSENGERS = 1;
 
     /*
-     * Базовая скорость двигателя.
-     * Используется только при работающем топливе.
+     * Базовая скорость самоходной лодки
+     * при работающем двигателе.
      */
     private static final double BASE_ENGINE_SPEED = 0.45D;
 
     private static final double ACCELERATION = 0.025D;
 
     private static final float STEERING_SPEED = 2.5F;
-
-    /*
-     * Параметры плавучести самоходной лодки.
-     *
-     * Они нужны только в режиме работающего двигателя,
-     * потому что в этом режиме ванильный updateVelocity()
-     * перехватывается нашим Mixin.
-     */
-    private static final double BUOYANCY_MAX_UP = 0.12D;
-    private static final double BUOYANCY_ACCELERATION = 0.035D;
-    private static final double SURFACE_EPSILON = 0.08D;
 
     private final SimpleInventory fuelInventory =
             new SimpleInventory(1);
@@ -170,6 +159,7 @@ public class SelfPropellingBoatEntity
 
         if (fuelValue == null
                 || fuelValue <= 0) {
+
             setFuelTime(0);
             return;
         }
@@ -186,14 +176,14 @@ public class SelfPropellingBoatEntity
                 fuelStack.getItem();
 
         /*
-         * Съедаем только один предмет топлива.
-         * Остальной стак остаётся в слоте.
+         * Используем только ОДИН предмет
+         * из стака.
          */
         fuelStack.decrement(1);
 
         /*
          * Например:
-         * лавовое ведро -> пустое ведро.
+         * lava bucket -> empty bucket.
          */
         if (fuelStack.isEmpty()
                 && fuelItem.hasRecipeRemainder()) {
@@ -202,6 +192,7 @@ public class SelfPropellingBoatEntity
                     fuelItem.getRecipeRemainder();
 
             if (remainder != null) {
+
                 fuelInventory.setStack(
                         0,
                         new ItemStack(
@@ -220,35 +211,52 @@ public class SelfPropellingBoatEntity
             return;
         }
 
+        /*
+         * Если текущего топлива нет,
+         * пытаемся взять следующий предмет
+         * из единственного слота.
+         */
         if (getBurnTime() <= 0) {
             startBurningFuel();
         }
 
+        /*
+         * Один тик горения.
+         */
         if (getBurnTime() > 0) {
+
             setBurnTime(
                     getBurnTime() - 1
             );
         }
 
+        /*
+         * Текущее топливо полностью закончилось.
+         */
         if (getBurnTime() <= 0) {
+
             setBurnTime(0);
             setFuelTime(0);
         }
     }
 
     /*
-     * Максимальная скорость именно двигателя.
+     * Лимит скорости ДВИГАТЕЛЯ.
      *
-     * Без топлива этот метод не используется,
-     * поэтому самоходная лодка без топлива
-     * сохраняет обычную скорость ванильной лодки.
+     * Без чар:
+     * 0.45
      *
-     * С топливом:
+     * Tailwind I:
+     * 0.62
      *
-     * без чар = 0.45
-     * Tailwind I = 0.62
-     * Tailwind II = 0.72
-     * Tailwind III = 0.84
+     * Tailwind II:
+     * 0.72
+     *
+     * Tailwind III:
+     * 0.84
+     *
+     * Этот метод используется только
+     * когда двигатель действительно работает.
      */
     public double getMaximumSpeed() {
 
@@ -267,11 +275,16 @@ public class SelfPropellingBoatEntity
 
     /*
      * Без топлива:
+     *
      * полностью ванильное управление.
      *
      * С топливом:
-     * W/S отключаются,
-     * A/D остаются рулём.
+     *
+     * A/D = руль
+     * W/S = отключены
+     *
+     * При этом вертикальная физика всё равно
+     * остаётся ванильной.
      */
     @Override
     public void setInputs(
@@ -280,6 +293,7 @@ public class SelfPropellingBoatEntity
             boolean pressingForward,
             boolean pressingBack
     ) {
+
         if (hasFuel()) {
 
             super.setInputs(
@@ -301,96 +315,38 @@ public class SelfPropellingBoatEntity
     }
 
     /*
-     * Рассчитывает вертикальную составляющую скорости
-     * для работающего двигателя.
+     * Только горизонтальная тяга двигателя.
      *
-     * Если лодка ушла под воду:
-     * постепенно толкаем её обратно вверх.
+     * ВАЖНО:
+     * velocity.y здесь НИКОГДА не переписывается
+     * искусственно.
      *
-     * Если лодка находится около поверхности:
-     * не позволяем ей продолжать падать.
-     */
-    private double calculateBuoyancy(
-            double currentVerticalVelocity
-    ) {
-        float waterHeight =
-                getWaterHeightBelow();
-
-        if (Float.isNaN(waterHeight)
-                || Float.isInfinite(waterHeight)) {
-            return currentVerticalVelocity;
-        }
-
-        double depth =
-                waterHeight - getY();
-
-        /*
-         * Лодка находится ниже уровня воды.
-         */
-        if (depth > SURFACE_EPSILON) {
-
-            double upward =
-                    Math.min(
-                            BUOYANCY_MAX_UP,
-                            BUOYANCY_ACCELERATION
-                                    + depth * 0.08D
-                    );
-
-            return Math.max(
-                    currentVerticalVelocity,
-                    upward
-            );
-        }
-
-        /*
-         * Очень близко к поверхности.
-         */
-        if (depth > -SURFACE_EPSILON) {
-
-            return Math.max(
-                    currentVerticalVelocity,
-                    0.0D
-            );
-        }
-
-        /*
-         * Если выше поверхности, не мешаем
-         * нормальной вертикальной физике.
-         */
-        return currentVerticalVelocity;
-    }
-
-    /*
-     * Двигатель самоходной лодки.
-     *
-     * Срабатывает только при наличии топлива.
-     *
-     * A/D = руль.
-     * W/S = игнорируются.
-     *
-     * Горизонтальная скорость всегда направлена
-     * строго по носу лодки.
+     * Вертикальная физика приходит из ванильной
+     * BoatEntity.updateVelocity().
      */
     public void applySelfPropulsion(
             boolean pressingLeft,
             boolean pressingRight,
             boolean clientSide
     ) {
+
         if (!hasFuel()) {
             return;
         }
 
         /*
-         * Двигатель работает только в воде.
+         * Двигатель работает исключительно
+         * когда лодка касается воды.
+         *
+         * На суше этот метод вообще ничего
+         * не меняет.
          */
         if (!isTouchingWater()) {
             return;
         }
 
         /*
-         * A/D управляют курсом.
-         *
-         * Только клиент обрабатывает локальный ввод.
+         * A/D меняют только курс.
          */
         if (clientSide) {
 
@@ -418,7 +374,7 @@ public class SelfPropellingBoatEntity
                 getVelocity();
 
         /*
-         * Направление носа лодки.
+         * Направление носа.
          */
         double radians =
                 Math.toRadians(
@@ -433,20 +389,11 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Сохраняем нормальную вертикальную физику
-         * и при необходимости добавляем плавучесть.
-         */
-        double verticalVelocity =
-                calculateBuoyancy(
-                        velocity.y
-                );
-
-        /*
-         * Берём только составляющую старой скорости
-         * вдоль носа.
+         * Берём только горизонтальную
+         * скорость вдоль носа.
          *
-         * Боковая и задняя скорость удаляются,
-         * чтобы не возникал glide.
+         * Боковая и задняя составляющие
+         * полностью отбрасываются.
          */
         double forwardSpeed =
                 velocity.x * forward.x
@@ -459,7 +406,7 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Плавное ускорение до максимальной скорости.
+         * Плавно разгоняемся.
          */
         double targetSpeed =
                 Math.min(
@@ -469,11 +416,14 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Вся горизонтальная скорость строго по носу.
+         * Меняем ТОЛЬКО X/Z.
+         *
+         * Y оставляем таким, каким его рассчитала
+         * ванильная физика лодки.
          */
         setVelocity(
                 forward.x * targetSpeed,
-                verticalVelocity,
+                velocity.y,
                 forward.z * targetSpeed
         );
 
@@ -490,6 +440,7 @@ public class SelfPropellingBoatEntity
             PlayerEntity player,
             Hand hand
     ) {
+
         /*
          * Shift + ПКМ снаружи:
          * открыть топливное меню.
@@ -522,15 +473,21 @@ public class SelfPropellingBoatEntity
     public void tick() {
 
         /*
-         * Обновляем состояние топлива.
+         * Обрабатываем расход топлива.
          */
         tickFuel();
 
         /*
-         * Обычная логика BoatEntity.
+         * Полностью обычный BoatEntity.tick().
          *
-         * При отсутствии топлива она работает
-         * полностью ванильно.
+         * Это важно для:
+         *
+         * - гравитации;
+         * - воды;
+         * - столкновений;
+         * - пассажира;
+         * - погружения;
+         * - всплытия.
          */
         super.tick();
     }
@@ -540,13 +497,14 @@ public class SelfPropellingBoatEntity
             DamageSource source,
             float amount
     ) {
+
         if (isRemoved()) {
             return true;
         }
 
         /*
          * Creative:
-         * без дропа.
+         * ничего не дропаем.
          */
         if (source.getAttacker()
                 instanceof PlayerEntity player
@@ -566,6 +524,7 @@ public class SelfPropellingBoatEntity
                 );
 
         if (!fuelStack.isEmpty()) {
+
             dropStack(
                     fuelStack
             );
@@ -580,7 +539,7 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Сохраняем Popутный ветер.
+         * Сохраняем Tailwind.
          */
         int tailwindLevel =
                 ModEnchantments.getTailwindLevel(
@@ -619,6 +578,7 @@ public class SelfPropellingBoatEntity
     protected void writeCustomDataToNbt(
             NbtCompound nbt
     ) {
+
         super.writeCustomDataToNbt(
                 nbt
         );
@@ -645,6 +605,7 @@ public class SelfPropellingBoatEntity
     protected void readCustomDataFromNbt(
             NbtCompound nbt
     ) {
+
         super.readCustomDataFromNbt(
                 nbt
         );
@@ -689,6 +650,7 @@ public class SelfPropellingBoatEntity
             PlayerInventory playerInventory,
             PlayerEntity player
     ) {
+
         return new com.minecartmagic.screen
                 .SelfPropellingBoatScreenHandler(
                         syncId,
