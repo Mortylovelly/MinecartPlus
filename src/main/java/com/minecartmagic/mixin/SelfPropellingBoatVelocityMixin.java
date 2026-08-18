@@ -3,7 +3,6 @@ package com.minecartmagic.mixin;
 import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.minecraft.entity.vehicle.BoatEntity;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -11,18 +10,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(BoatEntity.class)
 public abstract class SelfPropellingBoatVelocityMixin {
 
-    @Shadow
-    private boolean pressingLeft;
-
-    @Shadow
-    private boolean pressingRight;
-
     @Inject(
             method = "updateVelocity",
             at = @At("HEAD"),
             cancellable = true
     )
-    private void minecartmagic$selfPropellingVelocity(
+    private void minecartmagic$disableVanillaPhysics(
             CallbackInfo ci
     ) {
         BoatEntity boat =
@@ -34,34 +27,18 @@ public abstract class SelfPropellingBoatVelocityMixin {
         }
 
         /*
-         * NO FUEL:
-         *
-         * Completely vanilla BoatEntity.
-         *
-         * W/A/S/D work normally.
+         * Без работающего топлива:
+         * 100% ванильная лодка.
          */
         if (!selfPropellingBoat.hasFuel()) {
             return;
         }
 
         /*
-         * Engine mode:
+         * При работающем двигателе ванильная
+         * физика не должна перетирать скорость.
          *
-         * W = ignored
-         * S = ignored
-         * A/D = steering
-         */
-        selfPropellingBoat.applySelfPropulsion(
-                pressingLeft,
-                pressingRight,
-                selfPropellingBoat
-                        .getWorld()
-                        .isClient()
-        );
-
-        /*
-         * Prevent vanilla boat movement from
-         * overwriting the engine velocity.
+         * Наша тяга будет применена в конце tick().
          */
         ci.cancel();
     }
