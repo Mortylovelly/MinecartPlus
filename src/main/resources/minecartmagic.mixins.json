@@ -9,7 +9,7 @@
     "MinecartDropItemMixin",
     "BoatTailwindPlacementMixin",
     "BoatTailwindSpeedMixin",
-    "SelfPropellingBoatTickMixin",
+    "SelfPropellingBoatControlMixin",
     "BoatTailwindDropMixin"
   ],
   "client": [
