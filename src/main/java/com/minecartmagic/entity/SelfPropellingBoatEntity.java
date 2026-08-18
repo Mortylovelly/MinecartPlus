@@ -2,12 +2,13 @@ package com.minecartmagic.entity;
 
 import com.minecartmagic.ModEnchantments;
 import com.minecartmagic.ModItems;
-import com.minecartmagic.ModEntities;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
@@ -31,24 +32,28 @@ public class SelfPropellingBoatEntity extends BoatEntity {
     }
 
     public void setFuel(int fuel) {
-        this.fuel = Math.max(0, Math.min(MAX_FUEL, fuel));
+        this.fuel = Math.max(
+                0,
+                Math.min(MAX_FUEL, fuel)
+        );
     }
 
     public boolean addFuel(ItemStack stack) {
-        if (stack.isOf(Items.COAL) || stack.isOf(Items.CHARCOAL)) {
-            if (fuel >= MAX_FUEL) {
-                return false;
-            }
-
-            fuel = Math.min(
-                    MAX_FUEL,
-                    fuel + 1600
-            );
-
-            return true;
+        if (!stack.isOf(Items.COAL)
+                && !stack.isOf(Items.CHARCOAL)) {
+            return false;
         }
 
-        return false;
+        if (fuel >= MAX_FUEL) {
+            return false;
+        }
+
+        fuel = Math.min(
+                MAX_FUEL,
+                fuel + 1600
+        );
+
+        return true;
     }
 
     public Vec3d getPushDirection() {
@@ -137,7 +142,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
     @Override
     public boolean damage(
-            net.minecraft.entity.damage.DamageSource source,
+            DamageSource source,
             float amount
     ) {
         if (isRemoved()) {
@@ -148,16 +153,6 @@ public class SelfPropellingBoatEntity extends BoatEntity {
                 ModItems.SELF_PROPELLING_BOAT
         );
 
-        int tailwindLevel =
-                ModEnchantments.getTailwindLevel(this);
-
-        if (tailwindLevel > 0) {
-            ModEnchantments.setTailwindLevel(
-                    stack,
-                    tailwindLevel
-            );
-        }
-
         dropStack(stack);
 
         discard();
@@ -167,7 +162,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
     @Override
     protected void writeCustomDataToNbt(
-            net.minecraft.nbt.NbtCompound nbt
+            NbtCompound nbt
     ) {
         super.writeCustomDataToNbt(nbt);
 
@@ -194,7 +189,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
     @Override
     protected void readCustomDataFromNbt(
-            net.minecraft.nbt.NbtCompound nbt
+            NbtCompound nbt
     ) {
         super.readCustomDataFromNbt(nbt);
 
