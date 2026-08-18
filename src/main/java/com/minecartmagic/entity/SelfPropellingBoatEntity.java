@@ -33,7 +33,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
         super(entityType, world);
 
         /*
-         * Пока у самоходной лодки только одна версия:
+         * Пока у нас только одна версия самоходной лодки:
          * дубовая.
          */
         setVariant(Type.OAK);
@@ -90,126 +90,56 @@ public class SelfPropellingBoatEntity extends BoatEntity {
     }
 
     /**
-     * Получает строго горизонтальное направление,
-     * куда в данный момент смотрит нос лодки.
+     * Двигатель самоходной лодки.
      *
-     * Никакого сохранённого вектора от игрока здесь нет.
+     * Этот метод вызывается из Mixin в конце
+     * BoatEntity.updateVelocity().
+     *
+     * Благодаря этому:
+     *
+     * - сначала ванильная лодка обрабатывает A/D;
+     * - затем мы берём уже актуальный yaw;
+     * - W/S не имеют значения для двигателя;
+     * - лодка всегда толкается строго вперёд;
+     * - пассажир не отключает двигатель.
      */
-    private Vec3d getForwardDirection() {
-        Vec3d look =
-                getRotationVec(1.0F);
-
-        Vec3d horizontal =
-                new Vec3d(
-                        look.x,
-                        0.0D,
-                        look.z
-                );
-
-        if (horizontal.lengthSquared()
-                <= 0.000001D) {
-            return Vec3d.ZERO;
-        }
-
-        return horizontal.normalize();
-    }
-
-    @Override
-    public Item asItem() {
-        return ModItems.SELF_PROPELLING_BOAT;
-    }
-
-    @Override
-    public ActionResult interact(
-            PlayerEntity player,
-            Hand hand
-    ) {
-        ItemStack stack =
-                player.getStackInHand(hand);
-
-        /*
-         * Уголь и древесный уголь заправляют двигатель.
-         *
-         * Направление здесь НЕ сохраняем.
-         *
-         * Лодка всегда должна ехать туда, куда
-         * направлен её нос.
-         */
-        if (stack.isOf(Items.COAL)
-                || stack.isOf(Items.CHARCOAL)) {
-
-            if (fuel >= MAX_FUEL) {
-                return ActionResult.FAIL;
-            }
-
-            if (!getWorld().isClient()) {
-
-                addFuel(stack);
-
-                if (!player.getAbilities().creativeMode) {
-                    stack.decrement(1);
-                }
-
-                player.swingHand(hand);
-            }
-
-            return ActionResult.success(
-                    getWorld().isClient()
-            );
-        }
-
-        /*
-         * Обычное взаимодействие BoatEntity:
-         * можно сесть в лодку.
-         */
-        return super.interact(
-                player,
-                hand
-        );
-    }
-
-    @Override
-    public void tick() {
-        /*
-         * Сначала полностью выполняем ванильный BoatEntity.tick().
-         *
-         * Именно здесь BoatEntity обрабатывает пассажира,
-         * повороты и обычную физику лодки.
-         *
-         * Поэтому A/D продолжают работать.
-         */
-        super.tick();
+    public void applySelfPropulsion() {
 
         if (getWorld().isClient()) {
             return;
         }
 
-        /*
-         * Нет топлива -> двигателя нет.
-         */
         if (fuel <= 0) {
             return;
         }
 
-        /*
-         * Двигатель работает только на воде.
-         */
         if (!isTouchingWater()) {
             return;
         }
 
+        /*
+         * Направление строго по текущему yaw лодки.
+         *
+         * В Minecraft:
+         * X = -sin(yaw)
+         * Z =  cos(yaw)
+         */
+        double yawRadians =
+                Math.toRadians(
+                        getYaw()
+                );
+
         Vec3d forward =
-                getForwardDirection();
+                new Vec3d(
+                        -Math.sin(yawRadians),
+                        0.0D,
+                        Math.cos(yawRadians)
+                );
 
         if (forward.lengthSquared()
                 <= 0.000001D) {
             return;
         }
-
-        /*
-         * Один тик = одна единица топлива.
-         */
-        fuel--;
 
         Vec3d velocity =
                 getVelocity();
@@ -224,12 +154,11 @@ public class SelfPropellingBoatEntity extends BoatEntity {
                 getMaximumSpeed();
 
         /*
-         * Ускоряемся строго по носу.
-         *
-         * Важное отличие от старой версии:
-         * мы больше не используем pushDirection,
-         * который мог быть направлен куда угодно.
+         * Двигатель потребляет топливо только тогда,
+         * когда реально работает на воде.
          */
+        fuel--;
+
         if (horizontalSpeed < maxSpeed) {
 
             double newSpeed =
@@ -258,11 +187,84 @@ public class SelfPropellingBoatEntity extends BoatEntity {
     }
 
     @Override
+    public Item asItem() {
+        return ModItems.SELF_PROPELLING_BOAT;
+    }
+
+    @Override
+    public ActionResult interact(
+            PlayerEntity player,
+            Hand hand
+    ) {
+        ItemStack stack =
+                player.getStackInHand(hand);
+
+        /*
+         * ПКМ углём / древесным углём:
+         * заправляем двигатель.
+         */
+        if (stack.isOf(Items.COAL)
+                || stack.isOf(Items.CHARCOAL)) {
+
+            if (fuel >= MAX_FUEL) {
+                return ActionResult.FAIL;
+            }
+
+            if (!getWorld().isClient()) {
+
+                addFuel(stack);
+
+                if (!player.getAbilities().creativeMode) {
+                    stack.decrement(1);
+                }
+
+                player.swingHand(hand);
+            }
+
+            return ActionResult.success(
+                    getWorld().isClient()
+            );
+        }
+
+        /*
+         * Всё остальное отдаём ванильной BoatEntity:
+         * посадка, выход и т.д.
+         */
+        return super.interact(
+                player,
+                hand
+        );
+    }
+
+    @Override
+    public void tick() {
+        /*
+         * Здесь НЕ трогаем скорость.
+         *
+         * Вся физика двигателя теперь подключается
+         * через BoatEntity.updateVelocity().
+         */
+        super.tick();
+    }
+
+    @Override
     public boolean damage(
             DamageSource source,
             float amount
     ) {
         if (isRemoved()) {
+            return true;
+        }
+
+        /*
+         * В Creative лодка ломается без выпадения предмета.
+         */
+        if (source.getAttacker()
+                instanceof PlayerEntity player
+                && player.getAbilities().creativeMode) {
+
+            discard();
+
             return true;
         }
 
@@ -272,7 +274,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
                 );
 
         /*
-         * Возвращаем Tailwind на выпавшую лодку.
+         * Возвращаем Tailwind на предмет.
          */
         int tailwindLevel =
                 ModEnchantments.getTailwindLevel(this);
