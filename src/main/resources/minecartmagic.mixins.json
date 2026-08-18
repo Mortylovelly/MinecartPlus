@@ -10,6 +10,7 @@
     "BoatTailwindPlacementMixin",
     "BoatTailwindSpeedMixin",
     "SelfPropellingBoatVelocityMixin",
+    "SelfPropellingBoatTickMixin",
     "BoatTailwindDropMixin"
   ],
   "client": [
