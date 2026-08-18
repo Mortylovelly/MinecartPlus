@@ -19,12 +19,12 @@ public abstract class SelfPropellingBoatVelocityMixin {
 
     @Inject(
             method = "updateVelocity",
-            at = @At("HEAD"),
-            cancellable = true
+            at = @At("TAIL")
     )
-    private void minecartmagic$handleSelfPropulsion(
+    private void minecartmagic$applyEngineAfterVanillaPhysics(
             CallbackInfo ci
     ) {
+
         BoatEntity boat =
                 (BoatEntity) (Object) this;
 
@@ -33,29 +33,23 @@ public abstract class SelfPropellingBoatVelocityMixin {
         }
 
         /*
-         * Нет работающего топлива:
+         * Нет топлива:
          *
-         * полностью ванильная лодка.
+         * вообще ничего не делаем.
+         * Полностью ванильная лодка.
          */
         if (!selfPropellingBoat.hasFuel()) {
             return;
         }
 
         /*
-         * КРИТИЧЕСКИ ВАЖНО:
+         * На суше НЕ вмешиваемся.
          *
-         * На суше мы вообще не вмешиваемся
-         * в updateVelocity().
-         *
-         * Значит:
-         * - лодка падает;
+         * Поэтому:
          * - работает гравитация;
-         * - работает столкновение с землёй;
+         * - лодка падает;
          * - нет левитации;
-         * - двигатель не толкает лодку по суше.
-         *
-         * Когда она попадёт в воду, этот метод
-         * начнёт перехватывать ванильную физику.
+         * - двигатель не толкает по земле.
          */
         if (!selfPropellingBoat.isTouchingWater()) {
             return;
@@ -67,22 +61,15 @@ public abstract class SelfPropellingBoatVelocityMixin {
                         .isClient();
 
         /*
-         * В воде:
+         * Здесь ванильная физика УЖЕ отработала.
          *
-         * A/D = руль
-         * W/S = игнорируются
-         * двигатель = автоматическая тяга
+         * Мы теперь меняем только X/Z,
+         * сохраняя её Y.
          */
         selfPropellingBoat.applySelfPropulsion(
                 pressingLeft,
                 pressingRight,
                 clientSide
         );
-
-        /*
-         * Не даём ванильной лодке после этого
-         * перезаписать нашу горизонтальную скорость.
-         */
-        ci.cancel();
     }
 }
