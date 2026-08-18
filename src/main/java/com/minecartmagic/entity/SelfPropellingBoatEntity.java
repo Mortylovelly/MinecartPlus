@@ -45,15 +45,26 @@ public class SelfPropellingBoatEntity
     private static final int MAX_PASSENGERS = 1;
 
     /*
-     * Базовая скорость САМОХОДНОГО ДВИГАТЕЛЯ.
+     * Базовая скорость двигателя.
      *
-     * Она используется только когда топливо горит.
+     * Используется только при работающем топливе.
      */
     private static final double BASE_ENGINE_SPEED = 0.45D;
 
     private static final double ACCELERATION = 0.025D;
 
     private static final float STEERING_SPEED = 2.5F;
+
+    /*
+     * Плавучесть самоходной лодки.
+     *
+     * Это не замена ванильной лодки целиком.
+     * Она нужна только потому, что при работающем
+     * двигателе мы отключаем ванильный updateVelocity().
+     */
+    private static final double BUOYANCY_MAX_UP = 0.12D;
+    private static final double BUOYANCY_ACCELERATION = 0.035D;
+    private static final double SURFACE_EPSILON = 0.08D;
 
     private final SimpleInventory fuelInventory =
             new SimpleInventory(1);
@@ -174,14 +185,13 @@ public class SelfPropellingBoatEntity
                 fuelStack.getItem();
 
         /*
-         * Съедаем только ОДИН предмет топлива.
-         * Остальной стак остаётся в слоте.
+         * Забираем только один предмет.
          */
         fuelStack.decrement(1);
 
         /*
          * Например:
-         * lava bucket -> empty bucket.
+         * лавовое ведро -> пустое ведро.
          */
         if (fuelStack.isEmpty()
                 && fuelItem.hasRecipeRemainder()) {
@@ -224,28 +234,6 @@ public class SelfPropellingBoatEntity
         }
     }
 
-    /*
-     * Максимальная скорость именно ДВИГАТЕЛЯ.
-     *
-     * Этот метод вызывается только когда:
-     *
-     * hasFuel() == true
-     *
-     * Поэтому значения здесь никак не влияют
-     * на обычное плавание без топлива.
-     *
-     * Без чар:
-     *   0.45
-     *
-     * Tailwind I:
-     *   0.62
-     *
-     * Tailwind II:
-     *   0.72
-     *
-     * Tailwind III:
-     *   0.84
-     */
     public double getMaximumSpeed() {
 
         int level =
@@ -262,10 +250,8 @@ public class SelfPropellingBoatEntity
     }
 
     /*
-     * Очень важный момент:
-     *
      * БЕЗ топлива:
-     * полностью ванильные W/A/S/D.
+     * ванильное управление.
      *
      * С топливом:
      * W/S отключаются,
@@ -290,10 +276,6 @@ public class SelfPropellingBoatEntity
             return;
         }
 
-        /*
-         * Нет топлива -> никаких изменений
-         * ванильного управления.
-         */
         super.setInputs(
                 pressingLeft,
                 pressingRight,
@@ -303,11 +285,70 @@ public class SelfPropellingBoatEntity
     }
 
     /*
-     * Движение двигателя.
+     * Возвращает вертикальную скорость,
+     * которая не позволяет самоходной лодке
+     * бесконечно тонуть.
      *
-     * Вызов происходит только для самоходной лодки
-     * с горящим топливом.
+     * BoatEntity предоставляет getWaterHeightBelow()
+     * для определения уровня воды. :contentReference[oaicite:1]{index=1}
      */
+    private double calculateBuoyancy(
+            double currentVerticalVelocity
+    ) {
+        float waterHeight =
+                getWaterHeightBelow();
+
+        /*
+         * Если воды под лодкой фактически нет,
+         * не вмешиваемся.
+         */
+        if (Float.isNaN(waterHeight)
+                || Float.isInfinite(waterHeight)) {
+            return currentVerticalVelocity;
+        }
+
+        double depth =
+                waterHeight - getY();
+
+        /*
+         * Лодка ниже уровня воды:
+         * постепенно ускоряем её вверх.
+         */
+        if (depth > SURFACE_EPSILON) {
+
+            double upward =
+                    Math.min(
+                            BUOYANCY_MAX_UP,
+                            BUOYANCY_ACCELERATION
+                                    + depth * 0.08D
+                    );
+
+            return Math.max(
+                    currentVerticalVelocity,
+                    upward
+            );
+        }
+
+        /*
+         * Если лодка практически у поверхности,
+         * не позволяем вертикальной скорости
+         * продолжать тянуть её вниз.
+         */
+        if (depth > -SURFACE_EPSILON) {
+
+            return Math.max(
+                    currentVerticalVelocity,
+                    0.0D
+            );
+        }
+
+        /*
+         * Над поверхностью оставляем ванильное
+         * вертикальное поведение.
+         */
+        return currentVerticalVelocity;
+    }
+
     public void applySelfPropulsion(
             boolean pressingLeft,
             boolean pressingRight,
@@ -318,7 +359,7 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * A/D работают только как руль.
+         * Только A/D рулит.
          */
         if (clientSide) {
 
@@ -342,10 +383,31 @@ public class SelfPropellingBoatEntity
             }
         }
 
-        if (!isTouchingWater()) {
-            return;
+        /*
+         * Даже если лодка находится под водой,
+         * двигатель не должен продолжать её топить.
+         *
+         * Сначала рассчитываем вертикальную
+         * плавучесть.
+         */
+        Vec3d velocity =
+                getVelocity();
+
+        double verticalVelocity =
+                velocity.y;
+
+        if (isTouchingWater()) {
+
+            verticalVelocity =
+                    calculateBuoyancy(
+                            verticalVelocity
+                    );
         }
 
+        /*
+         * Горизонтальная тяга работает
+         * только по направлению носа.
+         */
         double radians =
                 Math.toRadians(
                         getYaw()
@@ -358,14 +420,12 @@ public class SelfPropellingBoatEntity
                         Math.cos(radians)
                 );
 
-        Vec3d velocity =
-                getVelocity();
-
         /*
-         * Берём только составляющую скорости
-         * вдоль носа лодки.
+         * Если лодка сильно погрузилась,
+         * не позволяем старой горизонтальной
+         * скорости превращаться в странный glide.
          *
-         * Боковая и задняя скорость отбрасываются.
+         * Берём только движение по носу.
          */
         double forwardSpeed =
                 velocity.x * forward.x
@@ -384,12 +444,9 @@ public class SelfPropellingBoatEntity
                                 + ACCELERATION
                 );
 
-        /*
-         * Горизонтальная скорость строго по носу.
-         */
         setVelocity(
                 forward.x * targetSpeed,
-                velocity.y,
+                verticalVelocity,
                 forward.z * targetSpeed
         );
 
@@ -409,12 +466,13 @@ public class SelfPropellingBoatEntity
 
         /*
          * Shift + ПКМ снаружи:
-         * открыть меню топлива.
+         * открыть GUI.
          */
         if (player.isSneaking()
                 && !getPassengerList().contains(player)) {
 
             if (!getWorld().isClient()) {
+
                 player.openHandledScreen(
                         this
                 );
@@ -425,9 +483,6 @@ public class SelfPropellingBoatEntity
             );
         }
 
-        /*
-         * Обычная посадка / выход.
-         */
         return super.interact(
                 player,
                 hand
@@ -437,14 +492,8 @@ public class SelfPropellingBoatEntity
     @Override
     public void tick() {
 
-        /*
-         * Обновляем печное топливо.
-         */
         tickFuel();
 
-        /*
-         * Затем обычный BoatEntity.
-         */
         super.tick();
     }
 
@@ -457,10 +506,6 @@ public class SelfPropellingBoatEntity
             return true;
         }
 
-        /*
-         * Creative:
-         * без дропа.
-         */
         if (source.getAttacker()
                 instanceof PlayerEntity player
                 && player.getAbilities().creativeMode) {
@@ -470,11 +515,10 @@ public class SelfPropellingBoatEntity
             return true;
         }
 
-        /*
-         * Возвращаем топливо из GUI.
-         */
         ItemStack fuelStack =
-                fuelInventory.removeStack(0);
+                fuelInventory.removeStack(
+                        0
+                );
 
         if (!fuelStack.isEmpty()) {
             dropStack(
@@ -482,17 +526,11 @@ public class SelfPropellingBoatEntity
             );
         }
 
-        /*
-         * Возвращаем самоходную лодку.
-         */
         ItemStack boatStack =
                 new ItemStack(
                         ModItems.SELF_PROPELLING_BOAT
                 );
 
-        /*
-         * Сохраняем Tailwind.
-         */
         int tailwindLevel =
                 ModEnchantments.getTailwindLevel(
                         this
