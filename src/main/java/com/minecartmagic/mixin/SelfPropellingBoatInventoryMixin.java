@@ -14,12 +14,12 @@ public abstract class SelfPropellingBoatInventoryMixin {
 
     @Inject(
             method = "handleInputEvents",
-            at = @At("HEAD"),
-            cancellable = true
+            at = @At("HEAD")
     )
-    private void minecartmagic$openBoatInventory(
+    private void minecartmagic$openBoatScreen(
             CallbackInfo ci
     ) {
+
         MinecraftClient client =
                 (MinecraftClient) (Object) this;
 
@@ -44,20 +44,8 @@ public abstract class SelfPropellingBoatInventoryMixin {
             return;
         }
 
-        /*
-         * Tell the server:
-         *
-         * "I'm inside a self-propelled boat,
-         * open its fuel GUI."
-         */
         ClientPlayNetworking.send(
                 BoatScreenPayload.INSTANCE
         );
-
-        /*
-         * Prevent vanilla E from opening
-         * the normal player inventory.
-         */
-        ci.cancel();
     }
 }
