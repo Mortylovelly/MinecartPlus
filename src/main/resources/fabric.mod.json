@@ -3,7 +3,7 @@
   "id": "minecartmagic",
   "version": "${version}",
   "name": "Minecart Magic",
-  "description": "Adds the Traction enchantment for minecarts.",
+  "description": "Adds the Traction enchantment for minecarts and Tailwind for boats.",
   "authors": [
     "Mortylovelly"
   ],
@@ -16,6 +16,9 @@
   "entrypoints": {
     "main": [
       "com.minecartmagic.MinecartMagicMod"
+    ],
+    "client": [
+      "com.minecartmagic.client.MinecartMagicClient"
     ]
   },
   "mixins": [
