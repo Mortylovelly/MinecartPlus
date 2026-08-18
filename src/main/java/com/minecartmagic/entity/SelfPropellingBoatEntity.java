@@ -45,13 +45,21 @@ public class SelfPropellingBoatEntity
     private static final int MAX_PASSENGERS = 1;
 
     /*
-     * Базовая скорость самоходной лодки
-     * при работающем двигателе.
+     * Базовая скорость двигателя без Tailwind.
+     *
+     * Она используется только тогда,
+     * когда реально горит топливо.
      */
     private static final double BASE_ENGINE_SPEED = 0.45D;
 
+    /*
+     * Плавность разгона.
+     */
     private static final double ACCELERATION = 0.025D;
 
+    /*
+     * Скорость поворота A/D.
+     */
     private static final float STEERING_SPEED = 2.5F;
 
     private final SimpleInventory fuelInventory =
@@ -67,7 +75,7 @@ public class SelfPropellingBoatEntity
         );
 
         /*
-         * Пока существует только дубовая версия.
+         * Пока используется дубовый вариант.
          */
         setVariant(Type.OAK);
     }
@@ -176,7 +184,7 @@ public class SelfPropellingBoatEntity
                 fuelStack.getItem();
 
         /*
-         * Используем только ОДИН предмет
+         * Забираем только один предмет
          * из стака.
          */
         fuelStack.decrement(1);
@@ -212,16 +220,15 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Если текущего топлива нет,
-         * пытаемся взять следующий предмет
-         * из единственного слота.
+         * Подхватываем следующий предмет,
+         * когда текущего топлива больше нет.
          */
         if (getBurnTime() <= 0) {
             startBurningFuel();
         }
 
         /*
-         * Один тик горения.
+         * Один тик расхода.
          */
         if (getBurnTime() > 0) {
 
@@ -231,7 +238,7 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Текущее топливо полностью закончилось.
+         * Топливо полностью закончилось.
          */
         if (getBurnTime() <= 0) {
 
@@ -241,22 +248,24 @@ public class SelfPropellingBoatEntity
     }
 
     /*
-     * Лимит скорости ДВИГАТЕЛЯ.
+     * Максимальная скорость двигателя.
      *
      * Без чар:
-     * 0.45
+     *   0.45
      *
      * Tailwind I:
-     * 0.62
+     *   0.62
      *
      * Tailwind II:
-     * 0.72
+     *   0.72
      *
      * Tailwind III:
-     * 0.84
+     *   0.84
      *
-     * Этот метод используется только
-     * когда двигатель действительно работает.
+     * ВАЖНО:
+     * это только режим работающего двигателя.
+     * Без топлива самоходная лодка остаётся
+     * обычной лодкой.
      */
     public double getMaximumSpeed() {
 
@@ -274,17 +283,14 @@ public class SelfPropellingBoatEntity
     }
 
     /*
-     * Без топлива:
+     * Управление.
      *
-     * полностью ванильное управление.
+     * Без топлива:
+     * W/A/S/D полностью ванильные.
      *
      * С топливом:
-     *
      * A/D = руль
-     * W/S = отключены
-     *
-     * При этом вертикальная физика всё равно
-     * остаётся ванильной.
+     * W/S = отключены.
      */
     @Override
     public void setInputs(
@@ -315,14 +321,16 @@ public class SelfPropellingBoatEntity
     }
 
     /*
-     * Только горизонтальная тяга двигателя.
+     * Главный двигатель.
      *
      * ВАЖНО:
-     * velocity.y здесь НИКОГДА не переписывается
-     * искусственно.
+     * вертикальную скорость мы здесь вообще
+     * не трогаем.
      *
-     * Вертикальная физика приходит из ванильной
-     * BoatEntity.updateVelocity().
+     * Вода/гравитация полностью остаются
+     * ванильными.
+     *
+     * Мы меняем только X/Z.
      */
     public void applySelfPropulsion(
             boolean pressingLeft,
@@ -335,18 +343,14 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Двигатель работает исключительно
-         * когда лодка касается воды.
-         *
-         * На суше этот метод вообще ничего
-         * не меняет.
+         * На суше двигатель не работает.
          */
         if (!isTouchingWater()) {
             return;
         }
 
         /*
-         * A/D меняют только курс.
+         * A/D меняют курс.
          */
         if (clientSide) {
 
@@ -389,11 +393,10 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Берём только горизонтальную
-         * скорость вдоль носа.
+         * Старая скорость только по направлению
+         * носа.
          *
-         * Боковая и задняя составляющие
-         * полностью отбрасываются.
+         * Боковой и задний glide уничтожаем.
          */
         double forwardSpeed =
                 velocity.x * forward.x
@@ -406,20 +409,43 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Плавно разгоняемся.
+         * Максимальная скорость именно двигателя.
+         *
+         * Чтобы Tailwind действительно влиял
+         * независимо от того, какую скорость
+         * дала ванильная BoatEntity.
+         */
+        double maximumSpeed =
+                getMaximumSpeed();
+
+        /*
+         * Плавный разгон.
          */
         double targetSpeed =
+                forwardSpeed
+                        + ACCELERATION;
+
+        /*
+         * Гарантируем, что после запуска двигателя
+         * он действительно способен выйти
+         * на свой двигательным лимит.
+         */
+        targetSpeed =
                 Math.min(
-                        getMaximumSpeed(),
-                        forwardSpeed
-                                + ACCELERATION
+                        maximumSpeed,
+                        Math.max(
+                                targetSpeed,
+                                Math.min(
+                                        maximumSpeed,
+                                        BASE_ENGINE_SPEED
+                                )
+                        )
                 );
 
         /*
          * Меняем ТОЛЬКО X/Z.
          *
-         * Y оставляем таким, каким его рассчитала
-         * ванильная физика лодки.
+         * velocity.y оставляем ванильной.
          */
         setVelocity(
                 forward.x * targetSpeed,
@@ -443,7 +469,7 @@ public class SelfPropellingBoatEntity
 
         /*
          * Shift + ПКМ снаружи:
-         * открыть топливное меню.
+         * открыть GUI.
          */
         if (player.isSneaking()
                 && !getPassengerList().contains(player)) {
@@ -473,21 +499,19 @@ public class SelfPropellingBoatEntity
     public void tick() {
 
         /*
-         * Обрабатываем расход топлива.
+         * Расход топлива.
          */
         tickFuel();
 
         /*
-         * Полностью обычный BoatEntity.tick().
+         * Оригинальный BoatEntity.tick().
          *
-         * Это важно для:
-         *
-         * - гравитации;
-         * - воды;
-         * - столкновений;
-         * - пассажира;
-         * - погружения;
-         * - всплытия.
+         * Поэтому сохраняются:
+         * - гравитация;
+         * - вода;
+         * - плавучесть;
+         * - столкновения;
+         * - пассажир.
          */
         super.tick();
     }
@@ -504,7 +528,7 @@ public class SelfPropellingBoatEntity
 
         /*
          * Creative:
-         * ничего не дропаем.
+         * без дропа.
          */
         if (source.getAttacker()
                 instanceof PlayerEntity player
@@ -516,7 +540,7 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Возвращаем топливо из GUI.
+         * Возвращаем топливо.
          */
         ItemStack fuelStack =
                 fuelInventory.removeStack(
@@ -531,7 +555,7 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Возвращаем саму самоходную лодку.
+         * Возвращаем саму лодку.
          */
         ItemStack boatStack =
                 new ItemStack(
