@@ -1,5 +1,6 @@
 package com.minecartmagic.screen;
 
+import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
@@ -10,18 +11,33 @@ import net.minecraft.screen.PropertyDelegate;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.slot.Slot;
 
-import com.minecartmagic.entity.SelfPropellingBoatEntity;
-
-public class SelfPropellingBoatScreenHandler
-        extends ScreenHandler {
+public class SelfPropellingBoatScreenHandler extends ScreenHandler {
 
     public static final int FUEL_SLOT = 0;
+
+    /*
+     * Позиция единственного топливного слота
+     * внутри GUI.
+     *
+     * Эти координаты должны совпадать
+     * с нарисованным слотом в Screen.
+     */
+    private static final int FUEL_SLOT_X = 79;
+    private static final int FUEL_SLOT_Y = 37;
 
     private final Inventory fuelInventory;
     private final PropertyDelegate propertyDelegate;
 
     private final SelfPropellingBoatEntity boat;
 
+    /*
+     * Клиентский конструктор.
+     *
+     * На клиенте настоящая entity inventory ещё недоступна,
+     * поэтому используется временная SimpleInventory.
+     * После открытия Minecraft синхронизирует содержимое
+     * через ScreenHandler.
+     */
     public SelfPropellingBoatScreenHandler(
             int syncId,
             PlayerInventory playerInventory,
@@ -36,6 +52,9 @@ public class SelfPropellingBoatScreenHandler
         );
     }
 
+    /*
+     * Серверный конструктор.
+     */
     public SelfPropellingBoatScreenHandler(
             int syncId,
             PlayerInventory playerInventory,
@@ -62,14 +81,9 @@ public class SelfPropellingBoatScreenHandler
                 syncId
         );
 
-        this.fuelInventory =
-                fuelInventory;
-
-        this.propertyDelegate =
-                propertyDelegate;
-
-        this.boat =
-                boat;
+        this.fuelInventory = fuelInventory;
+        this.propertyDelegate = propertyDelegate;
+        this.boat = boat;
 
         checkSize(
                 fuelInventory,
@@ -77,30 +91,29 @@ public class SelfPropellingBoatScreenHandler
         );
 
         /*
-         * Единственный слот.
+         * ЕДИНСТВЕННЫЙ слот самоходной лодки.
+         *
+         * Он принимает только топливо.
          */
         addSlot(
                 new FuelSlot(
                         fuelInventory,
                         FUEL_SLOT,
-                        79,
-                        37
+                        FUEL_SLOT_X,
+                        FUEL_SLOT_Y
                 )
         );
 
         /*
-         * Main inventory.
+         * Инвентарь игрока.
          */
         for (int row = 0; row < 3; row++) {
-
             for (int column = 0; column < 9; column++) {
 
                 addSlot(
                         new Slot(
                                 playerInventory,
-                                column
-                                        + row * 9
-                                        + 9,
+                                column + row * 9 + 9,
                                 8 + column * 18,
                                 84 + row * 18
                         )
@@ -109,7 +122,7 @@ public class SelfPropellingBoatScreenHandler
         }
 
         /*
-         * Hotbar.
+         * Хотбар.
          */
         for (int slot = 0; slot < 9; slot++) {
 
@@ -123,6 +136,12 @@ public class SelfPropellingBoatScreenHandler
             );
         }
 
+        /*
+         * Синхронизация:
+         *
+         * 0 = текущее горение
+         * 1 = полное время текущего топлива
+         */
         addProperties(
                 propertyDelegate
         );
@@ -136,6 +155,10 @@ public class SelfPropellingBoatScreenHandler
         return propertyDelegate.get(1);
     }
 
+    /*
+     * Размер пламени как у ванильной печи:
+     * 0..13.
+     */
     public int getFuelProgress() {
 
         int burnTime =
@@ -161,7 +184,9 @@ public class SelfPropellingBoatScreenHandler
     public boolean canUse(
             PlayerEntity player
     ) {
-
+        /*
+         * Клиентский handler.
+         */
         if (boat == null) {
             return true;
         }
@@ -180,10 +205,8 @@ public class SelfPropellingBoatScreenHandler
             PlayerEntity player,
             int slotIndex
     ) {
-
         if (slotIndex < 0
                 || slotIndex >= slots.size()) {
-
             return ItemStack.EMPTY;
         }
 
@@ -197,11 +220,11 @@ public class SelfPropellingBoatScreenHandler
         ItemStack original =
                 slot.getStack();
 
-        ItemStack copy =
+        ItemStack copied =
                 original.copy();
 
         /*
-         * Fuel slot -> player inventory.
+         * Топливный слот -> инвентарь игрока.
          */
         if (slotIndex == FUEL_SLOT) {
 
@@ -217,11 +240,16 @@ public class SelfPropellingBoatScreenHandler
         } else {
 
             /*
-             * Player inventory -> fuel slot.
+             * Если предмет является топливом,
+             * отправляем его в единственный слот лодки.
              */
-            if (FuelRegistry.INSTANCE.get(
-                    original.getItem()
-            ) != null) {
+            Integer fuelValue =
+                    FuelRegistry.INSTANCE.get(
+                            original.getItem()
+                    );
+
+            if (fuelValue != null
+                    && fuelValue > 0) {
 
                 if (!insertItem(
                         original,
@@ -235,7 +263,7 @@ public class SelfPropellingBoatScreenHandler
             } else {
 
                 /*
-                 * Main inventory <-> hotbar.
+                 * Основной инвентарь -> хотбар.
                  */
                 if (slotIndex >= 1
                         && slotIndex < 28) {
@@ -249,6 +277,9 @@ public class SelfPropellingBoatScreenHandler
                         return ItemStack.EMPTY;
                     }
 
+                /*
+                 * Хотбар -> основной инвентарь.
+                 */
                 } else if (
                         slotIndex >= 28
                                 && slotIndex < 37
@@ -264,7 +295,6 @@ public class SelfPropellingBoatScreenHandler
                     }
 
                 } else {
-
                     return ItemStack.EMPTY;
                 }
             }
@@ -279,8 +309,7 @@ public class SelfPropellingBoatScreenHandler
         }
 
         if (original.getCount()
-                == copy.getCount()) {
-
+                == copied.getCount()) {
             return ItemStack.EMPTY;
         }
 
@@ -289,7 +318,7 @@ public class SelfPropellingBoatScreenHandler
                 original
         );
 
-        return copy;
+        return copied;
     }
 
     @Override
@@ -305,8 +334,10 @@ public class SelfPropellingBoatScreenHandler
         );
     }
 
-    private static class FuelSlot
-            extends Slot {
+    /*
+     * Единственный специальный слот.
+     */
+    private static class FuelSlot extends Slot {
 
         public FuelSlot(
                 Inventory inventory,
@@ -326,9 +357,13 @@ public class SelfPropellingBoatScreenHandler
         public boolean canInsert(
                 ItemStack stack
         ) {
-            return FuelRegistry.INSTANCE.get(
-                    stack.getItem()
-            ) != null;
+            Integer fuelValue =
+                    FuelRegistry.INSTANCE.get(
+                            stack.getItem()
+                    );
+
+            return fuelValue != null
+                    && fuelValue > 0;
         }
 
         @Override
@@ -337,6 +372,9 @@ public class SelfPropellingBoatScreenHandler
         }
     }
 
+    /*
+     * Синхронизация состояния печки.
+     */
     private static class BoatPropertyDelegate
             implements PropertyDelegate {
 
@@ -369,7 +407,7 @@ public class SelfPropellingBoatScreenHandler
                 int value
         ) {
             /*
-             * Server-authoritative.
+             * Сервер авторитетен.
              */
         }
 
