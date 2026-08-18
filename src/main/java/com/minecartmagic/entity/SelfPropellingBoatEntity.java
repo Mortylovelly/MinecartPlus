@@ -26,8 +26,6 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
     private int fuel;
 
-    private Vec3d pushDirection = Vec3d.ZERO;
-
     public SelfPropellingBoatEntity(
             EntityType<? extends SelfPropellingBoatEntity> entityType,
             World world
@@ -35,11 +33,8 @@ public class SelfPropellingBoatEntity extends BoatEntity {
         super(entityType, world);
 
         /*
-         * Пока существует только одна версия самоходной лодки:
+         * Пока у самоходной лодки только одна версия:
          * дубовая.
-         *
-         * Это также необходимо для BoatEntityRenderer,
-         * который выбирает ванильную модель по BoatEntity.Type.
          */
         setVariant(Type.OAK);
     }
@@ -77,30 +72,6 @@ public class SelfPropellingBoatEntity extends BoatEntity {
         return true;
     }
 
-    public Vec3d getPushDirection() {
-        return pushDirection;
-    }
-
-    public void setPushDirection(Vec3d direction) {
-        if (direction.lengthSquared() <= 0.000001D) {
-            pushDirection = Vec3d.ZERO;
-            return;
-        }
-
-        Vec3d horizontal = new Vec3d(
-                direction.x,
-                0.0D,
-                direction.z
-        );
-
-        if (horizontal.lengthSquared() <= 0.000001D) {
-            pushDirection = Vec3d.ZERO;
-            return;
-        }
-
-        pushDirection = horizontal.normalize();
-    }
-
     private double getTailwindMultiplier() {
         int level =
                 ModEnchantments.getTailwindLevel(this);
@@ -118,6 +89,31 @@ public class SelfPropellingBoatEntity extends BoatEntity {
                 * getTailwindMultiplier();
     }
 
+    /**
+     * Получает строго горизонтальное направление,
+     * куда в данный момент смотрит нос лодки.
+     *
+     * Никакого сохранённого вектора от игрока здесь нет.
+     */
+    private Vec3d getForwardDirection() {
+        Vec3d look =
+                getRotationVec(1.0F);
+
+        Vec3d horizontal =
+                new Vec3d(
+                        look.x,
+                        0.0D,
+                        look.z
+                );
+
+        if (horizontal.lengthSquared()
+                <= 0.000001D) {
+            return Vec3d.ZERO;
+        }
+
+        return horizontal.normalize();
+    }
+
     @Override
     public Item asItem() {
         return ModItems.SELF_PROPELLING_BOAT;
@@ -132,10 +128,12 @@ public class SelfPropellingBoatEntity extends BoatEntity {
                 player.getStackInHand(hand);
 
         /*
-         * Уголь и древесный уголь заправляют лодку.
+         * Уголь и древесный уголь заправляют двигатель.
          *
-         * Направление задаётся направлением взгляда игрока
-         * в момент заправки.
+         * Направление здесь НЕ сохраняем.
+         *
+         * Лодка всегда должна ехать туда, куда
+         * направлен её нос.
          */
         if (stack.isOf(Items.COAL)
                 || stack.isOf(Items.CHARCOAL)) {
@@ -147,10 +145,6 @@ public class SelfPropellingBoatEntity extends BoatEntity {
             if (!getWorld().isClient()) {
 
                 addFuel(stack);
-
-                setPushDirection(
-                        player.getRotationVec(1.0F)
-                );
 
                 if (!player.getAbilities().creativeMode) {
                     stack.decrement(1);
@@ -165,10 +159,8 @@ public class SelfPropellingBoatEntity extends BoatEntity {
         }
 
         /*
-         * Для остальных предметов сохраняем ванильное
-         * поведение BoatEntity:
-         *
-         * игрок может сесть в лодку.
+         * Обычное взаимодействие BoatEntity:
+         * можно сесть в лодку.
          */
         return super.interact(
                 player,
@@ -178,21 +170,39 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
     @Override
     public void tick() {
+        /*
+         * Сначала полностью выполняем ванильный BoatEntity.tick().
+         *
+         * Именно здесь BoatEntity обрабатывает пассажира,
+         * повороты и обычную физику лодки.
+         *
+         * Поэтому A/D продолжают работать.
+         */
         super.tick();
 
         if (getWorld().isClient()) {
             return;
         }
 
+        /*
+         * Нет топлива -> двигателя нет.
+         */
         if (fuel <= 0) {
             return;
         }
 
+        /*
+         * Двигатель работает только на воде.
+         */
         if (!isTouchingWater()) {
             return;
         }
 
-        if (pushDirection.lengthSquared() <= 0.000001D) {
+        Vec3d forward =
+                getForwardDirection();
+
+        if (forward.lengthSquared()
+                <= 0.000001D) {
             return;
         }
 
@@ -201,35 +211,46 @@ public class SelfPropellingBoatEntity extends BoatEntity {
          */
         fuel--;
 
-        Vec3d velocity = getVelocity();
+        Vec3d velocity =
+                getVelocity();
 
-        double horizontalSpeed = Math.sqrt(
-                velocity.x * velocity.x
-                        + velocity.z * velocity.z
-        );
+        double horizontalSpeed =
+                Math.sqrt(
+                        velocity.x * velocity.x
+                                + velocity.z * velocity.z
+                );
 
         double maxSpeed =
                 getMaximumSpeed();
 
+        /*
+         * Ускоряемся строго по носу.
+         *
+         * Важное отличие от старой версии:
+         * мы больше не используем pushDirection,
+         * который мог быть направлен куда угодно.
+         */
         if (horizontalSpeed < maxSpeed) {
 
-            double newSpeed = Math.min(
-                    maxSpeed,
-                    horizontalSpeed + ACCELERATION
-            );
+            double newSpeed =
+                    Math.min(
+                            maxSpeed,
+                            horizontalSpeed
+                                    + ACCELERATION
+                    );
 
             setVelocity(
-                    pushDirection.x * newSpeed,
+                    forward.x * newSpeed,
                     velocity.y,
-                    pushDirection.z * newSpeed
+                    forward.z * newSpeed
             );
 
         } else {
 
             setVelocity(
-                    pushDirection.x * maxSpeed,
+                    forward.x * maxSpeed,
                     velocity.y,
-                    pushDirection.z * maxSpeed
+                    forward.z * maxSpeed
             );
         }
 
@@ -251,12 +272,13 @@ public class SelfPropellingBoatEntity extends BoatEntity {
                 );
 
         /*
-         * Возвращаем Tailwind на выпавший предмет.
+         * Возвращаем Tailwind на выпавшую лодку.
          */
         int tailwindLevel =
                 ModEnchantments.getTailwindLevel(this);
 
         if (tailwindLevel > 0) {
+
             var enchantmentRegistry =
                     getRegistryManager()
                             .get(
@@ -264,10 +286,9 @@ public class SelfPropellingBoatEntity extends BoatEntity {
                             );
 
             var tailwind =
-                    enchantmentRegistry
-                            .entryOf(
-                                    ModEnchantments.TAILWIND_KEY
-                            );
+                    enchantmentRegistry.entryOf(
+                            ModEnchantments.TAILWIND_KEY
+                    );
 
             stack.addEnchantment(
                     tailwind,
@@ -292,21 +313,6 @@ public class SelfPropellingBoatEntity extends BoatEntity {
                 "Fuel",
                 fuel
         );
-
-        nbt.putDouble(
-                "PushX",
-                pushDirection.x
-        );
-
-        nbt.putDouble(
-                "PushY",
-                pushDirection.y
-        );
-
-        nbt.putDouble(
-                "PushZ",
-                pushDirection.z
-        );
     }
 
     @Override
@@ -317,14 +323,6 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
         setFuel(
                 nbt.getInt("Fuel")
-        );
-
-        setPushDirection(
-                new Vec3d(
-                        nbt.getDouble("PushX"),
-                        nbt.getDouble("PushY"),
-                        nbt.getDouble("PushZ")
-                )
         );
     }
 }
