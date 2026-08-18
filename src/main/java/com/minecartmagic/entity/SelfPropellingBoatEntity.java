@@ -33,8 +33,8 @@ public class SelfPropellingBoatEntity extends BoatEntity {
         super(entityType, world);
 
         /*
-         * Пока у нас только одна версия самоходной лодки:
-         * дубовая.
+         * Пока существует только одна версия:
+         * дубовая самоходная лодка.
          */
         setVariant(Type.OAK);
     }
@@ -50,7 +50,10 @@ public class SelfPropellingBoatEntity extends BoatEntity {
     public void setFuel(int fuel) {
         this.fuel = Math.max(
                 0,
-                Math.min(MAX_FUEL, fuel)
+                Math.min(
+                        MAX_FUEL,
+                        fuel
+                )
         );
     }
 
@@ -90,18 +93,36 @@ public class SelfPropellingBoatEntity extends BoatEntity {
     }
 
     /**
-     * Двигатель самоходной лодки.
+     * Вычисляет направление строго по текущему
+     * yaw самой лодки.
      *
-     * Этот метод вызывается из Mixin в конце
-     * BoatEntity.updateVelocity().
+     * Никакого сохранённого направления нет.
+     */
+    private Vec3d getForwardDirection() {
+        float yaw = getYaw();
+
+        double radians =
+                Math.toRadians(yaw);
+
+        return new Vec3d(
+                -Math.sin(radians),
+                0.0D,
+                Math.cos(radians)
+        ).normalize();
+    }
+
+    /**
+     * Самоходный двигатель.
      *
-     * Благодаря этому:
+     * Вызывается ПОСЛЕ полного BoatEntity.tick().
      *
-     * - сначала ванильная лодка обрабатывает A/D;
-     * - затем мы берём уже актуальный yaw;
-     * - W/S не имеют значения для двигателя;
-     * - лодка всегда толкается строго вперёд;
-     * - пассажир не отключает двигатель.
+     * Поэтому:
+     *
+     * - пассажир уже обработан;
+     * - A/D уже обработаны;
+     * - yaw уже актуален;
+     * - ванильная физика уже закончила работу;
+     * - W/S не нужны двигателю.
      */
     public void applySelfPropulsion() {
 
@@ -113,33 +134,15 @@ public class SelfPropellingBoatEntity extends BoatEntity {
             return;
         }
 
+        /*
+         * Двигатель работает только на воде.
+         */
         if (!isTouchingWater()) {
             return;
         }
 
-        /*
-         * Направление строго по текущему yaw лодки.
-         *
-         * В Minecraft:
-         * X = -sin(yaw)
-         * Z =  cos(yaw)
-         */
-        double yawRadians =
-                Math.toRadians(
-                        getYaw()
-                );
-
         Vec3d forward =
-                new Vec3d(
-                        -Math.sin(yawRadians),
-                        0.0D,
-                        Math.cos(yawRadians)
-                );
-
-        if (forward.lengthSquared()
-                <= 0.000001D) {
-            return;
-        }
+                getForwardDirection();
 
         Vec3d velocity =
                 getVelocity();
@@ -154,34 +157,36 @@ public class SelfPropellingBoatEntity extends BoatEntity {
                 getMaximumSpeed();
 
         /*
-         * Двигатель потребляет топливо только тогда,
-         * когда реально работает на воде.
+         * Если лодка уже достигла максимальной скорости,
+         * просто удерживаем скорость по носу.
          */
-        fuel--;
+        double newSpeed;
 
         if (horizontalSpeed < maxSpeed) {
 
-            double newSpeed =
+            newSpeed =
                     Math.min(
                             maxSpeed,
                             horizontalSpeed
                                     + ACCELERATION
                     );
 
-            setVelocity(
-                    forward.x * newSpeed,
-                    velocity.y,
-                    forward.z * newSpeed
-            );
-
         } else {
 
-            setVelocity(
-                    forward.x * maxSpeed,
-                    velocity.y,
-                    forward.z * maxSpeed
-            );
+            newSpeed =
+                    maxSpeed;
         }
+
+        /*
+         * Одно топливо за один серверный тик.
+         */
+        fuel--;
+
+        setVelocity(
+                forward.x * newSpeed,
+                velocity.y,
+                forward.z * newSpeed
+        );
 
         velocityDirty = true;
     }
@@ -200,7 +205,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
                 player.getStackInHand(hand);
 
         /*
-         * ПКМ углём / древесным углём:
+         * Уголь / древесный уголь:
          * заправляем двигатель.
          */
         if (stack.isOf(Items.COAL)
@@ -214,6 +219,9 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
                 addFuel(stack);
 
+                /*
+                 * В Creative уголь не расходуется.
+                 */
                 if (!player.getAbilities().creativeMode) {
                     stack.decrement(1);
                 }
@@ -227,7 +235,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
         }
 
         /*
-         * Всё остальное отдаём ванильной BoatEntity:
+         * Остальное отдаём ванильной лодке:
          * посадка, выход и т.д.
          */
         return super.interact(
@@ -239,10 +247,10 @@ public class SelfPropellingBoatEntity extends BoatEntity {
     @Override
     public void tick() {
         /*
-         * Здесь НЕ трогаем скорость.
+         * Никакого собственного движения здесь нет.
          *
-         * Вся физика двигателя теперь подключается
-         * через BoatEntity.updateVelocity().
+         * Всё движение двигателя подключается
+         * отдельным Mixin в самом конце tick().
          */
         super.tick();
     }
@@ -257,7 +265,8 @@ public class SelfPropellingBoatEntity extends BoatEntity {
         }
 
         /*
-         * В Creative лодка ломается без выпадения предмета.
+         * Creative:
+         * лодка исчезает без выпадения предмета.
          */
         if (source.getAttacker()
                 instanceof PlayerEntity player
@@ -274,7 +283,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
                 );
 
         /*
-         * Возвращаем Tailwind на предмет.
+         * Сохраняем Tailwind при дропе.
          */
         int tailwindLevel =
                 ModEnchantments.getTailwindLevel(this);
