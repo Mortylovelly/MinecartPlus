@@ -17,43 +17,21 @@ public class MinecartMagicMod implements ModInitializer {
     @Override
     public void onInitialize() {
 
-        /*
-         * Fabric Attachments.
-         */
         MinecartMagicAttachments.init();
 
-        /*
-         * Custom entity types.
-         */
         ModEntities.init();
 
-        /*
-         * Custom items and Creative entries.
-         */
         ModItems.init();
 
-        /*
-         * Data-driven enchantments.
-         */
         ModEnchantments.init();
 
         /*
-         * Minecart placement and Traction transfer.
-         *
-         * ВАЖНО:
-         * этот init нельзя удалять.
+         * Не удалять.
          */
         MinecartPlacementHandler.init();
 
-        /*
-         * Fuel GUI / ScreenHandler registration.
-         */
         ModScreenHandlers.init();
 
-        /*
-         * Networking for opening the fuel GUI
-         * from inside the boat.
-         */
         ModNetworking.init();
 
         LOGGER.info(
