@@ -2,14 +2,17 @@ package com.minecartmagic;
 
 import com.minecartmagic.item.SelfPropellingBoatItem;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-import net.minecraft.item.EnchantedBookItem;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemGroups;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.enchantment.Enchantment;
 
 public final class ModItems {
 
@@ -42,75 +45,77 @@ public final class ModItems {
         });
 
         /*
-         * Готовые книги зачарования.
+         * Готовые книги Тяги и Попутного ветра.
          *
-         * Enchantment registry уже заполнен к моменту
-         * формирования Creative Item Group, поэтому здесь
-         * безопасно получать RegistryEntry по RegistryKey.
+         * Enchantment в Minecraft 1.21.1 находится
+         * в динамическом registry, поэтому получаем
+         * RegistryWrapper через DisplayContext.
          */
         ItemGroupEvents.modifyEntriesEvent(
                 ItemGroups.INGREDIENTS
         ).register(entries -> {
 
             RegistryEntry<Enchantment> traction =
-                    Registries.ENCHANTMENT
-                            .getEntry(
-                                    ModEnchantments.TRACTION_KEY
+                    entries.getContext()
+                            .lookup()
+                            .getOrThrow(
+                                    RegistryKeys.ENCHANTMENT
                             )
-                            .orElse(null);
+                            .getOrThrow(
+                                    ModEnchantments.TRACTION_KEY
+                            );
 
             RegistryEntry<Enchantment> tailwind =
-                    Registries.ENCHANTMENT
-                            .getEntry(
-                                    ModEnchantments.TAILWIND_KEY
+                    entries.getContext()
+                            .lookup()
+                            .getOrThrow(
+                                    RegistryKeys.ENCHANTMENT
                             )
-                            .orElse(null);
+                            .getOrThrow(
+                                    ModEnchantments.TAILWIND_KEY
+                            );
 
-            if (traction != null) {
-                entries.add(
-                        createEnchantedBook(
-                                traction,
-                                1
-                        )
-                );
+            entries.add(
+                    createEnchantedBook(
+                            traction,
+                            1
+                    )
+            );
 
-                entries.add(
-                        createEnchantedBook(
-                                traction,
-                                2
-                        )
-                );
+            entries.add(
+                    createEnchantedBook(
+                            traction,
+                            2
+                    )
+            );
 
-                entries.add(
-                        createEnchantedBook(
-                                traction,
-                                3
-                        )
-                );
-            }
+            entries.add(
+                    createEnchantedBook(
+                            traction,
+                            3
+                    )
+            );
 
-            if (tailwind != null) {
-                entries.add(
-                        createEnchantedBook(
-                                tailwind,
-                                1
-                        )
-                );
+            entries.add(
+                    createEnchantedBook(
+                            tailwind,
+                            1
+                    )
+            );
 
-                entries.add(
-                        createEnchantedBook(
-                                tailwind,
-                                2
-                        )
-                );
+            entries.add(
+                    createEnchantedBook(
+                            tailwind,
+                            2
+                    )
+            );
 
-                entries.add(
-                        createEnchantedBook(
-                                tailwind,
-                                3
-                        )
-                );
-            }
+            entries.add(
+                    createEnchantedBook(
+                            tailwind,
+                            3
+                    )
+            );
         });
     }
 
@@ -123,9 +128,14 @@ public final class ModItems {
                         Items.ENCHANTED_BOOK
                 );
 
-        stack.addEnchantment(
-                enchantment,
-                level
+        EnchantmentHelper.set(
+                stack,
+                net.minecraft.component.type.ItemEnchantmentsComponent.builder()
+                        .add(
+                                enchantment,
+                                level
+                        )
+                        .build()
         );
 
         return stack;
