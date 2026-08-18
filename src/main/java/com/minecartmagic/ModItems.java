@@ -3,7 +3,6 @@ package com.minecartmagic;
 import com.minecartmagic.item.SelfPropellingBoatItem;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemGroups;
@@ -13,6 +12,7 @@ import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.RegistryWrapper;
 
 public final class ModItems {
 
@@ -45,35 +45,37 @@ public final class ModItems {
         });
 
         /*
-         * Готовые книги Тяги и Попутного ветра.
+         * Готовые книги:
          *
-         * Enchantment в Minecraft 1.21.1 находится
-         * в динамическом registry, поэтому получаем
-         * RegistryWrapper через DisplayContext.
+         * Тяга I
+         * Тяга II
+         * Тяга III
+         *
+         * Попутный ветер I
+         * Попутный ветер II
+         * Попутный ветер III
          */
         ItemGroupEvents.modifyEntriesEvent(
                 ItemGroups.INGREDIENTS
         ).register(entries -> {
 
+            RegistryWrapper.WrapperLookup lookup =
+                    entries.getContext().lookup();
+
+            RegistryWrapper.Impl<Enchantment> enchantmentLookup =
+                    lookup.getWrapperOrThrow(
+                            RegistryKeys.ENCHANTMENT
+                    );
+
             RegistryEntry<Enchantment> traction =
-                    entries.getContext()
-                            .lookup()
-                            .getOrThrow(
-                                    RegistryKeys.ENCHANTMENT
-                            )
-                            .getOrThrow(
-                                    ModEnchantments.TRACTION_KEY
-                            );
+                    enchantmentLookup.getOrThrow(
+                            ModEnchantments.TRACTION_KEY
+                    );
 
             RegistryEntry<Enchantment> tailwind =
-                    entries.getContext()
-                            .lookup()
-                            .getOrThrow(
-                                    RegistryKeys.ENCHANTMENT
-                            )
-                            .getOrThrow(
-                                    ModEnchantments.TAILWIND_KEY
-                            );
+                    enchantmentLookup.getOrThrow(
+                            ModEnchantments.TAILWIND_KEY
+                    );
 
             entries.add(
                     createEnchantedBook(
@@ -128,14 +130,9 @@ public final class ModItems {
                         Items.ENCHANTED_BOOK
                 );
 
-        EnchantmentHelper.set(
-                stack,
-                net.minecraft.component.type.ItemEnchantmentsComponent.builder()
-                        .add(
-                                enchantment,
-                                level
-                        )
-                        .build()
+        stack.addEnchantment(
+                enchantment,
+                level
         );
 
         return stack;
