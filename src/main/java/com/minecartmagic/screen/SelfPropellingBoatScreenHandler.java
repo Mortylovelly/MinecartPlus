@@ -1,7 +1,5 @@
 package com.minecartmagic.screen;
 
-import com.minecartmagic.entity.SelfPropellingBoatEntity;
-import com.minecartmagic.screen.ModScreenHandlers;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
@@ -11,6 +9,8 @@ import net.minecraft.screen.ArrayPropertyDelegate;
 import net.minecraft.screen.PropertyDelegate;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.slot.Slot;
+
+import com.minecartmagic.entity.SelfPropellingBoatEntity;
 
 public class SelfPropellingBoatScreenHandler
         extends ScreenHandler {
@@ -22,15 +22,6 @@ public class SelfPropellingBoatScreenHandler
 
     private final SelfPropellingBoatEntity boat;
 
-    private final int entityId;
-
-    /*
-     * Client constructor.
-     *
-     * Client does not have access to the server entity inventory
-     * when the handler is initially created, therefore it uses
-     * a temporary one which is automatically synchronized from server.
-     */
     public SelfPropellingBoatScreenHandler(
             int syncId,
             PlayerInventory playerInventory,
@@ -41,14 +32,10 @@ public class SelfPropellingBoatScreenHandler
                 playerInventory,
                 new net.minecraft.inventory.SimpleInventory(1),
                 new ArrayPropertyDelegate(2),
-                null,
-                entityId
+                null
         );
     }
 
-    /*
-     * Server constructor.
-     */
     public SelfPropellingBoatScreenHandler(
             int syncId,
             PlayerInventory playerInventory,
@@ -58,35 +45,8 @@ public class SelfPropellingBoatScreenHandler
                 syncId,
                 playerInventory,
                 boat.getFuelInventory(),
-                new PropertyDelegate() {
-
-                    @Override
-                    public int get(int index) {
-                        return switch (index) {
-                            case 0 -> boat.getBurnTime();
-                            case 1 -> boat.getFuelTime();
-                            default -> 0;
-                        };
-                    }
-
-                    @Override
-                    public void set(
-                            int index,
-                            int value
-                    ) {
-                        /*
-                         * Client-side synchronization values are
-                         * read-only for this use case.
-                         */
-                    }
-
-                    @Override
-                    public int size() {
-                        return 2;
-                    }
-                },
-                boat,
-                boat.getId()
+                new BoatPropertyDelegate(boat),
+                boat
         );
     }
 
@@ -95,8 +55,7 @@ public class SelfPropellingBoatScreenHandler
             PlayerInventory playerInventory,
             Inventory fuelInventory,
             PropertyDelegate propertyDelegate,
-            SelfPropellingBoatEntity boat,
-            int entityId
+            SelfPropellingBoatEntity boat
     ) {
         super(
                 ModScreenHandlers.SELF_PROPELLING_BOAT,
@@ -112,32 +71,25 @@ public class SelfPropellingBoatScreenHandler
         this.boat =
                 boat;
 
-        this.entityId =
-                entityId;
-
         checkSize(
                 fuelInventory,
                 1
         );
 
         /*
-         * Самоходная лодка.
-         *
-         * Один-единственный топливный слот.
+         * Единственный слот.
          */
         addSlot(
                 new FuelSlot(
                         fuelInventory,
                         FUEL_SLOT,
-                        56,
-                        53
+                        79,
+                        37
                 )
         );
 
         /*
-         * Player inventory.
-         *
-         * 27 основных слотов.
+         * Main inventory.
          */
         for (int row = 0; row < 3; row++) {
 
@@ -171,12 +123,6 @@ public class SelfPropellingBoatScreenHandler
             );
         }
 
-        /*
-         * Burn progress:
-         *
-         * property 0 = current burn time
-         * property 1 = total burn time
-         */
         addProperties(
                 propertyDelegate
         );
@@ -190,11 +136,6 @@ public class SelfPropellingBoatScreenHandler
         return propertyDelegate.get(1);
     }
 
-    /*
-     * Progress of the vanilla-style flame.
-     *
-     * Returns 0..13.
-     */
     public int getFuelProgress() {
 
         int burnTime =
@@ -203,28 +144,24 @@ public class SelfPropellingBoatScreenHandler
         int fuelTime =
                 getFuelTime();
 
-        if (fuelTime <= 0 || burnTime <= 0) {
+        if (burnTime <= 0
+                || fuelTime <= 0) {
             return 0;
         }
 
         return Math.min(
                 13,
-                (burnTime * 13 + fuelTime - 1)
+                (burnTime * 13
+                        + fuelTime - 1)
                         / fuelTime
         );
-    }
-
-    public int getEntityId() {
-        return entityId;
     }
 
     @Override
     public boolean canUse(
             PlayerEntity player
     ) {
-        /*
-         * Client-side handler does not have the real entity.
-         */
+
         if (boat == null) {
             return true;
         }
@@ -243,26 +180,25 @@ public class SelfPropellingBoatScreenHandler
             PlayerEntity player,
             int slotIndex
     ) {
-        ItemStack newStack =
-                ItemStack.EMPTY;
 
         if (slotIndex < 0
                 || slotIndex >= slots.size()) {
-            return newStack;
+
+            return ItemStack.EMPTY;
         }
 
         Slot slot =
                 slots.get(slotIndex);
 
         if (!slot.hasStack()) {
-            return newStack;
+            return ItemStack.EMPTY;
         }
 
-        ItemStack originalStack =
+        ItemStack original =
                 slot.getStack();
 
-        newStack =
-                originalStack.copy();
+        ItemStack copy =
+                original.copy();
 
         /*
          * Fuel slot -> player inventory.
@@ -270,7 +206,7 @@ public class SelfPropellingBoatScreenHandler
         if (slotIndex == FUEL_SLOT) {
 
             if (!insertItem(
-                    originalStack,
+                    original,
                     1,
                     37,
                     true
@@ -278,22 +214,17 @@ public class SelfPropellingBoatScreenHandler
                 return ItemStack.EMPTY;
             }
 
-            slot.onQuickTransfer(
-                    originalStack,
-                    newStack
-            );
-
         } else {
 
             /*
              * Player inventory -> fuel slot.
              */
             if (FuelRegistry.INSTANCE.get(
-                    originalStack.getItem()
+                    original.getItem()
             ) != null) {
 
                 if (!insertItem(
-                        originalStack,
+                        original,
                         FUEL_SLOT,
                         FUEL_SLOT + 1,
                         false
@@ -304,14 +235,13 @@ public class SelfPropellingBoatScreenHandler
             } else {
 
                 /*
-                 * Main inventory -> hotbar
-                 * or hotbar -> main inventory.
+                 * Main inventory <-> hotbar.
                  */
                 if (slotIndex >= 1
                         && slotIndex < 28) {
 
                     if (!insertItem(
-                            originalStack,
+                            original,
                             28,
                             37,
                             false
@@ -319,11 +249,13 @@ public class SelfPropellingBoatScreenHandler
                         return ItemStack.EMPTY;
                     }
 
-                } else if (slotIndex >= 28
-                        && slotIndex < 37) {
+                } else if (
+                        slotIndex >= 28
+                                && slotIndex < 37
+                ) {
 
                     if (!insertItem(
-                            originalStack,
+                            original,
                             1,
                             28,
                             false
@@ -338,7 +270,7 @@ public class SelfPropellingBoatScreenHandler
             }
         }
 
-        if (originalStack.isEmpty()) {
+        if (original.isEmpty()) {
             slot.setStack(
                     ItemStack.EMPTY
             );
@@ -346,34 +278,33 @@ public class SelfPropellingBoatScreenHandler
             slot.markDirty();
         }
 
-        if (originalStack.getCount()
-                == newStack.getCount()) {
+        if (original.getCount()
+                == copy.getCount()) {
 
             return ItemStack.EMPTY;
         }
 
         slot.onTakeItem(
                 player,
-                originalStack
+                original
         );
 
-        return newStack;
+        return copy;
     }
 
     @Override
     public void onClosed(
             PlayerEntity player
     ) {
-        super.onClosed(player);
+        super.onClosed(
+                player
+        );
 
         fuelInventory.onClose(
                 player
         );
     }
 
-    /*
-     * Special fuel-only slot.
-     */
     private static class FuelSlot
             extends Slot {
 
@@ -403,6 +334,48 @@ public class SelfPropellingBoatScreenHandler
         @Override
         public int getMaxItemCount() {
             return 64;
+        }
+    }
+
+    private static class BoatPropertyDelegate
+            implements PropertyDelegate {
+
+        private final SelfPropellingBoatEntity boat;
+
+        private BoatPropertyDelegate(
+                SelfPropellingBoatEntity boat
+        ) {
+            this.boat = boat;
+        }
+
+        @Override
+        public int get(int index) {
+
+            return switch (index) {
+                case 0 ->
+                        boat.getBurnTime();
+
+                case 1 ->
+                        boat.getFuelTime();
+
+                default ->
+                        0;
+            };
+        }
+
+        @Override
+        public void set(
+                int index,
+                int value
+        ) {
+            /*
+             * Server-authoritative.
+             */
+        }
+
+        @Override
+        public int size() {
+            return 2;
         }
     }
 }
