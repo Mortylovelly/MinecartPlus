@@ -25,10 +25,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
     private static final double ACCELERATION = 0.025D;
 
     /*
-     * Скорость поворота от A/D.
-     *
-     * Это именно управление направлением лодки,
-     * а не изменение скорости двигателя.
+     * Скорость поворота A/D в градусах за тик.
      */
     private static final float STEERING_SPEED = 2.5F;
 
@@ -41,26 +38,10 @@ public class SelfPropellingBoatEntity extends BoatEntity {
         super(entityType, world);
 
         /*
-         * Пока существует только одна версия:
-         * дубовая самоходная лодка.
+         * Пока доступна только одна версия:
+         * дубовая.
          */
         setVariant(Type.OAK);
-    }
-
-    /**
-     * Самоходная лодка может иметь пассажира,
-     * но пассажир НЕ должен становиться ванильным
-     * controlling passenger BoatEntity.
-     *
-     * Это главное отличие от обычной лодки.
-     *
-     * Благодаря этому ванильная BoatEntity не пытается
-     * включать собственную управляемую лодочную физику
-     * поверх нашего двигателя.
-     */
-    @Override
-    public PlayerEntity getControllingPassenger() {
-        return null;
     }
 
     public int getFuel() {
@@ -69,6 +50,10 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
     public int getMaxFuel() {
         return MAX_FUEL;
+    }
+
+    public boolean hasFuel() {
+        return fuel > 0;
     }
 
     public void setFuel(int fuel) {
@@ -117,77 +102,60 @@ public class SelfPropellingBoatEntity extends BoatEntity {
     }
 
     private Vec3d getForwardDirection() {
-        double yawRadians =
-                Math.toRadians(getYaw());
+        double radians =
+                Math.toRadians(
+                        getYaw()
+                );
 
         return new Vec3d(
-                -Math.sin(yawRadians),
+                -Math.sin(radians),
                 0.0D,
-                Math.cos(yawRadians)
+                Math.cos(radians)
         );
     }
 
     /**
-     * Собственное управление самоходной лодкой.
+     * Полностью автономный режим.
      *
-     * A:
-     * поворот влево.
+     * С топливом:
      *
-     * D:
-     * поворот вправо.
+     * A = поворот влево
+     * D = поворот вправо
+     * W = игнорируется
+     * S = игнорируется
      *
-     * W:
-     * полностью игнорируется.
-     *
-     * S:
-     * полностью игнорируется.
-     *
-     * Двигатель всегда толкает лодку строго вперёд
-     * относительно её текущего yaw.
+     * Лодка сама постоянно получает тягу вперёд.
      */
-    public void handleSelfPropulsion(
+    public void applySelfPropulsion(
             boolean pressingLeft,
             boolean pressingRight
     ) {
-        /*
-         * На клиенте не выполняем авторитетную
-         * физику двигателя.
-         */
         if (getWorld().isClient()) {
             return;
         }
 
-        /*
-         * Управлять направлением можно только
-         * когда есть пассажир.
-         */
-        if (!getPassengerList().isEmpty()) {
-
-            if (pressingLeft && !pressingRight) {
-                setYaw(
-                        getYaw() - STEERING_SPEED
-                );
-            }
-
-            if (pressingRight && !pressingLeft) {
-                setYaw(
-                        getYaw() + STEERING_SPEED
-                );
-            }
-        }
-
-        /*
-         * Нет топлива.
-         */
-        if (fuel <= 0) {
+        if (!hasFuel()) {
             return;
         }
 
-        /*
-         * Двигатель работает только в воде.
-         */
         if (!isTouchingWater()) {
             return;
+        }
+
+        /*
+         * A / D управляют направлением.
+         *
+         * Одновременно нажатые A+D
+         * не дают вращения.
+         */
+        if (pressingLeft && !pressingRight) {
+            setYaw(
+                    getYaw() - STEERING_SPEED
+            );
+        } else if (pressingRight && !pressingLeft) {
+            setYaw(
+                    getYaw() + STEERING_SPEED
+            );
         }
 
         Vec3d forward =
@@ -205,11 +173,11 @@ public class SelfPropellingBoatEntity extends BoatEntity {
         double maxSpeed =
                 getMaximumSpeed();
 
-        double newSpeed;
+        double targetSpeed;
 
         if (horizontalSpeed < maxSpeed) {
 
-            newSpeed =
+            targetSpeed =
                     Math.min(
                             maxSpeed,
                             horizontalSpeed
@@ -218,23 +186,26 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
         } else {
 
-            newSpeed =
+            targetSpeed =
                     maxSpeed;
         }
 
         /*
-         * Расход топлива.
+         * Одну единицу топлива за тик.
          */
         fuel--;
 
         /*
-         * Сбрасываем старое боковое/заднее движение
-         * и задаём скорость строго по носу.
+         * Полностью задаём горизонтальную скорость
+         * по текущему носу лодки.
+         *
+         * Поэтому старый боковой/random glide
+         * не сохраняется.
          */
         setVelocity(
-                forward.x * newSpeed,
+                forward.x * targetSpeed,
                 velocity.y,
-                forward.z * newSpeed
+                forward.z * targetSpeed
         );
 
         velocityDirty = true;
@@ -255,7 +226,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
         /*
          * Уголь / древесный уголь:
-         * заправка двигателя.
+         * заправляем двигатель.
          */
         if (stack.isOf(Items.COAL)
                 || stack.isOf(Items.CHARCOAL)) {
@@ -268,6 +239,9 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
                 addFuel(stack);
 
+                /*
+                 * Creative не расходует уголь.
+                 */
                 if (!player.getAbilities().creativeMode) {
                     stack.decrement(1);
                 }
@@ -281,8 +255,13 @@ public class SelfPropellingBoatEntity extends BoatEntity {
         }
 
         /*
-         * Любое другое взаимодействие —
-         * ванильная посадка / выход.
+         * Если это не топливо —
+         * используем полностью ванильное
+         * поведение BoatEntity.
+         *
+         * Благодаря этому без топлива:
+         *
+         * W/A/S/D = обычная лодка.
          */
         return super.interact(
                 player,
@@ -293,12 +272,21 @@ public class SelfPropellingBoatEntity extends BoatEntity {
     @Override
     public void tick() {
         /*
-         * Вся ванильная логика BoatEntity
-         * всё ещё выполняется.
+         * Ничего не переопределяем.
          *
-         * Но наш getControllingPassenger()
-         * возвращает null, поэтому пассажир больше
-         * не включает ванильную систему управления.
+         * BoatEntity.tick() занимается:
+         * пассажиром,
+         * посадкой,
+         * выходом,
+         * ориентацией,
+         * обычной физикой.
+         *
+         * Когда топлива нет —
+         * всё работает ванильно.
+         *
+         * Когда топливо есть —
+         * SelfPropellingBoatVelocityMixin
+         * перехватывает updateVelocity().
          */
         super.tick();
     }
@@ -314,7 +302,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
 
         /*
          * Creative:
-         * предмет не выпадает.
+         * ломаем без выпадения предмета.
          */
         if (source.getAttacker()
                 instanceof PlayerEntity player
@@ -331,7 +319,7 @@ public class SelfPropellingBoatEntity extends BoatEntity {
                 );
 
         /*
-         * Сохраняем Tailwind при дропе.
+         * Сохраняем Tailwind.
          */
         int tailwindLevel =
                 ModEnchantments.getTailwindLevel(this);
