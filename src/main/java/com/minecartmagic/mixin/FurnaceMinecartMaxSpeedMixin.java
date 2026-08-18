@@ -2,7 +2,6 @@ package com.minecartmagic.mixin;
 
 import com.minecartmagic.ModEnchantments;
 import net.minecraft.entity.vehicle.FurnaceMinecartEntity;
-import net.minecraft.server.world.ServerWorld;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,7 +16,6 @@ public abstract class FurnaceMinecartMaxSpeedMixin {
             cancellable = true
     )
     private void minecartmagic$increaseFurnaceMinecartSpeed(
-            ServerWorld world,
             CallbackInfoReturnable<Double> cir
     ) {
         FurnaceMinecartEntity minecart =
