@@ -26,28 +26,28 @@ public abstract class BoatTailwindSpeedMixin {
         BoatEntity boat =
                 (BoatEntity) (Object) this;
 
-        /*
-         * Самоходная лодка использует собственную
-         * систему двигателя.
-         *
-         * Иначе здесь Tailwind мог бы второй раз
-         * вмешиваться в скорость и реагировать на W.
-         */
-        if (boat instanceof SelfPropellingBoatEntity) {
-            return;
-        }
-
-        /*
-         * Старое поведение обычных лодок НЕ меняем.
-         */
-        if (!pressingForward) {
-            return;
-        }
-
         int level =
-                ModEnchantments.getTailwindLevel(boat);
+                ModEnchantments.getTailwindLevel(
+                        boat
+                );
 
         if (level <= 0) {
+            return;
+        }
+
+        /*
+         * Самоходная лодка с горящим топливом
+         * уже получает Tailwind непосредственно
+         * из своего двигателя.
+         *
+         * Здесь ничего не добавляем второй раз.
+         */
+        if (boat instanceof SelfPropellingBoatEntity selfPropellingBoat
+                && selfPropellingBoat.hasFuel()) {
+            return;
+        }
+
+        if (!pressingForward) {
             return;
         }
 
@@ -55,11 +55,42 @@ public abstract class BoatTailwindSpeedMixin {
             return;
         }
 
-        double maxSpeed = switch (level) {
-            case 1 -> 0.55D;
-            case 2 -> 0.65D;
-            default -> 0.75D;
-        };
+        /*
+         * Для самоходной лодки БЕЗ топлива
+         * используем более высокий лимит,
+         * чем у обычной лодки.
+         *
+         * Обычная лодка:
+         * I   = 0.55
+         * II  = 0.65
+         * III = 0.75
+         *
+         * Самоходная без топлива:
+         * I   = 0.60
+         * II  = 0.70
+         * III = 0.82
+         */
+        double maxSpeed;
+
+        if (boat instanceof SelfPropellingBoatEntity) {
+
+            maxSpeed = switch (level) {
+                case 1 -> 0.60D;
+                case 2 -> 0.70D;
+                default -> 0.82D;
+            };
+
+        } else {
+
+            /*
+             * Старая рабочая механика обычных лодок.
+             */
+            maxSpeed = switch (level) {
+                case 1 -> 0.55D;
+                case 2 -> 0.65D;
+                default -> 0.75D;
+            };
+        }
 
         double multiplier = switch (level) {
             case 1 -> 1.08D;
