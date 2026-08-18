@@ -1,5 +1,7 @@
 package com.minecartmagic;
 
+import com.minecartmagic.network.ModNetworking;
+import com.minecartmagic.screen.ModScreenHandlers;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
@@ -14,14 +16,45 @@ public class MinecartMagicMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
+
+        /*
+         * Fabric Attachments.
+         */
         MinecartMagicAttachments.init();
 
+        /*
+         * Custom entity types.
+         */
         ModEntities.init();
+
+        /*
+         * Custom items and Creative entries.
+         */
         ModItems.init();
 
+        /*
+         * Data-driven enchantments.
+         */
         ModEnchantments.init();
 
+        /*
+         * Minecart placement and Traction transfer.
+         *
+         * ВАЖНО:
+         * этот init нельзя удалять.
+         */
         MinecartPlacementHandler.init();
+
+        /*
+         * Fuel GUI / ScreenHandler registration.
+         */
+        ModScreenHandlers.init();
+
+        /*
+         * Networking for opening the fuel GUI
+         * from inside the boat.
+         */
+        ModNetworking.init();
 
         LOGGER.info(
                 "Minecart Magic loaded!"
