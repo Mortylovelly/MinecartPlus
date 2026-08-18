@@ -47,69 +47,53 @@ public class SelfPropellingBoatScreen
                 (height - backgroundHeight) / 2;
 
         /*
-         * Весь ванильный фон.
+         * ---------------------------------------------
+         * ОСНОВНАЯ ПАНЕЛЬ
+         * ---------------------------------------------
+         *
+         * Никакой furnace.png целиком.
          */
-        context.drawTexture(
-                FURNACE_TEXTURE,
+        context.fill(
                 x,
                 y,
-                0,
-                0,
-                WIDTH,
-                HEIGHT,
-                256,
-                256
+                x + WIDTH,
+                y + HEIGHT,
+                0xFFC6C6C6
         );
 
         /*
-         * -------------------------------------------------
-         * Убираем НЕ нужные визуальные элементы печки.
-         * -------------------------------------------------
+         * Верхняя внутренняя область.
          */
-
-        /*
-         * Верхний INPUT SLOT.
-         */
-        cover(
-                context,
-                x + 56,
-                y + 17,
-                18,
-                18
+        context.fill(
+                x + 4,
+                y + 4,
+                x + WIDTH - 4,
+                y + 70,
+                0xFF8B8B8B
         );
 
         /*
-         * OUTPUT SLOT.
+         * Внутренняя светлая поверхность.
          */
-        cover(
-                context,
-                x + 116,
-                y + 36,
-                18,
-                18
+        context.fill(
+                x + 6,
+                y + 6,
+                x + WIDTH - 6,
+                y + 68,
+                0xFFC6C6C6
         );
 
         /*
-         * Стрелка переплавки.
-         */
-        cover(
-                context,
-                x + 79,
-                y + 34,
-                26,
-                16
-        );
-
-        /*
-         * -------------------------------------------------
-         * ЕДИНСТВЕННЫЙ слот самоходной лодки.
+         * ---------------------------------------------
+         * Топливный слот.
+         * ---------------------------------------------
          *
-         * Это ровно та же координата, что у настоящего
-         * FuelSlot в ScreenHandler:
+         * Единственный слот.
          *
-         * x = 79
-         * y = 37
-         * -------------------------------------------------
+         * Координаты должны совпадать
+         * с ScreenHandler:
+         *
+         * 79 / 37
          */
         drawVanillaSlot(
                 context,
@@ -118,7 +102,12 @@ public class SelfPropellingBoatScreen
         );
 
         /*
-         * Пламя.
+         * ---------------------------------------------
+         * Огонь.
+         * ---------------------------------------------
+         *
+         * Берём только ванильный flame sprite
+         * из furnace texture.
          */
         int flameHeight =
                 handler.getFuelProgress();
@@ -127,8 +116,8 @@ public class SelfPropellingBoatScreen
 
             context.drawTexture(
                     FURNACE_TEXTURE,
-                    x + 80,
-                    y + 42
+                    x + 103,
+                    y + 39
                             + (14 - flameHeight),
                     176,
                     14 - flameHeight,
@@ -138,18 +127,43 @@ public class SelfPropellingBoatScreen
                     256
             );
         }
+
+        /*
+         * ---------------------------------------------
+         * Разделитель перед инвентарём.
+         * ---------------------------------------------
+         */
+        context.fill(
+                x + 4,
+                y + 76,
+                x + WIDTH - 4,
+                y + 77,
+                0xFF8B8B8B
+        );
+
+        /*
+         * Сама область инвентаря.
+         */
+        context.fill(
+                x + 4,
+                y + 78,
+                x + WIDTH - 4,
+                y + HEIGHT - 4,
+                0xFFC6C6C6
+        );
     }
 
-    /*
-     * Рисует один обычный vanilla slot.
-     *
-     * Берём его прямо из GUI-текстуры печи.
-     */
     private void drawVanillaSlot(
             DrawContext context,
             int x,
             int y
     ) {
+        /*
+         * Только 18x18 область настоящего
+         * топливного слота из ванильной печи.
+         *
+         * Никаких других furnace GUI элементов.
+         */
         context.drawTexture(
                 FURNACE_TEXTURE,
                 x,
@@ -163,33 +177,15 @@ public class SelfPropellingBoatScreen
         );
     }
 
-    /*
-     * Перекрывает часть обычной печной GUI,
-     * которая нам не нужна.
-     */
-    private void cover(
-            DrawContext context,
-            int x,
-            int y,
-            int width,
-            int height
-    ) {
-        context.fill(
-                x,
-                y,
-                x + width,
-                y + height,
-                0xFFC6C6C6
-        );
-    }
-
     @Override
     protected void drawForeground(
             DrawContext context,
             int mouseX,
             int mouseY
     ) {
-
+        /*
+         * Название.
+         */
         context.drawText(
                 textRenderer,
                 title,
@@ -199,11 +195,28 @@ public class SelfPropellingBoatScreen
                 false
         );
 
+        /*
+         * Подпись над единственным слотом.
+         */
+        context.drawText(
+                textRenderer,
+                Text.translatable(
+                        "container.minecartmagic.fuel"
+                ),
+                68,
+                20,
+                0x404040,
+                false
+        );
+
+        /*
+         * Инвентарь игрока.
+         */
         context.drawText(
                 textRenderer,
                 playerInventoryTitle,
                 8,
-                72,
+                78,
                 0x404040,
                 false
         );
