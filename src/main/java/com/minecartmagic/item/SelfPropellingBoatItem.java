@@ -4,6 +4,7 @@ import com.minecartmagic.ModEnchantments;
 import com.minecartmagic.ModEntities;
 import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.Hand;
@@ -63,20 +64,25 @@ public class SelfPropellingBoatItem extends Item {
                 hit.getPos().z
         );
 
+        /*
+         * Самоходная лодка пока существует
+         * только в дубовой версии.
+         */
+        boat.setVariant(
+                BoatEntity.Type.OAK
+        );
+
+        /*
+         * Лодка смотрит туда же, куда смотрел игрок
+         * при установке.
+         */
         boat.setYaw(
                 user.getYaw()
         );
 
         /*
-         * Пока существует только дубовая версия.
-         */
-        boat.setVariant(
-                net.minecraft.entity.vehicle.BoatEntity.Type.OAK
-        );
-
-        /*
-         * Переносим Tailwind с предмета
-         * на entity.
+         * Переносим Попутный ветер
+         * с предмета на сущность.
          */
         int tailwindLevel =
                 ModEnchantments.getTailwindLevel(
@@ -94,7 +100,14 @@ public class SelfPropellingBoatItem extends Item {
                 boat
         );
 
-        stack.decrement(1);
+        /*
+         * В Survival предмет расходуется.
+         *
+         * В Creative предмет остаётся в инвентаре.
+         */
+        if (!user.getAbilities().creativeMode) {
+            stack.decrement(1);
+        }
 
         return TypedActionResult.success(
                 stack
