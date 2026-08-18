@@ -2,7 +2,6 @@ package com.minecartmagic.entity;
 
 import com.minecartmagic.ModEnchantments;
 import com.minecartmagic.ModItems;
-import com.minecartmagic.screen.SelfPropellingBoatScreenHandler;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.entity.EntityType;
@@ -10,40 +9,49 @@ import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.entity.vehicle.BoatEntity;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 public class SelfPropellingBoatEntity
         extends BoatEntity
         implements ExtendedScreenHandlerFactory<Integer> {
 
+    private static final TrackedData<Integer> BURN_TIME =
+            DataTracker.registerData(
+                    SelfPropellingBoatEntity.class,
+                    TrackedDataHandlerRegistry.INTEGER
+            );
+
+    private static final TrackedData<Integer> FUEL_TIME =
+            DataTracker.registerData(
+                    SelfPropellingBoatEntity.class,
+                    TrackedDataHandlerRegistry.INTEGER
+            );
+
     private static final int MAX_PASSENGERS = 1;
+
+    private static final int STEERING_SPEED = 2;
+
+    private static final double BASE_MAX_SPEED = 0.35D;
+    private static final double ACCELERATION = 0.025D;
 
     private final SimpleInventory fuelInventory =
             new SimpleInventory(1);
-
-    /*
-     * Remaining ticks of the currently burning fuel item.
-     */
-    private int burnTime;
-
-    /*
-     * Total burn ticks of the current fuel item.
-     *
-     * Used by the GUI to calculate the flame progress.
-     */
-    private int fuelTime;
 
     public SelfPropellingBoatEntity(
             EntityType<? extends SelfPropellingBoatEntity> entityType,
@@ -54,9 +62,7 @@ public class SelfPropellingBoatEntity
                 world
         );
 
-        setVariant(
-                Type.OAK
-        );
+        setVariant(Type.OAK);
     }
 
     @Override
@@ -64,25 +70,70 @@ public class SelfPropellingBoatEntity
         return MAX_PASSENGERS;
     }
 
+    @Override
+    protected void initDataTracker(
+            DataTracker.Builder builder
+    ) {
+        super.initDataTracker(builder);
+
+        builder.add(
+                BURN_TIME,
+                0
+        );
+
+        builder.add(
+                FUEL_TIME,
+                0
+        );
+    }
+
     public SimpleInventory getFuelInventory() {
         return fuelInventory;
     }
 
     public int getBurnTime() {
-        return burnTime;
+        return getDataTracker().get(
+                BURN_TIME
+        );
     }
 
     public int getFuelTime() {
-        return fuelTime;
+        return getDataTracker().get(
+                FUEL_TIME
+        );
+    }
+
+    public void setBurnTime(
+            int value
+    ) {
+        getDataTracker().set(
+                BURN_TIME,
+                Math.max(
+                        0,
+                        value
+                )
+        );
+    }
+
+    public void setFuelTime(
+            int value
+    ) {
+        getDataTracker().set(
+                FUEL_TIME,
+                Math.max(
+                        0,
+                        value
+                )
+        );
     }
 
     public boolean hasFuel() {
-        return burnTime > 0;
+        return getBurnTime() > 0;
     }
 
     private void startBurningFuel() {
 
-        if (burnTime > 0) {
+        if (getBurnTime() > 0) {
             return;
         }
 
@@ -90,7 +141,7 @@ public class SelfPropellingBoatEntity
                 fuelInventory.getStack(0);
 
         if (stack.isEmpty()) {
-            fuelTime = 0;
+            setFuelTime(0);
             return;
         }
 
@@ -101,28 +152,28 @@ public class SelfPropellingBoatEntity
 
         if (fuelValue == null
                 || fuelValue <= 0) {
-            fuelTime = 0;
+
+            setFuelTime(0);
+
             return;
         }
 
-        burnTime =
-                fuelValue;
+        setBurnTime(
+                fuelValue
+        );
 
-        fuelTime =
-                fuelValue;
+        setFuelTime(
+                fuelValue
+        );
 
-        /*
-         * Consume one fuel item.
-         */
         Item fuelItem =
                 stack.getItem();
 
         stack.decrement(1);
 
         /*
-         * Vanilla-style recipe remainder support.
-         *
-         * For example, lava bucket -> empty bucket.
+         * Например:
+         * lava bucket -> empty bucket.
          */
         if (stack.isEmpty()
                 && fuelItem.hasRecipeRemainder()) {
@@ -149,31 +200,25 @@ public class SelfPropellingBoatEntity
             return;
         }
 
-        /*
-         * Start another fuel item when the current one ended.
-         */
-        if (burnTime <= 0) {
+        if (getBurnTime() <= 0) {
             startBurningFuel();
         }
 
-        /*
-         * Burn one tick.
-         */
-        if (burnTime > 0) {
-            burnTime--;
+        if (getBurnTime() > 0) {
+
+            setBurnTime(
+                    getBurnTime() - 1
+            );
         }
 
-        /*
-         * If absolutely nothing is burning,
-         * clear the display value.
-         */
-        if (burnTime <= 0) {
-            burnTime = 0;
-            fuelTime = 0;
+        if (getBurnTime() <= 0) {
+
+            setBurnTime(0);
+            setFuelTime(0);
         }
     }
 
-    private double getTailwindMultiplier() {
+    public double getTailwindMultiplier() {
 
         int level =
                 ModEnchantments.getTailwindLevel(
@@ -189,31 +234,9 @@ public class SelfPropellingBoatEntity
     }
 
     public double getMaximumSpeed() {
-        return 0.35D
+
+        return BASE_MAX_SPEED
                 * getTailwindMultiplier();
-    }
-
-    private Vec3dWrapper getForwardDirection() {
-        double radians =
-                Math.toRadians(
-                        getYaw()
-                );
-
-        return new Vec3dWrapper(
-                -Math.sin(radians),
-                Math.cos(radians)
-        );
-    }
-
-    /*
-     * Kept as a small internal value object so the movement
-     * method doesn't have to construct a full Vec3d just
-     * to obtain horizontal direction.
-     */
-    private record Vec3dWrapper(
-            double x,
-            double z
-    ) {
     }
 
     public void applySelfPropulsion(
@@ -227,21 +250,25 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * A/D steer the boat only while the engine is running.
+         * A / D работают только как руль
+         * во время работы двигателя.
          */
         if (clientSide) {
 
-            if (pressingLeft && !pressingRight) {
+            if (pressingLeft
+                    && !pressingRight) {
 
                 setYaw(
-                        getYaw() - 2.5F
+                        getYaw() - STEERING_SPEED
                 );
 
-            } else if (pressingRight
-                    && !pressingLeft) {
+            } else if (
+                    pressingRight
+                            && !pressingLeft
+            ) {
 
                 setYaw(
-                        getYaw() + 2.5F
+                        getYaw() + STEERING_SPEED
                 );
             }
         }
@@ -250,10 +277,19 @@ public class SelfPropellingBoatEntity
             return;
         }
 
-        Vec3dWrapper forward =
-                getForwardDirection();
+        double radians =
+                Math.toRadians(
+                        getYaw()
+                );
 
-        var velocity =
+        Vec3d forward =
+                new Vec3d(
+                        -Math.sin(radians),
+                        0.0D,
+                        Math.cos(radians)
+                );
+
+        Vec3d velocity =
                 getVelocity();
 
         double horizontalSpeed =
@@ -269,7 +305,7 @@ public class SelfPropellingBoatEntity
                 Math.min(
                         maxSpeed,
                         horizontalSpeed
-                                + 0.025D
+                                + ACCELERATION
                 );
 
         setVelocity(
@@ -293,14 +329,14 @@ public class SelfPropellingBoatEntity
     ) {
 
         /*
-         * Shift + right click from outside:
-         *
-         * open fuel GUI.
+         * Shift + ПКМ снаружи:
+         * открыть топливное меню.
          */
         if (player.isSneaking()
-                && !hasPassenger(player)) {
+                && !getPassengerList().contains(player)) {
 
             if (!getWorld().isClient()) {
+
                 player.openHandledScreen(
                         this
                 );
@@ -312,11 +348,8 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Everything else uses vanilla BoatEntity:
-         *
-         * mounting,
-         * dismounting,
-         * normal interaction.
+         * Обычное взаимодействие:
+         * посадка / выход.
          */
         return super.interact(
                 player,
@@ -324,27 +357,17 @@ public class SelfPropellingBoatEntity
         );
     }
 
-    private boolean hasPassenger(
-            PlayerEntity player
-    ) {
-        return getPassengerList()
-                .contains(
-                        player
-                );
-    }
-
     @Override
     public void tick() {
 
         /*
-         * Fuel must be processed BEFORE
-         * BoatEntity physics.
-         *
-         * That way the engine sees the newly started
-         * fuel item during this tick.
+         * Сначала обслуживаем топливо.
          */
         tickFuel();
 
+        /*
+         * Затем ванильный BoatEntity.
+         */
         super.tick();
     }
 
@@ -359,7 +382,8 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Creative does not drop anything.
+         * Creative:
+         * ничего не выпадает.
          */
         if (source.getAttacker()
                 instanceof PlayerEntity player
@@ -372,12 +396,11 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Return fuel currently stored in the GUI.
+         * То, что осталось в топливном слоте,
+         * возвращаем игроку.
          */
         ItemStack fuelStack =
-                fuelInventory.removeStack(
-                        0
-                );
+                fuelInventory.removeStack(0);
 
         if (!fuelStack.isEmpty()) {
             dropStack(
@@ -386,9 +409,7 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Return the boat itself.
-         *
-         * Tailwind is preserved.
+         * Сама самоходная лодка.
          */
         ItemStack boatStack =
                 new ItemStack(
@@ -438,12 +459,12 @@ public class SelfPropellingBoatEntity
 
         nbt.putInt(
                 "BurnTime",
-                burnTime
+                getBurnTime()
         );
 
         nbt.putInt(
                 "FuelTime",
-                fuelTime
+                getFuelTime()
         );
 
         nbt.put(
@@ -462,15 +483,17 @@ public class SelfPropellingBoatEntity
                 nbt
         );
 
-        burnTime =
+        setBurnTime(
                 nbt.getInt(
                         "BurnTime"
-                );
+                )
+        );
 
-        fuelTime =
+        setFuelTime(
                 nbt.getInt(
                         "FuelTime"
-                );
+                )
+        );
 
         if (nbt.contains(
                 "FuelInventory",
@@ -500,11 +523,12 @@ public class SelfPropellingBoatEntity
             PlayerInventory playerInventory,
             PlayerEntity player
     ) {
-        return new SelfPropellingBoatScreenHandler(
-                syncId,
-                playerInventory,
-                this
-        );
+        return new com.minecartmagic.screen
+                .SelfPropellingBoatScreenHandler(
+                        syncId,
+                        playerInventory,
+                        this
+                );
     }
 
     @Override
