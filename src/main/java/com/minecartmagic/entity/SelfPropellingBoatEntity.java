@@ -6,12 +6,12 @@ import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -44,7 +44,13 @@ public class SelfPropellingBoatEntity
 
     private static final int MAX_PASSENGERS = 1;
 
-    private static final double BASE_MAX_SPEED = 0.35D;
+    /*
+     * Базовая максимальная скорость самоходной лодки.
+     *
+     * Она специально выше обычной лодки.
+     */
+    private static final double BASE_ENGINE_SPEED = 0.45D;
+
     private static final double ACCELERATION = 0.025D;
 
     private static final float STEERING_SPEED = 2.5F;
@@ -61,9 +67,6 @@ public class SelfPropellingBoatEntity
                 world
         );
 
-        /*
-         * Пока существует только дубовая версия.
-         */
         setVariant(Type.OAK);
     }
 
@@ -105,7 +108,9 @@ public class SelfPropellingBoatEntity
         );
     }
 
-    private void setBurnTime(int value) {
+    private void setBurnTime(
+            int value
+    ) {
         getDataTracker().set(
                 BURN_TIME,
                 Math.max(
@@ -115,7 +120,9 @@ public class SelfPropellingBoatEntity
         );
     }
 
-    private void setFuelTime(int value) {
+    private void setFuelTime(
+            int value
+    ) {
         getDataTracker().set(
                 FUEL_TIME,
                 Math.max(
@@ -152,7 +159,6 @@ public class SelfPropellingBoatEntity
                 || fuelValue <= 0) {
 
             setFuelTime(0);
-
             return;
         }
 
@@ -169,10 +175,6 @@ public class SelfPropellingBoatEntity
 
         fuelStack.decrement(1);
 
-        /*
-         * Например:
-         * лавовое ведро -> пустое ведро.
-         */
         if (fuelStack.isEmpty()
                 && fuelItem.hasRecipeRemainder()) {
 
@@ -214,7 +216,27 @@ public class SelfPropellingBoatEntity
         }
     }
 
-    public double getTailwindMultiplier() {
+    /*
+     * Скорость самоходной лодки с Tailwind.
+     *
+     * Важный момент:
+     * эти значения используются ТОЛЬКО
+     * когда двигатель действительно работает.
+     *
+     * Они выше соответствующих значений
+     * обычной лодки:
+     *
+     * обычная Tailwind:
+     * I   = 0.55
+     * II  = 0.65
+     * III = 0.75
+     *
+     * самоходная:
+     * I   = 0.62
+     * II  = 0.72
+     * III = 0.84
+     */
+    public double getMaximumSpeed() {
 
         int level =
                 ModEnchantments.getTailwindLevel(
@@ -222,27 +244,18 @@ public class SelfPropellingBoatEntity
                 );
 
         return switch (level) {
-            case 1 -> 1.08D;
-            case 2 -> 1.14D;
-            case 3 -> 1.20D;
-            default -> 1.0D;
+            case 1 -> 0.62D;
+            case 2 -> 0.72D;
+            case 3 -> 0.84D;
+            default -> BASE_ENGINE_SPEED;
         };
     }
 
-    public double getMaximumSpeed() {
-        return BASE_MAX_SPEED
-                * getTailwindMultiplier();
-    }
-
     /*
-     * Когда топлива нет, сохраняем 100% ванильные
-     * W/A/S/D.
+     * W/S отключаются ТОЛЬКО когда двигатель
+     * реально горит.
      *
-     * Когда двигатель работает:
-     *
-     * W = отключён
-     * S = отключён
-     * A/D = оставляем как руление
+     * Без топлива остаётся обычное управление лодкой.
      */
     @Override
     public void setInputs(
@@ -252,12 +265,14 @@ public class SelfPropellingBoatEntity
             boolean pressingBack
     ) {
         if (hasFuel()) {
+
             super.setInputs(
                     pressingLeft,
                     pressingRight,
                     false,
                     false
             );
+
             return;
         }
 
@@ -269,14 +284,6 @@ public class SelfPropellingBoatEntity
         );
     }
 
-    /*
-     * Движение только по носу лодки.
-     *
-     * Мы НЕ используем старый pushDirection
-     * и НЕ переносим старую скорость целиком.
-     *
-     * Поэтому боковое/заднее скольжение не накапливается.
-     */
     public void applySelfPropulsion(
             boolean pressingLeft,
             boolean pressingRight,
@@ -287,11 +294,7 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Управление рулём.
-         *
-         * Только клиент обрабатывает локальные
-         * кнопки A/D. Сервер получает уже
-         * синхронизированный поворот лодки.
+         * Только A/D меняют курс.
          */
         if (clientSide) {
 
@@ -335,14 +338,7 @@ public class SelfPropellingBoatEntity
                 getVelocity();
 
         /*
-         * Берём только скорость ПО НАПРАВЛЕНИЮ
-         * носа, а не общую скорость X/Z.
-         *
-         * Это убирает:
-         *
-         * - задний glide;
-         * - боковой glide;
-         * - случайное направление после поворота.
+         * Берём только скорость по направлению носа.
          */
         double forwardSpeed =
                 velocity.x * forward.x
@@ -362,8 +358,8 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Горизонтальная скорость всегда строго
-         * по носу лодки.
+         * ВСЯ горизонтальная скорость
+         * теперь направлена только по носу.
          */
         setVelocity(
                 forward.x * targetSpeed,
@@ -384,16 +380,14 @@ public class SelfPropellingBoatEntity
             PlayerEntity player,
             Hand hand
     ) {
-
         /*
          * Shift + ПКМ снаружи:
-         * открыть топливное меню.
+         * открыть меню топлива.
          */
         if (player.isSneaking()
                 && !getPassengerList().contains(player)) {
 
             if (!getWorld().isClient()) {
-
                 player.openHandledScreen(
                         this
                 );
@@ -404,12 +398,6 @@ public class SelfPropellingBoatEntity
             );
         }
 
-        /*
-         * Остальное отдаём ванильной лодке.
-         *
-         * Поэтому обычная посадка/выход
-         * не меняются.
-         */
         return super.interact(
                 player,
                 hand
@@ -419,15 +407,8 @@ public class SelfPropellingBoatEntity
     @Override
     public void tick() {
 
-        /*
-         * Сначала обновляем печное топливо.
-         */
         tickFuel();
 
-        /*
-         * После этого запускается обычный
-         * BoatEntity.tick().
-         */
         super.tick();
     }
 
@@ -440,10 +421,6 @@ public class SelfPropellingBoatEntity
             return true;
         }
 
-        /*
-         * Creative:
-         * самоходная лодка исчезает без дропа.
-         */
         if (source.getAttacker()
                 instanceof PlayerEntity player
                 && player.getAbilities().creativeMode) {
@@ -453,13 +430,8 @@ public class SelfPropellingBoatEntity
             return true;
         }
 
-        /*
-         * Возвращаем топливо из GUI.
-         */
         ItemStack fuelStack =
-                fuelInventory.removeStack(
-                        0
-                );
+                fuelInventory.removeStack(0);
 
         if (!fuelStack.isEmpty()) {
             dropStack(
@@ -467,9 +439,6 @@ public class SelfPropellingBoatEntity
             );
         }
 
-        /*
-         * Возвращаем саму лодку.
-         */
         ItemStack boatStack =
                 new ItemStack(
                         ModItems.SELF_PROPELLING_BOAT
