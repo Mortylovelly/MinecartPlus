@@ -1,7 +1,7 @@
 package com.minecartmagic;
 
-import net.minecraft.util.Identifier;
 import net.fabricmc.api.ModInitializer;
+import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,15 +15,22 @@ public class MinecartMagicMod implements ModInitializer {
     @Override
     public void onInitialize() {
         MinecartMagicAttachments.init();
+
+        ModEntities.init();
+        ModItems.init();
+
         ModEnchantments.init();
 
-        // Возвращаем рабочую установку зачарованных вагонеток.
         MinecartPlacementHandler.init();
 
-        LOGGER.info("Minecart Magic loaded!");
+        LOGGER.info(
+                "Minecart Magic loaded!"
+        );
     }
 
-    public static Identifier id(String path) {
+    public static Identifier id(
+            String path
+    ) {
         return Identifier.of(
                 MOD_ID,
                 path
