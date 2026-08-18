@@ -33,21 +33,45 @@ public abstract class SelfPropellingBoatVelocityMixin {
         }
 
         /*
-         * Без работающего топлива:
+         * Нет работающего топлива:
          *
          * полностью ванильная лодка.
-         * W/A/S/D работают как обычно.
          */
         if (!selfPropellingBoat.hasFuel()) {
             return;
         }
 
+        /*
+         * КРИТИЧЕСКИ ВАЖНО:
+         *
+         * На суше мы вообще не вмешиваемся
+         * в updateVelocity().
+         *
+         * Значит:
+         * - лодка падает;
+         * - работает гравитация;
+         * - работает столкновение с землёй;
+         * - нет левитации;
+         * - двигатель не толкает лодку по суше.
+         *
+         * Когда она попадёт в воду, этот метод
+         * начнёт перехватывать ванильную физику.
+         */
+        if (!selfPropellingBoat.isTouchingWater()) {
+            return;
+        }
+
         boolean clientSide =
-                selfPropellingBoat.getWorld().isClient();
+                selfPropellingBoat
+                        .getWorld()
+                        .isClient();
 
         /*
-         * Внутри BoatEntity реальные состояния
-         * A/D находятся именно в этих полях.
+         * В воде:
+         *
+         * A/D = руль
+         * W/S = игнорируются
+         * двигатель = автоматическая тяга
          */
         selfPropellingBoat.applySelfPropulsion(
                 pressingLeft,
@@ -56,9 +80,8 @@ public abstract class SelfPropellingBoatVelocityMixin {
         );
 
         /*
-         * При работающем двигателе не даём
-         * ванильной физике повторно изменить
-         * нашу скорость.
+         * Не даём ванильной лодке после этого
+         * перезаписать нашу горизонтальную скорость.
          */
         ci.cancel();
     }
