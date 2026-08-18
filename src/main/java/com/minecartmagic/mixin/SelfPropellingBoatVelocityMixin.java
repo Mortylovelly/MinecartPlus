@@ -33,9 +33,9 @@ public abstract class SelfPropellingBoatVelocityMixin {
         }
 
         /*
-         * Нет топлива:
+         * Без топлива:
+         * никакого вмешательства.
          *
-         * вообще ничего не делаем.
          * Полностью ванильная лодка.
          */
         if (!selfPropellingBoat.hasFuel()) {
@@ -43,13 +43,7 @@ public abstract class SelfPropellingBoatVelocityMixin {
         }
 
         /*
-         * На суше НЕ вмешиваемся.
-         *
-         * Поэтому:
-         * - работает гравитация;
-         * - лодка падает;
-         * - нет левитации;
-         * - двигатель не толкает по земле.
+         * На суше двигатель не работает.
          */
         if (!selfPropellingBoat.isTouchingWater()) {
             return;
@@ -61,10 +55,8 @@ public abstract class SelfPropellingBoatVelocityMixin {
                         .isClient();
 
         /*
-         * Здесь ванильная физика УЖЕ отработала.
-         *
-         * Мы теперь меняем только X/Z,
-         * сохраняя её Y.
+         * После ванильной физики
+         * применяем только двигатель.
          */
         selfPropellingBoat.applySelfPropulsion(
                 pressingLeft,
