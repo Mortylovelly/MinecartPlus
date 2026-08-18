@@ -1,6 +1,7 @@
 package com.minecartmagic.mixin;
 
 import com.minecartmagic.ModEnchantments;
+import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
@@ -26,12 +27,18 @@ public abstract class BoatTailwindSpeedMixin {
                 (BoatEntity) (Object) this;
 
         /*
-         * Важно:
-         * если игрок не нажимает W,
-         * мы вообще не вмешиваемся в физику.
+         * Самоходная лодка использует собственную
+         * систему двигателя.
          *
-         * Поэтому после отпускания W лодка
-         * нормально тормозит по ванильной физике.
+         * Иначе здесь Tailwind мог бы второй раз
+         * вмешиваться в скорость и реагировать на W.
+         */
+        if (boat instanceof SelfPropellingBoatEntity) {
+            return;
+        }
+
+        /*
+         * Старое поведение обычных лодок НЕ меняем.
          */
         if (!pressingForward) {
             return;
@@ -48,26 +55,12 @@ public abstract class BoatTailwindSpeedMixin {
             return;
         }
 
-        /*
-         * Максимальная скорость Попутного ветра.
-         *
-         * I   = 0.55
-         * II  = 0.65
-         * III = 0.75
-         *
-         * Это выше обычной лодки,
-         * но ниже максимальных значений Тяги.
-         */
         double maxSpeed = switch (level) {
             case 1 -> 0.55D;
             case 2 -> 0.65D;
             default -> 0.75D;
         };
 
-        /*
-         * Насколько сильно Попутный ветер
-         * усиливает результат ванильного движения.
-         */
         double multiplier = switch (level) {
             case 1 -> 1.08D;
             case 2 -> 1.14D;
@@ -87,10 +80,6 @@ public abstract class BoatTailwindSpeedMixin {
             return;
         }
 
-        /*
-         * Усиливаем уже рассчитанную ванилью
-         * скорость, а не создаём движение из ничего.
-         */
         double boostedSpeed =
                 horizontalSpeed * multiplier;
 
