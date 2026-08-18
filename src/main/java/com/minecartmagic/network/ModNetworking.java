@@ -12,10 +12,11 @@ public final class ModNetworking {
 
     public static void init() {
 
-        PayloadTypeRegistry.playC2S().register(
-                BoatScreenPayload.ID,
-                BoatScreenPayload.CODEC
-        );
+        PayloadTypeRegistry.playC2S()
+                .register(
+                        BoatScreenPayload.ID,
+                        BoatScreenPayload.CODEC
+                );
 
         ServerPlayNetworking.registerGlobalReceiver(
                 BoatScreenPayload.ID,
