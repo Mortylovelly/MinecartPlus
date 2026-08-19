@@ -24,7 +24,6 @@ public abstract class SelfPropellingBoatVelocityMixin {
     private void minecartmagic$applyEngineAfterVanillaPhysics(
             CallbackInfo ci
     ) {
-
         BoatEntity boat =
                 (BoatEntity) (Object) this;
 
@@ -34,34 +33,38 @@ public abstract class SelfPropellingBoatVelocityMixin {
 
         /*
          * Без топлива:
-         * никакого вмешательства.
-         *
-         * Полностью ванильная лодка.
+         * полностью ванильная физика лодки.
          */
         if (!selfPropellingBoat.hasFuel()) {
             return;
         }
 
         /*
-         * На суше двигатель не работает.
+         * На суше двигатель не вмешивается.
+         *
+         * Ванильная физика уже отработала:
+         * гравитация остаётся нормальной.
          */
         if (!selfPropellingBoat.isTouchingWater()) {
             return;
         }
 
-        boolean clientSide =
-                selfPropellingBoat
-                        .getWorld()
-                        .isClient();
-
         /*
-         * После ванильной физики
-         * применяем только двигатель.
+         * ДВИЖЕНИЕ И РУЛЕНИЕ ДЕЛАЕМ ТОЛЬКО
+         * НА СЕРВЕРНОЙ КОПИИ.
+         *
+         * Это важно:
+         * сервер является источником истины
+         * для velocity и уровня Tailwind.
          */
+        if (selfPropellingBoat.getWorld().isClient()) {
+            return;
+        }
+
         selfPropellingBoat.applySelfPropulsion(
                 pressingLeft,
                 pressingRight,
-                clientSide
+                false
         );
     }
 }
