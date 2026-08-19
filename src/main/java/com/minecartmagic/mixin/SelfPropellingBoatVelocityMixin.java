@@ -11,6 +11,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(BoatEntity.class)
 public abstract class SelfPropellingBoatVelocityMixin {
 
+    private static final String TAILWIND_TAG_PREFIX =
+            "minecartmagic_tailwind_";
+
     @Inject(
             method = "updateVelocity",
             at = @At("TAIL")
@@ -23,7 +26,7 @@ public abstract class SelfPropellingBoatVelocityMixin {
                 (BoatEntity) (Object) this;
 
         /*
-         * Работаем только с нашей самоходной лодкой.
+         * Работаем только с нашей сущностью.
          */
         if (!(boat instanceof SelfPropellingBoatEntity selfPropellingBoat)) {
 
@@ -48,60 +51,112 @@ public abstract class SelfPropellingBoatVelocityMixin {
 
         /*
          * =====================================================
-         * ПОЛУЧАЕМ НАСТОЯЩИЙ TAILWIND
+         * ИЩЕМ TAILWIND НЕПОСРЕДСТВЕННО НА ENTITY
          * =====================================================
          *
-         * Это основной источник.
+         * Источник №1:
+         * Attachment
          *
-         * ModEnchantments.getTailwindLevel(entity)
-         * проверяет:
+         * Источник №2:
+         * command tag
          *
-         * 1. Attachment
-         * 2. command tag
+         * Источник №3:
+         * engine tracker.
          */
-        int actualTailwindLevel =
+        int tailwindLevel =
                 ModEnchantments.getTailwindLevel(
                         selfPropellingBoat
                 );
 
         /*
          * =====================================================
-         * ТЕКУЩИЙ TRACKER
+         * COMMAND TAG — ЖЁСТКИЙ FALLBACK
          * =====================================================
          */
-        int engineTailwindLevel =
-                selfPropellingBoat.getEngineTailwindLevel();
+        int tagLevel = 0;
 
-        /*
-         * Если реальный Tailwind присутствует,
-         * синхронизируем tracker.
-         *
-         * Главное:
-         *
-         * НИКОГДА не записываем 0 поверх уже установленного
-         * уровня только потому, что Attachment ещё не успел
-         * появиться на конкретном тике.
-         */
-        if (actualTailwindLevel > 0) {
+        for (String tag :
+                selfPropellingBoat.getCommandTags()) {
 
-            if (actualTailwindLevel
-                    != engineTailwindLevel) {
+            if (!tag.startsWith(
+                    TAILWIND_TAG_PREFIX
+            )) {
 
-                selfPropellingBoat.setEngineTailwindLevel(
-                        actualTailwindLevel
-                );
+                continue;
             }
 
-        } else if (engineTailwindLevel > 0) {
+            try {
 
-            /*
-             * Уровень уже установлен непосредственно
-             * на самоходной лодке.
-             *
-             * Оставляем его.
-             */
-            actualTailwindLevel =
-                    engineTailwindLevel;
+                int parsedLevel =
+                        Integer.parseInt(
+                                tag.substring(
+                                        TAILWIND_TAG_PREFIX.length()
+                                )
+                        );
+
+                if (parsedLevel > tagLevel) {
+
+                    tagLevel =
+                            parsedLevel;
+                }
+
+            } catch (NumberFormatException ignored) {
+
+                /*
+                 * Просто игнорируем битый tag.
+                 */
+            }
+        }
+
+        /*
+         * Если command tag содержит уровень,
+         * доверяем ему.
+         */
+        if (tagLevel > tailwindLevel) {
+
+            tailwindLevel =
+                    tagLevel;
+        }
+
+        /*
+         * =====================================================
+         * ENGINE TRACKER — ПОСЛЕДНИЙ FALLBACK
+         * =====================================================
+         */
+        int trackedLevel =
+                selfPropellingBoat.getEngineTailwindLevel();
+
+        if (tailwindLevel <= 0
+                && trackedLevel > 0) {
+
+            tailwindLevel =
+                    trackedLevel;
+        }
+
+        /*
+         * Защита диапазона I-III.
+         */
+        tailwindLevel =
+                Math.max(
+                        0,
+                        Math.min(
+                                3,
+                                tailwindLevel
+                        )
+                );
+
+        /*
+         * =====================================================
+         * СИНХРОНИЗИРУЕМ ENGINE TRACKER
+         * =====================================================
+         */
+        if (tailwindLevel > 0
+                && tailwindLevel
+                        != trackedLevel) {
+
+            selfPropellingBoat.setEngineTailwindLevel(
+                    tailwindLevel
+            );
         }
 
         /*
@@ -110,7 +165,10 @@ public abstract class SelfPropellingBoatVelocityMixin {
          * =====================================================
          *
          * applySelfPropulsion()
-         * теперь использует обновлённый tracker.
+         * берёт getMaximumSpeed(),
+         * а он теперь получает тот же уровень,
+         * который мы только что гарантированно
+         * установили в ENGINE_TAILWIND_LEVEL.
          */
         selfPropellingBoat.applySelfPropulsion();
     }
