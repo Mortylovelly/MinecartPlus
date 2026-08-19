@@ -26,14 +26,20 @@ public abstract class SelfPropellingBoatInteractionMixin {
                 (SelfPropellingBoatEntity) (Object) this;
 
         /*
-         * Shift + ПКМ по своей самоходной лодке,
-         * когда игрок уже сидит внутри:
-         * открываем меню двигателя.
+         * Работает только с основной рукой.
          */
-        if (!player.isSneaking()) {
+        if (hand != Hand.MAIN_HAND) {
             return;
         }
 
+        /*
+         * Если игрок уже сидит в нашей самоходной лодке,
+         * сервер открывает её существующее меню.
+         *
+         * Сам по себе этот Mixin НЕ вызывается от E.
+         * E будет отправлять обычное entity interaction
+         * через отдельный клиентский Mixin ниже.
+         */
         if (!boat.getPassengerList().contains(player)) {
             return;
         }
