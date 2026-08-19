@@ -15,7 +15,8 @@
   ],
   "client": [
     "MinecartGlintMixin",
-    "BoatTailwindGlintMixin"
+    "BoatTailwindGlintMixin",
+    "client.SelfPropellingBoatInventoryKeyMixin"
   ],
   "injectors": {
     "defaultRequire": 1
