@@ -28,6 +28,7 @@ public class SelfPropellingBoatItem extends Item {
             PlayerEntity user,
             Hand hand
     ) {
+
         ItemStack stack =
                 user.getStackInHand(hand);
 
@@ -47,6 +48,7 @@ public class SelfPropellingBoatItem extends Item {
         }
 
         if (world.isClient()) {
+
             return TypedActionResult.success(
                     stack
             );
@@ -65,24 +67,22 @@ public class SelfPropellingBoatItem extends Item {
         );
 
         /*
-         * Самоходная лодка пока существует
-         * только в дубовой версии.
+         * Пока одна версия:
+         * дубовая.
          */
         boat.setVariant(
                 BoatEntity.Type.OAK
         );
 
         /*
-         * Лодка смотрит туда же, куда смотрел игрок
-         * при установке.
+         * Направление установки.
          */
         boat.setYaw(
                 user.getYaw()
         );
 
         /*
-         * Переносим Попутный ветер
-         * с предмета на сущность.
+         * Читаем Tailwind с предмета.
          */
         int tailwindLevel =
                 ModEnchantments.getTailwindLevel(
@@ -90,8 +90,23 @@ public class SelfPropellingBoatItem extends Item {
                 );
 
         if (tailwindLevel > 0) {
+
+            /*
+             * Сохраняем стандартную attachment-механику.
+             */
             ModEnchantments.setTailwindLevel(
                     boat,
+                    tailwindLevel
+            );
+
+            /*
+             * И дополнительно записываем уровень
+             * непосредственно в engine DataTracker.
+             *
+             * Теперь двигатель гарантированно знает
+             * свой уровень Tailwind.
+             */
+            boat.setEngineTailwindLevel(
                     tailwindLevel
             );
         }
@@ -103,9 +118,10 @@ public class SelfPropellingBoatItem extends Item {
         /*
          * В Survival предмет расходуется.
          *
-         * В Creative предмет остаётся в инвентаре.
+         * В Creative остаётся.
          */
         if (!user.getAbilities().creativeMode) {
+
             stack.decrement(1);
         }
 
