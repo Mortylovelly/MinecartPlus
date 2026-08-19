@@ -17,23 +17,22 @@ public class SelfPropellingBoatScreenHandler
     public static final int FUEL_SLOT = 0;
 
     /*
-     * Один слот топлива.
+     * Координаты настоящего Slot должны совпадать
+     * с координатами картинки топливного слота
+     * в SelfPropellingBoatScreen.
      */
     private static final int FUEL_SLOT_X = 79;
-    private static final int FUEL_SLOT_Y = 36;
+    private static final int FUEL_SLOT_Y = 30;
 
     /*
-     * Стандартное расположение
-     * нижнего инвентаря.
+     * Нижний инвентарь игрока.
      */
     private static final int PLAYER_INVENTORY_Y = 84;
 
     private static final int HOTBAR_Y = 142;
 
     private final Inventory fuelInventory;
-
     private final PropertyDelegate propertyDelegate;
-
     private final SelfPropellingBoatEntity boat;
 
     /*
@@ -44,7 +43,6 @@ public class SelfPropellingBoatScreenHandler
             PlayerInventory playerInventory,
             int entityId
     ) {
-
         this(
                 syncId,
                 playerInventory,
@@ -62,7 +60,6 @@ public class SelfPropellingBoatScreenHandler
             PlayerInventory playerInventory,
             SelfPropellingBoatEntity boat
     ) {
-
         this(
                 syncId,
                 playerInventory,
@@ -79,7 +76,6 @@ public class SelfPropellingBoatScreenHandler
             PropertyDelegate propertyDelegate,
             SelfPropellingBoatEntity boat
     ) {
-
         super(
                 ModScreenHandlers.SELF_PROPELLING_BOAT,
                 syncId
@@ -103,6 +99,10 @@ public class SelfPropellingBoatScreenHandler
          * =================================================
          * СЛОТ ТОПЛИВА
          * =================================================
+         *
+         * ВАЖНО:
+         * X/Y здесь теперь совпадают с отрисованным
+         * слотом в SelfPropellingBoatScreen.
          */
         addSlot(
                 new FuelSlot(
@@ -159,10 +159,12 @@ public class SelfPropellingBoatScreenHandler
     }
 
     public int getBurnTime() {
+
         return propertyDelegate.get(0);
     }
 
     public int getFuelTime() {
+
         return propertyDelegate.get(1);
     }
 
@@ -455,7 +457,6 @@ public class SelfPropellingBoatScreenHandler
         private BoatPropertyDelegate(
                 SelfPropellingBoatEntity boat
         ) {
-
             this.boat =
                     boat;
         }
