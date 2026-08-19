@@ -22,21 +22,18 @@ public class SelfPropellingBoatScreen
 
     private static final int WIDTH = 176;
 
-    /*
-     * Увеличиваем окно, потому что
-     * инвентарь игрока теперь реально опущен.
-     */
-    private static final int HEIGHT = 190;
+    private static final int HEIGHT = 166;
 
     /*
-     * Высота нашей панели.
+     * Верхняя панель самоходной лодки.
      */
-    private static final int PANEL_HEIGHT = 82;
+    private static final int PANEL_HEIGHT = 76;
 
     /*
-     * Верхняя граница области игрока.
+     * С этой координаты начинается vanilla
+     * нижний inventory.
      */
-    private static final int PLAYER_AREA_Y = 96;
+    private static final int PLAYER_AREA_Y = 76;
 
     public SelfPropellingBoatScreen(
             SelfPropellingBoatScreenHandler handler,
@@ -57,10 +54,13 @@ public class SelfPropellingBoatScreen
                 HEIGHT;
 
         /*
-         * Подпись игрока.
+         * Название "Инвентарь" находится
+         * непосредственно над первым рядом
+         * player slots.
          */
         playerInventoryTitleX = 8;
-        playerInventoryTitleY = 84;
+
+        playerInventoryTitleY = 77;
     }
 
     @Override
@@ -81,10 +81,22 @@ public class SelfPropellingBoatScreen
 
         /*
          * =================================================
-         * НИЖНЯЯ ОБЛАСТЬ ИНВЕНТАРЯ
+         * НИЖНИЙ VANILLA INVENTORY
          * =================================================
          *
-         * Верхнюю часть inventory.png не рисуем вообще.
+         * Очень важный момент:
+         *
+         * inventory.png:
+         *
+         * source Y = 76
+         *
+         * Именно там начинается нижняя часть
+         * обычного inventory GUI.
+         *
+         * Поэтому:
+         * - skin не рисуем;
+         * - 2x2 crafting не рисуем;
+         * - player inventory выглядит ванильно.
          */
         context.drawTexture(
                 INVENTORY_TEXTURE,
@@ -103,7 +115,6 @@ public class SelfPropellingBoatScreen
          * ПАНЕЛЬ САМОХОДНОЙ ЛОДКИ
          * =================================================
          */
-
         int panelX =
                 x;
 
@@ -114,7 +125,7 @@ public class SelfPropellingBoatScreen
                 panelY + PANEL_HEIGHT;
 
         /*
-         * Внешняя рамка.
+         * Чёрная рамка.
          */
         context.fill(
                 panelX,
@@ -125,7 +136,7 @@ public class SelfPropellingBoatScreen
         );
 
         /*
-         * Светлая панель.
+         * Светлая внутренняя поверхность.
          */
         context.fill(
                 panelX + 1,
@@ -136,7 +147,7 @@ public class SelfPropellingBoatScreen
         );
 
         /*
-         * Верхняя подсветка.
+         * Верхняя светлая линия.
          */
         context.fill(
                 panelX + 2,
@@ -147,7 +158,7 @@ public class SelfPropellingBoatScreen
         );
 
         /*
-         * Нижняя грань.
+         * Нижняя тёмная линия.
          */
         context.fill(
                 panelX + 2,
@@ -159,13 +170,13 @@ public class SelfPropellingBoatScreen
 
         /*
          * =================================================
-         * ТОПЛИВНЫЙ СЛОТ
+         * ЕДИНСТВЕННЫЙ СЛОТ
          * =================================================
          */
         context.drawTexture(
                 FURNACE_TEXTURE,
                 panelX + 79,
-                panelY + 36,
+                panelY + 30,
                 56,
                 53,
                 18,
@@ -176,10 +187,9 @@ public class SelfPropellingBoatScreen
 
         /*
          * =================================================
-         * ОГОНЬ
+         * ПЛАМЯ
          * =================================================
          */
-
         int flameHeight =
                 handler.getFuelProgress();
 
@@ -188,7 +198,7 @@ public class SelfPropellingBoatScreen
             context.drawTexture(
                     FURNACE_TEXTURE,
                     panelX + 103,
-                    panelY + 42
+                    panelY + 36
                             + (14 - flameHeight),
                     176,
                     14 - flameHeight,
@@ -204,12 +214,11 @@ public class SelfPropellingBoatScreen
          * ШКАЛА ТОПЛИВА
          * =================================================
          */
-
         int gaugeX =
                 panelX + 126;
 
         int gaugeY =
-                panelY + 15;
+                panelY + 12;
 
         int gaugeWidth =
                 12;
@@ -217,6 +226,9 @@ public class SelfPropellingBoatScreen
         int gaugeHeight =
                 42;
 
+        /*
+         * Рамка.
+         */
         context.fill(
                 gaugeX,
                 gaugeY,
@@ -225,6 +237,9 @@ public class SelfPropellingBoatScreen
                 0xFF3A3A3A
         );
 
+        /*
+         * Пустая область.
+         */
         context.fill(
                 gaugeX + 2,
                 gaugeY + 2,
@@ -259,6 +274,9 @@ public class SelfPropellingBoatScreen
                     0xFFE6A23C
             );
 
+            /*
+             * Блик.
+             */
             context.fill(
                     gaugeX + 3,
                     top,
@@ -276,26 +294,35 @@ public class SelfPropellingBoatScreen
             int mouseY
     ) {
 
+        /*
+         * Заголовок.
+         */
         context.drawText(
                 textRenderer,
                 title,
                 8,
-                7,
+                6,
                 0x404040,
                 false
         );
 
+        /*
+         * "Топливо".
+         */
         context.drawText(
                 textRenderer,
                 Text.translatable(
                         "container.minecartmagic.fuel"
                 ),
                 69,
-                18,
+                17,
                 0x404040,
                 false
         );
 
+        /*
+         * Количество топлива.
+         */
         context.drawText(
                 textRenderer,
                 Text.translatable(
@@ -303,11 +330,14 @@ public class SelfPropellingBoatScreen
                         handler.getFuelStackCount()
                 ),
                 8,
-                50,
+                43,
                 0x404040,
                 false
         );
 
+        /*
+         * Текущее время горения.
+         */
         context.drawText(
                 textRenderer,
                 Text.translatable(
@@ -315,7 +345,7 @@ public class SelfPropellingBoatScreen
                         handler.getRemainingSeconds()
                 ),
                 8,
-                61,
+                54,
                 0x404040,
                 false
         );
