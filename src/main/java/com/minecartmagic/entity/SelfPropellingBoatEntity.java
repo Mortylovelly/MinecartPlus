@@ -2,6 +2,8 @@ package com.minecartmagic.entity;
 
 import com.minecartmagic.ModEnchantments;
 import com.minecartmagic.ModItems;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.entity.EntityType;
@@ -42,14 +44,6 @@ public class SelfPropellingBoatEntity
                     TrackedDataHandlerRegistry.INTEGER
             );
 
-    /*
-     * Отдельный синхронизированный уровень Tailwind
-     * именно для двигателя этой сущности.
-     *
-     * Это устраняет ситуацию, когда обычное
-     * чтение enchantment видно на лодке, но
-     * двигатель получает 0.
-     */
     private static final TrackedData<Integer> ENGINE_TAILWIND_LEVEL =
             DataTracker.registerData(
                     SelfPropellingBoatEntity.class,
@@ -59,14 +53,15 @@ public class SelfPropellingBoatEntity
     private static final int MAX_PASSENGERS = 1;
 
     /*
-     * Базовая скорость двигателя без Tailwind.
+     * Базовая максимальная скорость двигателя
+     * без зачарования.
      */
     private static final double BASE_ENGINE_SPEED = 0.45D;
 
     /*
-     * Скорость разгона.
+     * Базовое ускорение без зачарования.
      */
-    private static final double ACCELERATION = 0.025D;
+    private static final double BASE_ACCELERATION = 0.025D;
 
     /*
      * Скорость руления.
@@ -217,15 +212,8 @@ public class SelfPropellingBoatEntity
         Item fuelItem =
                 fuelStack.getItem();
 
-        /*
-         * Убираем только один предмет топлива.
-         */
         fuelStack.decrement(1);
 
-        /*
-         * Lava bucket -> empty bucket
-         * и другие recipe remainder.
-         */
         if (fuelStack.isEmpty()
                 && fuelItem.hasRecipeRemainder()) {
 
@@ -233,7 +221,6 @@ public class SelfPropellingBoatEntity
                     fuelItem.getRecipeRemainder();
 
             if (remainder != null) {
-
                 fuelInventory.setStack(
                         0,
                         new ItemStack(
@@ -270,31 +257,97 @@ public class SelfPropellingBoatEntity
 
     /*
      * =====================================================
-     * СКОРОСТЬ ДВИГАТЕЛЯ
+     * МАКСИМАЛЬНАЯ СКОРОСТЬ ДВИГАТЕЛЯ
      * =====================================================
      *
-     * Без чар:
-     * 0.45
-     *
-     * Tailwind I:
-     * 0.62
-     *
-     * Tailwind II:
-     * 0.72
-     *
-     * Tailwind III:
-     * 0.84
+     * Без Tailwind = 0.45
+     * Tailwind I   = 0.62
+     * Tailwind II  = 0.72
+     * Tailwind III = 0.84
      */
     public double getMaximumSpeed() {
 
         int level =
                 getEngineTailwindLevel();
 
+        /*
+         * Если engine-level ещё равен 0,
+         * дополнительно проверяем настоящий Tailwind
+         * на entity.
+         */
+        if (level <= 0) {
+
+            int attachmentLevel =
+                    ModEnchantments.getTailwindLevel(
+                            this
+                    );
+
+            if (attachmentLevel > 0) {
+
+                level =
+                        Math.min(
+                                3,
+                                attachmentLevel
+                        );
+
+                setEngineTailwindLevel(
+                        level
+                );
+            }
+        }
+
         return switch (level) {
             case 1 -> 0.62D;
             case 2 -> 0.72D;
             case 3 -> 0.84D;
             default -> BASE_ENGINE_SPEED;
+        };
+    }
+
+    /*
+     * =====================================================
+     * СИЛА РАЗГОНА
+     * =====================================================
+     *
+     * Здесь Tailwind теперь влияет не только
+     * на потолок скорости, но и на сам двигатель.
+     *
+     * 0  -> 0.025
+     * I  -> 0.035
+     * II -> 0.045
+     * III-> 0.055
+     */
+    private double getEngineAcceleration() {
+
+        int level =
+                getEngineTailwindLevel();
+
+        if (level <= 0) {
+
+            int attachmentLevel =
+                    ModEnchantments.getTailwindLevel(
+                            this
+                    );
+
+            if (attachmentLevel > 0) {
+
+                level =
+                        Math.min(
+                                3,
+                                attachmentLevel
+                        );
+
+                setEngineTailwindLevel(
+                        level
+                );
+            }
+        }
+
+        return switch (level) {
+            case 1 -> 0.035D;
+            case 2 -> 0.045D;
+            case 3 -> 0.055D;
+            default -> BASE_ACCELERATION;
         };
     }
 
@@ -311,7 +364,6 @@ public class SelfPropellingBoatEntity
          * полностью обычная лодка.
          */
         if (!hasFuel()) {
-
             super.setInputs(
                     pressingLeft,
                     pressingRight,
@@ -396,7 +448,8 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Текущая скорость только по носу.
+         * Текущая скорость только
+         * вдоль направления лодки.
          */
         double forwardSpeed =
                 velocity.x * forward.x
@@ -409,19 +462,35 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Берём лимит напрямую из
-         * синхронизированного поля двигателя.
+         * Максимальная скорость зависит
+         * от Tailwind.
          */
         double maximumSpeed =
                 getMaximumSpeed();
 
         /*
-         * Плавный разгон.
+         * Теперь и СИЛА двигателя зависит
+         * от Tailwind.
+         */
+        double acceleration =
+                getEngineAcceleration();
+
+        /*
+         * Разгон.
+         *
+         * Главное изменение:
+         *
+         * Tailwind увеличивает acceleration,
+         * а не только maximumSpeed.
          */
         double targetSpeed =
                 forwardSpeed
-                        + ACCELERATION;
+                        + acceleration;
 
+        /*
+         * Ограничиваем соответствующим
+         * максимальным значением.
+         */
         targetSpeed =
                 Math.min(
                         targetSpeed,
@@ -429,9 +498,8 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Даже если ванильная физика дала очень
-         * маленькую скорость, двигатель должен
-         * разгоняться до своего базового уровня.
+         * При запуске двигателя лодка
+         * должна начать двигаться сразу.
          */
         if (targetSpeed < BASE_ENGINE_SPEED) {
 
@@ -443,9 +511,9 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Меняем только горизонтальную скорость.
+         * Меняем только X/Z.
          *
-         * velocity.y остаётся полностью ванильной.
+         * Y полностью оставляем ванильной.
          */
         setVelocity(
                 forward.x * targetSpeed,
@@ -475,7 +543,6 @@ public class SelfPropellingBoatEntity
                 && !getPassengerList().contains(player)) {
 
             if (!getWorld().isClient()) {
-
                 player.openHandledScreen(
                         this
                 );
@@ -550,8 +617,7 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Сохраняем именно тот уровень,
-         * который использовал двигатель.
+         * Сохраняем Tailwind.
          */
         int tailwindLevel =
                 getEngineTailwindLevel();
@@ -652,8 +718,7 @@ public class SelfPropellingBoatEntity
         );
 
         /*
-         * Совместимость со старыми самоходными лодками,
-         * у которых отдельного поля ещё не было.
+         * Совместимость со старыми лодками.
          */
         if (getEngineTailwindLevel() <= 0) {
 
@@ -698,7 +763,6 @@ public class SelfPropellingBoatEntity
             PlayerInventory playerInventory,
             PlayerEntity player
     ) {
-
         return new com.minecartmagic.screen
                 .SelfPropellingBoatScreenHandler(
                         syncId,
