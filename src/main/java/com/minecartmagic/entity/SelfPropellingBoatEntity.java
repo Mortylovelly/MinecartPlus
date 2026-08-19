@@ -60,12 +60,8 @@ public class SelfPropellingBoatEntity
     /*
      * Управление в двигательном режиме.
      *
-     * ВАЖНО:
-     * мы НЕ используем pressingLeft/pressingRight
+     * Мы НЕ используем pressingLeft/pressingRight
      * ванильной BoatEntity как источник истины.
-     *
-     * Иначе ванильная лодка начинает одновременно
-     * обрабатывать своё управление.
      */
     private boolean enginePressingLeft;
     private boolean enginePressingRight;
@@ -136,26 +132,66 @@ public class SelfPropellingBoatEntity
     }
 
     public int getBurnTime() {
+
         return getDataTracker().get(
                 BURN_TIME
         );
     }
 
     public int getFuelTime() {
+
         return getDataTracker().get(
                 FUEL_TIME
         );
     }
 
+    /*
+     * Возвращает уровень Tailwind двигателя.
+     *
+     * Основной источник:
+     * ENGINE_TAILWIND_LEVEL.
+     *
+     * Если он ещё не установлен,
+     * используем обычный Attachment Tailwind.
+     *
+     * Это позволяет уже зачарованной лодке
+     * не терять уровень при работе двигателя.
+     */
     public int getEngineTailwindLevel() {
-        return getDataTracker().get(
-                ENGINE_TAILWIND_LEVEL
-        );
+
+        int trackedLevel =
+                getDataTracker().get(
+                        ENGINE_TAILWIND_LEVEL
+                );
+
+        if (trackedLevel > 0) {
+
+            return Math.min(
+                    3,
+                    trackedLevel
+            );
+        }
+
+        int attachmentLevel =
+                ModEnchantments.getTailwindLevel(
+                        this
+                );
+
+        if (attachmentLevel > 0) {
+
+            return Math.min(
+                    3,
+                    attachmentLevel
+            );
+        }
+
+        return 0;
     }
 
     public void setEngineTailwindLevel(
             int level
     ) {
+
         getDataTracker().set(
                 ENGINE_TAILWIND_LEVEL,
                 Math.max(
@@ -171,6 +207,7 @@ public class SelfPropellingBoatEntity
     private void setBurnTime(
             int value
     ) {
+
         getDataTracker().set(
                 BURN_TIME,
                 Math.max(
@@ -183,6 +220,7 @@ public class SelfPropellingBoatEntity
     private void setFuelTime(
             int value
     ) {
+
         getDataTracker().set(
                 FUEL_TIME,
                 Math.max(
@@ -212,7 +250,9 @@ public class SelfPropellingBoatEntity
                 fuelInventory.getStack(0);
 
         if (fuelStack.isEmpty()) {
+
             setFuelTime(0);
+
             return;
         }
 
@@ -225,6 +265,7 @@ public class SelfPropellingBoatEntity
                 || fuelValue <= 0) {
 
             setFuelTime(0);
+
             return;
         }
 
@@ -275,6 +316,7 @@ public class SelfPropellingBoatEntity
         }
 
         if (getBurnTime() <= 0) {
+
             startBurningFuel();
         }
 
@@ -288,6 +330,7 @@ public class SelfPropellingBoatEntity
         if (getBurnTime() <= 0) {
 
             setBurnTime(0);
+
             setFuelTime(0);
         }
     }
@@ -297,10 +340,10 @@ public class SelfPropellingBoatEntity
      * УРОВЕНЬ TAILWIND
      * =========================================================
      *
-     * На сервере периодически проверяем attachment.
+     * На сервере периодически проверяем Attachment.
      *
-     * Это делает систему устойчивой даже если сущность
-     * была создана старым способом или загружена из мира.
+     * Если attachment отличается от tracker,
+     * tracker обновляется.
      */
     private void synchronizeTailwindLevel() {
 
@@ -310,7 +353,9 @@ public class SelfPropellingBoatEntity
                 );
 
         int storedLevel =
-                getEngineTailwindLevel();
+                getDataTracker().get(
+                        ENGINE_TAILWIND_LEVEL
+                );
 
         if (attachmentLevel != storedLevel) {
 
@@ -357,7 +402,7 @@ public class SelfPropellingBoatEntity
      *
      * С топливом:
      * ванильные inputs очищаются полностью,
-     * а A/D сохраняются отдельно для нашего двигателя.
+     * A/D сохраняются отдельно для двигателя.
      */
     @Override
     public void setInputs(
@@ -369,9 +414,6 @@ public class SelfPropellingBoatEntity
 
         if (!hasFuel()) {
 
-            /*
-             * В обычном режиме всё ванильно.
-             */
             enginePressingLeft = false;
             enginePressingRight = false;
 
@@ -386,11 +428,8 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Очищаем ванильные inputs.
-         *
-         * Это очень важно:
-         * ванильная лодка не должна одновременно
-         * грести сама и работать двигателем.
+         * В двигательном режиме ванильная
+         * система гребли не используется.
          */
         super.setInputs(
                 false,
@@ -399,10 +438,6 @@ public class SelfPropellingBoatEntity
                 false
         );
 
-        /*
-         * Сохраняем только A/D
-         * в собственные поля двигателя.
-         */
         enginePressingLeft =
                 pressingLeft;
 
@@ -430,7 +465,7 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * На суше двигатель НЕ работает.
+         * На суше двигатель не работает.
          */
         if (!isTouchingWater()) {
             return;
@@ -511,7 +546,7 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Минимальная скорость самого двигателя.
+         * Минимальная скорость двигателя.
          */
         if (targetSpeed < BASE_ENGINE_SPEED) {
 
@@ -526,12 +561,6 @@ public class SelfPropellingBoatEntity
          * X/Z = двигатель.
          *
          * Y = ванильная физика.
-         *
-         * Это сохраняет:
-         * - гравитацию;
-         * - падение;
-         * - плавучесть;
-         * - переход вода/суша.
          */
         setVelocity(
                 forward.x * targetSpeed,
@@ -603,7 +632,7 @@ public class SelfPropellingBoatEntity
 
         /*
          * Сервер:
-         * топливо + синхронизация enchantment.
+         * топливо + синхронизация Tailwind.
          */
         if (!getWorld().isClient()) {
 
@@ -675,8 +704,7 @@ public class SelfPropellingBoatEntity
                 getEngineTailwindLevel();
 
         /*
-         * На всякий случай fallback
-         * на attachment.
+         * Fallback на Attachment.
          */
         if (tailwindLevel <= 0) {
 
@@ -839,7 +867,6 @@ public class SelfPropellingBoatEntity
     public Integer getScreenOpeningData(
             ServerPlayerEntity player
     ) {
-
         return getId();
     }
 }
