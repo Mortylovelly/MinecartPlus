@@ -3,7 +3,6 @@ package com.minecartmagic.mixin;
 import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.minecraft.entity.vehicle.BoatEntity;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -11,60 +10,45 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(BoatEntity.class)
 public abstract class SelfPropellingBoatVelocityMixin {
 
-    @Shadow
-    private boolean pressingLeft;
-
-    @Shadow
-    private boolean pressingRight;
-
     @Inject(
             method = "updateVelocity",
             at = @At("TAIL")
     )
-    private void minecartmagic$applyEngineAfterVanillaPhysics(
+    private void minecartmagic$applySelfPropulsion(
             CallbackInfo ci
     ) {
+
         BoatEntity boat =
                 (BoatEntity) (Object) this;
 
+        /*
+         * Работаем только с нашей сущностью.
+         */
         if (!(boat instanceof SelfPropellingBoatEntity selfPropellingBoat)) {
             return;
         }
 
         /*
          * Без топлива:
-         * полностью ванильная физика лодки.
+         * вообще не вмешиваемся.
          */
         if (!selfPropellingBoat.hasFuel()) {
             return;
         }
 
         /*
-         * На суше двигатель не вмешивается.
-         *
-         * Ванильная физика уже отработала:
-         * гравитация остаётся нормальной.
+         * На суше:
+         * никакого двигателя.
          */
         if (!selfPropellingBoat.isTouchingWater()) {
             return;
         }
 
         /*
-         * ДВИЖЕНИЕ И РУЛЕНИЕ ДЕЛАЕМ ТОЛЬКО
-         * НА СЕРВЕРНОЙ КОПИИ.
-         *
-         * Это важно:
-         * сервер является источником истины
-         * для velocity и уровня Tailwind.
+         * После полностью ванильного
+         * расчёта скорости лодки
+         * применяем только наш двигатель.
          */
-        if (selfPropellingBoat.getWorld().isClient()) {
-            return;
-        }
-
-        selfPropellingBoat.applySelfPropulsion(
-                pressingLeft,
-                pressingRight,
-                false
-        );
+        selfPropellingBoat.applySelfPropulsion();
     }
 }
