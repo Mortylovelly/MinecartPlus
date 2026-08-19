@@ -16,15 +16,21 @@ public class SelfPropellingBoatScreenHandler
 
     public static final int FUEL_SLOT = 0;
 
+    /*
+     * Слот топлива.
+     */
     private static final int FUEL_SLOT_X = 79;
     private static final int FUEL_SLOT_Y = 36;
 
     /*
-     * Слоты игрока начинаются ниже нашей панели.
+     * ВАЖНО:
+     *
+     * Реальные слоты игрока теперь ниже
+     * панели самоходной лодки.
      */
-    private static final int PLAYER_INVENTORY_Y = 94;
+    private static final int PLAYER_INVENTORY_Y = 104;
 
-    private static final int HOTBAR_Y = 152;
+    private static final int HOTBAR_Y = 162;
 
     private final Inventory fuelInventory;
 
@@ -33,7 +39,7 @@ public class SelfPropellingBoatScreenHandler
     private final SelfPropellingBoatEntity boat;
 
     /*
-     * Client-side constructor.
+     * Клиентский конструктор.
      */
     public SelfPropellingBoatScreenHandler(
             int syncId,
@@ -51,7 +57,7 @@ public class SelfPropellingBoatScreenHandler
     }
 
     /*
-     * Server-side constructor.
+     * Серверный конструктор.
      */
     public SelfPropellingBoatScreenHandler(
             int syncId,
@@ -97,10 +103,9 @@ public class SelfPropellingBoatScreenHandler
 
         /*
          * =================================================
-         * ЕДИНСТВЕННЫЙ СЛОТ ЛОДКИ
+         * СЛОТ ТОПЛИВА
          * =================================================
          */
-
         addSlot(
                 new FuelSlot(
                         fuelInventory,
@@ -115,8 +120,9 @@ public class SelfPropellingBoatScreenHandler
          * ИНВЕНТАРЬ ИГРОКА
          * =================================================
          *
-         * Теперь он физически находится ниже
-         * нашей панели.
+         * Первый ряд теперь начинается на Y=104.
+         *
+         * Панель лодки заканчивается значительно выше.
          */
         for (int row = 0; row < 3; row++) {
 
@@ -141,7 +147,6 @@ public class SelfPropellingBoatScreenHandler
          * HOTBAR
          * =================================================
          */
-
         for (int slot = 0; slot < 9; slot++) {
 
             addSlot(
@@ -227,10 +232,6 @@ public class SelfPropellingBoatScreenHandler
 
     public int getFuelStackCount() {
 
-        if (fuelInventory == null) {
-            return 0;
-        }
-
         return fuelInventory
                 .getStack(
                         FUEL_SLOT
@@ -284,7 +285,7 @@ public class SelfPropellingBoatScreenHandler
                 original.copy();
 
         /*
-         * Fuel slot -> player.
+         * Слот топлива -> инвентарь игрока.
          */
         if (slotIndex == FUEL_SLOT) {
 
@@ -306,7 +307,7 @@ public class SelfPropellingBoatScreenHandler
                     );
 
             /*
-             * Player -> fuel slot.
+             * Предмет игрока -> топливный слот.
              */
             if (fuelValue != null
                     && fuelValue > 0) {
@@ -324,10 +325,7 @@ public class SelfPropellingBoatScreenHandler
             } else {
 
                 /*
-                 * Main inventory -> hotbar.
-                 *
-                 * Индексы слотов НЕ изменились.
-                 * Мы изменили только их экранную Y.
+                 * Основной инвентарь -> хотбар.
                  */
                 if (slotIndex >= 1
                         && slotIndex < 28) {
