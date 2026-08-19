@@ -10,7 +10,8 @@
     "BoatTailwindPlacementMixin",
     "BoatTailwindSpeedMixin",
     "BoatTailwindDropMixin",
-    "SelfPropellingBoatVelocityMixin"
+    "SelfPropellingBoatVelocityMixin",
+    "SelfPropellingBoatInteractionMixin"
   ],
   "client": [
     "MinecartGlintMixin",
