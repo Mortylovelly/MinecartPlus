@@ -47,6 +47,13 @@ public class SelfPropellingBoatItem extends Item {
             );
         }
 
+        /*
+         * На клиенте только показываем
+         * успешное использование.
+         *
+         * Создание entity происходит
+         * на сервере.
+         */
         if (world.isClient()) {
 
             return TypedActionResult.success(
@@ -60,6 +67,9 @@ public class SelfPropellingBoatItem extends Item {
                         world
                 );
 
+        /*
+         * Позиция установки.
+         */
         boat.setPosition(
                 hit.getPos().x,
                 hit.getPos().y,
@@ -67,7 +77,7 @@ public class SelfPropellingBoatItem extends Item {
         );
 
         /*
-         * Пока одна версия:
+         * Пока у нас только одна версия —
          * дубовая.
          */
         boat.setVariant(
@@ -75,14 +85,24 @@ public class SelfPropellingBoatItem extends Item {
         );
 
         /*
-         * Направление установки.
+         * Поворачиваем лодку по направлению
+         * взгляда игрока.
          */
         boat.setYaw(
                 user.getYaw()
         );
 
         /*
-         * Читаем Tailwind с предмета.
+         * =================================================
+         * ПОПУТНЫЙ ВЕТЕР
+         * =================================================
+         *
+         * Переносим зачарование с ItemStack
+         * на новую entity через уже существующую
+         * систему ModEnchantments.
+         *
+         * Никакого отдельного EngineTailwindLevel
+         * здесь больше нет.
          */
         int tailwindLevel =
                 ModEnchantments.getTailwindLevel(
@@ -91,34 +111,26 @@ public class SelfPropellingBoatItem extends Item {
 
         if (tailwindLevel > 0) {
 
-            /*
-             * Сохраняем стандартную attachment-механику.
-             */
             ModEnchantments.setTailwindLevel(
                     boat,
                     tailwindLevel
             );
-
-            /*
-             * И дополнительно записываем уровень
-             * непосредственно в engine DataTracker.
-             *
-             * Теперь двигатель гарантированно знает
-             * свой уровень Tailwind.
-             */
-            boat.setEngineTailwindLevel(
-                    tailwindLevel
-            );
         }
 
+        /*
+         * Создаём entity в мире.
+         */
         world.spawnEntity(
                 boat
         );
 
         /*
-         * В Survival предмет расходуется.
+         * Creative:
+         * предмет не расходуется.
          *
-         * В Creative остаётся.
+         * Survival:
+         * одна самоходная лодка исчезает
+         * из руки.
          */
         if (!user.getAbilities().creativeMode) {
 
