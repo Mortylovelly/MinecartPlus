@@ -54,14 +54,15 @@ public class SelfPropellingBoatEntity
 
     /*
      * Базовая скорость двигателя без Tailwind.
+     *
+     * УМЕНЬШЕНА с 0.70 до 0.50.
      */
-    private static final double BASE_ENGINE_SPEED = 0.70D;
+    private static final double BASE_ENGINE_SPEED = 0.50D;
 
     /*
      * Базовое ускорение двигателя.
      *
-     * Именно эта система уже работала нормально.
-     * Мы её не меняем.
+     * Не меняем.
      */
     private static final double BASE_ACCELERATION = 0.025D;
 
@@ -71,31 +72,26 @@ public class SelfPropellingBoatEntity
     private static final float STEERING_SPEED = 2.5F;
 
     /*
-     * ТОЛЬКО ЭТИ ЗНАЧЕНИЯ ПОДНЯТЫ.
+     * Скорости двигателя в зависимости от Tailwind.
      *
-     * Было:
+     * БЕЗ зачарования = 0.50
+     * Tailwind I      = 0.65
+     * Tailwind II     = 0.75
+     * Tailwind III    = 0.88
      *
-     * 0  -> 0.60
-     * I  -> 0.77
-     * II -> 0.87
-     * III-> 0.99
+     * Для сравнения, обычная лодка:
      *
-     * Теперь:
+     * Tailwind I      = 0.62
+     * Tailwind II     = 0.72
+     * Tailwind III    = 0.84
      *
-     * 0  -> 0.70
-     * I  -> 0.90
-     * II -> 1.05
-     * III-> 1.20
-     *
-     * Обычная лодка с Tailwind III = 0.84,
-     * поэтому самоходная Tailwind III
-     * с двигателем гарантированно имеет
-     * более высокий предел.
+     * Поэтому двигатель остаётся немного быстрее
+     * обычной лодки при одинаковом зачаровании.
      */
-    private static final double ENGINE_SPEED_NO_TAILWIND = 0.70D;
-    private static final double ENGINE_SPEED_TAILWIND_I = 0.90D;
-    private static final double ENGINE_SPEED_TAILWIND_II = 1.05D;
-    private static final double ENGINE_SPEED_TAILWIND_III = 1.20D;
+    private static final double ENGINE_SPEED_NO_TAILWIND = 0.50D;
+    private static final double ENGINE_SPEED_TAILWIND_I = 0.65D;
+    private static final double ENGINE_SPEED_TAILWIND_II = 0.75D;
+    private static final double ENGINE_SPEED_TAILWIND_III = 0.88D;
 
     private final SimpleInventory fuelInventory =
             new SimpleInventory(1);
@@ -250,6 +246,7 @@ public class SelfPropellingBoatEntity
                     fuelItem.getRecipeRemainder();
 
             if (remainder != null) {
+
                 fuelInventory.setStack(
                         0,
                         new ItemStack(
@@ -273,12 +270,14 @@ public class SelfPropellingBoatEntity
         }
 
         if (getBurnTime() > 0) {
+
             setBurnTime(
                     getBurnTime() - 1
             );
         }
 
         if (getBurnTime() <= 0) {
+
             setBurnTime(0);
             setFuelTime(0);
         }
@@ -332,9 +331,7 @@ public class SelfPropellingBoatEntity
     /*
      * Максимальная скорость двигателя.
      *
-     * ЕДИНСТВЕННОЕ существенное изменение
-     * относительно рабочей версии —
-     * здесь просто увеличены значения.
+     * Здесь менялись только значения.
      */
     public double getMaximumSpeed() {
 
@@ -396,10 +393,10 @@ public class SelfPropellingBoatEntity
     }
 
     /*
-     * Существующая рабочая физика двигателя.
+     * Существующая физика двигателя.
      *
-     * НЕ добавляем сюда никаких новых
-     * множителей скорости.
+     * Не добавляем новые множители
+     * и не создаём новую систему скорости.
      */
     public void applySelfPropulsion(
             boolean pressingLeft,
@@ -416,8 +413,30 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Поворот оставляем ванильной лодке.
+         * Поворот оставляем текущей логике.
          */
+        if (clientSide) {
+
+            if (pressingLeft
+                    && !pressingRight) {
+
+                setYaw(
+                        getYaw()
+                                - STEERING_SPEED
+                );
+
+            } else if (
+                    pressingRight
+                            && !pressingLeft
+            ) {
+
+                setYaw(
+                        getYaw()
+                                + STEERING_SPEED
+                );
+            }
+        }
+
         Vec3d velocity =
                 getVelocity();
 
@@ -447,15 +466,14 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Ускорение остаётся тем же,
-         * которое уже работало.
+         * Ускорение остаётся тем же.
          */
         double acceleration =
                 BASE_ACCELERATION;
 
         /*
-         * Максимальная скорость берётся
-         * только из уровня Tailwind.
+         * Максимальная скорость определяется
+         * только Tailwind.
          */
         double maximumSpeed =
                 getMaximumSpeed();
@@ -467,10 +485,6 @@ public class SelfPropellingBoatEntity
                 forwardSpeed
                         + acceleration;
 
-        /*
-         * Вот здесь двигатель получает
-         * новый увеличенный предел.
-         */
         targetSpeed =
                 Math.min(
                         targetSpeed,
@@ -478,8 +492,8 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * При запуске двигатель сразу
-         * начинает тянуть.
+         * При запуске двигателя лодка начинает
+         * двигаться сразу.
          */
         if (targetSpeed < BASE_ENGINE_SPEED) {
 
@@ -493,7 +507,7 @@ public class SelfPropellingBoatEntity
         /*
          * Только горизонтальное движение.
          *
-         * Вертикальная физика остаётся ванильной.
+         * Y не изменяем.
          */
         setVelocity(
                 forward.x * targetSpeed,
@@ -516,8 +530,7 @@ public class SelfPropellingBoatEntity
     ) {
 
         /*
-         * Существующее Shift + ПКМ
-         * снаружи для меню.
+         * Существующее Shift + ПКМ снаружи.
          */
         if (player.isSneaking()
                 && !getPassengerList().contains(player)) {
