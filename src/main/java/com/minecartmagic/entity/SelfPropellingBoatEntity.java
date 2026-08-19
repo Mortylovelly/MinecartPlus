@@ -2,8 +2,6 @@ package com.minecartmagic.entity;
 
 import com.minecartmagic.ModEnchantments;
 import com.minecartmagic.ModItems;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.entity.EntityType;
@@ -53,13 +51,13 @@ public class SelfPropellingBoatEntity
     private static final int MAX_PASSENGERS = 1;
 
     /*
-     * Базовая максимальная скорость двигателя
+     * Максимальная скорость обычного двигателя
      * без зачарования.
      */
     private static final double BASE_ENGINE_SPEED = 0.45D;
 
     /*
-     * Базовое ускорение без зачарования.
+     * Базовое ускорение без Tailwind.
      */
     private static final double BASE_ACCELERATION = 0.025D;
 
@@ -67,6 +65,18 @@ public class SelfPropellingBoatEntity
      * Скорость руления.
      */
     private static final float STEERING_SPEED = 2.5F;
+
+    /*
+     * Дополнительный бонус двигателя поверх
+     * максимальной скорости обычной лодки
+     * с тем же уровнем Tailwind.
+     *
+     * 0  -> +0.15
+     * I  -> +0.15
+     * II -> +0.15
+     * III-> +0.15
+     */
+    private static final double ENGINE_SPEED_BONUS = 0.15D;
 
     private final SimpleInventory fuelInventory =
             new SimpleInventory(1);
@@ -260,10 +270,22 @@ public class SelfPropellingBoatEntity
      * МАКСИМАЛЬНАЯ СКОРОСТЬ ДВИГАТЕЛЯ
      * =====================================================
      *
-     * Без Tailwind = 0.45
-     * Tailwind I   = 0.62
-     * Tailwind II  = 0.72
-     * Tailwind III = 0.84
+     * Обычная лодка:
+     *
+     * 0  -> 0.45
+     * I  -> 0.62
+     * II -> 0.72
+     * III-> 0.84
+     *
+     * Самоходная лодка с двигателем:
+     *
+     * 0  -> 0.60
+     * I  -> 0.77
+     * II -> 0.87
+     * III-> 0.99
+     *
+     * То есть двигатель всегда быстрее
+     * обычного режима при том же Tailwind.
      */
     public double getMaximumSpeed() {
 
@@ -271,9 +293,8 @@ public class SelfPropellingBoatEntity
                 getEngineTailwindLevel();
 
         /*
-         * Если engine-level ещё равен 0,
-         * дополнительно проверяем настоящий Tailwind
-         * на entity.
+         * Если engine-level ещё 0,
+         * дополнительно проверяем настоящий Tailwind.
          */
         if (level <= 0) {
 
@@ -296,21 +317,26 @@ public class SelfPropellingBoatEntity
             }
         }
 
-        return switch (level) {
-            case 1 -> 0.62D;
-            case 2 -> 0.72D;
-            case 3 -> 0.84D;
-            default -> BASE_ENGINE_SPEED;
-        };
+        double normalBoatSpeed =
+                switch (level) {
+                    case 1 -> 0.62D;
+                    case 2 -> 0.72D;
+                    case 3 -> 0.84D;
+                    default -> 0.45D;
+                };
+
+        /*
+         * Двигатель всегда даёт дополнительную
+         * скорость поверх обычного режима.
+         */
+        return normalBoatSpeed
+                + ENGINE_SPEED_BONUS;
     }
 
     /*
      * =====================================================
      * СИЛА РАЗГОНА
      * =====================================================
-     *
-     * Здесь Tailwind теперь влияет не только
-     * на потолок скорости, но и на сам двигатель.
      *
      * 0  -> 0.025
      * I  -> 0.035
@@ -448,8 +474,7 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Текущая скорость только
-         * вдоль направления лодки.
+         * Текущая скорость вдоль направления лодки.
          */
         double forwardSpeed =
                 velocity.x * forward.x
@@ -462,14 +487,17 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Максимальная скорость зависит
-         * от Tailwind.
+         * Максимальная скорость уже учитывает:
+         *
+         * Tailwind
+         * +
+         * дополнительный бонус двигателя.
          */
         double maximumSpeed =
                 getMaximumSpeed();
 
         /*
-         * Теперь и СИЛА двигателя зависит
+         * И ускорение двигателя тоже зависит
          * от Tailwind.
          */
         double acceleration =
@@ -477,19 +505,13 @@ public class SelfPropellingBoatEntity
 
         /*
          * Разгон.
-         *
-         * Главное изменение:
-         *
-         * Tailwind увеличивает acceleration,
-         * а не только maximumSpeed.
          */
         double targetSpeed =
                 forwardSpeed
                         + acceleration;
 
         /*
-         * Ограничиваем соответствующим
-         * максимальным значением.
+         * Ограничение скоростью двигателя.
          */
         targetSpeed =
                 Math.min(
@@ -498,7 +520,7 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * При запуске двигателя лодка
+         * При включении двигателя лодка
          * должна начать двигаться сразу.
          */
         if (targetSpeed < BASE_ENGINE_SPEED) {
@@ -511,9 +533,9 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Меняем только X/Z.
+         * Меняем только горизонтальную скорость.
          *
-         * Y полностью оставляем ванильной.
+         * Y остаётся полностью ванильной.
          */
         setVelocity(
                 forward.x * targetSpeed,
@@ -602,7 +624,6 @@ public class SelfPropellingBoatEntity
                 );
 
         if (!fuelStack.isEmpty()) {
-
             dropStack(
                     fuelStack
             );
