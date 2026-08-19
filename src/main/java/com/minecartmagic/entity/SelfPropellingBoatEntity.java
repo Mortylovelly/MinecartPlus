@@ -45,9 +45,10 @@ public class SelfPropellingBoatEntity
     /*
      * Уровень Попутного ветра, которым оснащён двигатель.
      *
-     * Это DataTracker самой НАШЕЙ сущности.
-     * Никаких Mixin/DataTracker-расширений ванильных вагонеток
-     * здесь нет.
+     * Это DataTracker самой нашей сущности.
+     *
+     * В отличие от DataTracker-механики ванильных вагонеток,
+     * здесь трекер принадлежит непосредственно нашей сущности.
      */
     private static final TrackedData<Integer> ENGINE_TAILWIND_LEVEL =
             DataTracker.registerData(
@@ -58,16 +59,13 @@ public class SelfPropellingBoatEntity
     private static final int MAX_PASSENGERS = 1;
 
     /*
-     * Управление в двигательном режиме.
-     *
-     * Мы НЕ используем pressingLeft/pressingRight
-     * ванильной BoatEntity как источник истины.
+     * Управление двигателем.
      */
     private boolean enginePressingLeft;
     private boolean enginePressingRight;
 
     /*
-     * Скорость двигателя без Попутного ветра.
+     * Базовая скорость двигателя без Попутного ветра.
      */
     private static final double BASE_ENGINE_SPEED = 0.45D;
 
@@ -88,6 +86,7 @@ public class SelfPropellingBoatEntity
             EntityType<? extends SelfPropellingBoatEntity> entityType,
             World world
     ) {
+
         super(
                 entityType,
                 world
@@ -107,6 +106,7 @@ public class SelfPropellingBoatEntity
     protected void initDataTracker(
             DataTracker.Builder builder
     ) {
+
         super.initDataTracker(
                 builder
         );
@@ -146,16 +146,16 @@ public class SelfPropellingBoatEntity
     }
 
     /*
-     * Возвращает уровень Tailwind двигателя.
+     * =========================================================
+     * TAILWIND ДВИГАТЕЛЯ
+     * =========================================================
      *
-     * Основной источник:
-     * ENGINE_TAILWIND_LEVEL.
+     * Главный источник:
      *
-     * Если он ещё не установлен,
-     * используем обычный Attachment Tailwind.
+     * ENGINE_TAILWIND_LEVEL
      *
-     * Это позволяет уже зачарованной лодке
-     * не терять уровень при работе двигателя.
+     * Если он ещё не установлен, используем обычный
+     * Attachment Tailwind.
      */
     public int getEngineTailwindLevel() {
 
@@ -172,6 +172,9 @@ public class SelfPropellingBoatEntity
             );
         }
 
+        /*
+         * Fallback для старых лодок.
+         */
         int attachmentLevel =
                 ModEnchantments.getTailwindLevel(
                         this
@@ -281,13 +284,13 @@ public class SelfPropellingBoatEntity
                 fuelStack.getItem();
 
         /*
-         * Потребляем только ОДИН предмет.
+         * Потребляем один предмет.
          */
         fuelStack.decrement(1);
 
         /*
-         * Lava bucket -> empty bucket
-         * и прочие recipe remainder.
+         * Lava bucket и другие предметы
+         * с recipe remainder.
          */
         if (fuelStack.isEmpty()
                 && fuelItem.hasRecipeRemainder()) {
@@ -337,13 +340,28 @@ public class SelfPropellingBoatEntity
 
     /*
      * =========================================================
-     * УРОВЕНЬ TAILWIND
+     * TAILWIND СИНХРОНИЗАЦИЯ
      * =========================================================
      *
-     * На сервере периодически проверяем Attachment.
+     * КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ.
      *
-     * Если attachment отличается от tracker,
-     * tracker обновляется.
+     * Старый код делал:
+     *
+     * if (attachmentLevel != storedLevel) {
+     *     setEngineTailwindLevel(attachmentLevel);
+     * }
+     *
+     * Это означало, что если Attachment временно возвращал 0,
+     * он стирал уже установленный Tailwind I/II/III.
+     *
+     * Теперь НУЛЬ НИКОГДА не перезаписывает существующий
+     * уровень двигателя.
+     *
+     * Если Attachment сообщает I/II/III —
+     * принимаем это значение.
+     *
+     * Если Attachment сообщает 0 —
+     * оставляем уже установленный уровень двигателя.
      */
     private void synchronizeTailwindLevel() {
 
@@ -352,16 +370,26 @@ public class SelfPropellingBoatEntity
                         this
                 );
 
-        int storedLevel =
-                getDataTracker().get(
-                        ENGINE_TAILWIND_LEVEL
+        /*
+         * Только положительное значение имеет право
+         * изменить значение двигателя.
+         */
+        if (attachmentLevel > 0) {
+
+            int storedLevel =
+                    getDataTracker().get(
+                            ENGINE_TAILWIND_LEVEL
+                    );
+
+            if (attachmentLevel != storedLevel) {
+
+                setEngineTailwindLevel(
+                        Math.min(
+                                3,
+                                attachmentLevel
+                        )
                 );
-
-        if (attachmentLevel != storedLevel) {
-
-            setEngineTailwindLevel(
-                    attachmentLevel
-            );
+            }
         }
     }
 
@@ -398,11 +426,13 @@ public class SelfPropellingBoatEntity
      * =========================================================
      *
      * Без топлива:
-     * ванильная лодка получает обычные inputs.
+     *
+     * обычное ванильное управление.
      *
      * С топливом:
-     * ванильные inputs очищаются полностью,
-     * A/D сохраняются отдельно для двигателя.
+     *
+     * ванильное управление отключено,
+     * A/D используются двигателем.
      */
     @Override
     public void setInputs(
@@ -429,7 +459,7 @@ public class SelfPropellingBoatEntity
 
         /*
          * В двигательном режиме ванильная
-         * система гребли не используется.
+         * гребля не используется.
          */
         super.setInputs(
                 false,
@@ -497,7 +527,7 @@ public class SelfPropellingBoatEntity
                 getVelocity();
 
         /*
-         * Направление носа лодки.
+         * Направление носа.
          */
         double radians =
                 Math.toRadians(
@@ -512,9 +542,7 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Берём только скорость по направлению носа.
-         *
-         * Боковой glide уничтожается.
+         * Берём скорость только по направлению носа.
          */
         double forwardSpeed =
                 velocity.x * forward.x
@@ -527,7 +555,7 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Лимит двигателя зависит от Tailwind.
+         * Получаем лимит двигателя.
          */
         double maximumSpeed =
                 getMaximumSpeed();
@@ -546,7 +574,7 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Минимальная скорость двигателя.
+         * Минимальная скорость работающего двигателя.
          */
         if (targetSpeed < BASE_ENGINE_SPEED) {
 
@@ -559,7 +587,6 @@ public class SelfPropellingBoatEntity
 
         /*
          * X/Z = двигатель.
-         *
          * Y = ванильная физика.
          */
         setVelocity(
@@ -579,6 +606,7 @@ public class SelfPropellingBoatEntity
 
     @Override
     public Item asItem() {
+
         return ModItems.SELF_PROPELLING_BOAT;
     }
 
@@ -595,7 +623,7 @@ public class SelfPropellingBoatEntity
     ) {
 
         /*
-         * Shift + ПКМ снаружи → GUI.
+         * Shift + ПКМ снаружи -> GUI.
          */
         if (player.isSneaking()
                 && !getPassengerList().contains(player)) {
@@ -632,7 +660,10 @@ public class SelfPropellingBoatEntity
 
         /*
          * Сервер:
-         * топливо + синхронизация Tailwind.
+         *
+         * топливо
+         * +
+         * безопасная синхронизация Tailwind.
          */
         if (!getWorld().isClient()) {
 
@@ -642,9 +673,9 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Полностью ванильная BoatEntity физика.
+         * Полностью ванильный BoatEntity tick.
          *
-         * Двигатель вызывается отдельным Mixin
+         * Двигатель применяется отдельным Mixin
          * после updateVelocity().
          */
         super.tick();
@@ -867,6 +898,7 @@ public class SelfPropellingBoatEntity
     public Integer getScreenOpeningData(
             ServerPlayerEntity player
     ) {
+
         return getId();
     }
 }
