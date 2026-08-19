@@ -3,6 +3,7 @@ package com.minecartmagic.mixin;
 import com.minecartmagic.ModEnchantments;
 import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.minecraft.entity.vehicle.BoatEntity;
+import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -11,8 +12,44 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(BoatEntity.class)
 public abstract class SelfPropellingBoatVelocityMixin {
 
-    private static final String TAILWIND_TAG_PREFIX =
-            "minecartmagic_tailwind_";
+    /*
+     * =====================================================
+     * БАЗОВАЯ СКОРОСТЬ ДВИГАТЕЛЯ
+     * =====================================================
+     *
+     * Без Попутного ветра:
+     *
+     * 0.45
+     *
+     * I:
+     *
+     * 0.62
+     *
+     * II:
+     *
+     * 0.72
+     *
+     * III:
+     *
+     * 0.84
+     */
+    private static final double BASE_ENGINE_SPEED = 0.45D;
+
+    private static final double TAILWIND_I_SPEED = 0.62D;
+
+    private static final double TAILWIND_II_SPEED = 0.72D;
+
+    private static final double TAILWIND_III_SPEED = 0.84D;
+
+    /*
+     * Скорость разгона.
+     */
+    private static final double ENGINE_ACCELERATION = 0.025D;
+
+    /*
+     * Управление A/D.
+     */
+    private static final float ENGINE_STEERING_SPEED = 2.5F;
 
     @Inject(
             method = "updateVelocity",
@@ -26,7 +63,7 @@ public abstract class SelfPropellingBoatVelocityMixin {
                 (BoatEntity) (Object) this;
 
         /*
-         * Работаем только с нашей сущностью.
+         * Работаем только с нашей самоходной лодкой.
          */
         if (!(boat instanceof SelfPropellingBoatEntity selfPropellingBoat)) {
 
@@ -42,7 +79,7 @@ public abstract class SelfPropellingBoatVelocityMixin {
         }
 
         /*
-         * На суше двигатель не работает.
+         * На суше двигатель не тянет.
          */
         if (!selfPropellingBoat.isTouchingWater()) {
 
@@ -51,17 +88,19 @@ public abstract class SelfPropellingBoatVelocityMixin {
 
         /*
          * =====================================================
-         * ИЩЕМ TAILWIND НЕПОСРЕДСТВЕННО НА ENTITY
+         * ПОЛУЧАЕМ НАСТОЯЩИЙ TAILWIND
          * =====================================================
          *
-         * Источник №1:
-         * Attachment
+         * Никакого ENGINE_TAILWIND_LEVEL здесь больше нет.
          *
-         * Источник №2:
-         * command tag
+         * Получаем непосредственно зачарование,
+         * которое лежит на самой самоходной лодке.
          *
-         * Источник №3:
-         * engine tracker.
+         * ModEnchantments.getTailwindLevel(BoatEntity)
+         * использует:
+         *
+         * 1. TAILWIND Attachment
+         * 2. command tag
          */
         int tailwindLevel =
                 ModEnchantments.getTailwindLevel(
@@ -69,72 +108,7 @@ public abstract class SelfPropellingBoatVelocityMixin {
                 );
 
         /*
-         * =====================================================
-         * COMMAND TAG — ЖЁСТКИЙ FALLBACK
-         * =====================================================
-         */
-        int tagLevel = 0;
-
-        for (String tag :
-                selfPropellingBoat.getCommandTags()) {
-
-            if (!tag.startsWith(
-                    TAILWIND_TAG_PREFIX
-            )) {
-
-                continue;
-            }
-
-            try {
-
-                int parsedLevel =
-                        Integer.parseInt(
-                                tag.substring(
-                                        TAILWIND_TAG_PREFIX.length()
-                                )
-                        );
-
-                if (parsedLevel > tagLevel) {
-
-                    tagLevel =
-                            parsedLevel;
-                }
-
-            } catch (NumberFormatException ignored) {
-
-                /*
-                 * Просто игнорируем битый tag.
-                 */
-            }
-        }
-
-        /*
-         * Если command tag содержит уровень,
-         * доверяем ему.
-         */
-        if (tagLevel > tailwindLevel) {
-
-            tailwindLevel =
-                    tagLevel;
-        }
-
-        /*
-         * =====================================================
-         * ENGINE TRACKER — ПОСЛЕДНИЙ FALLBACK
-         * =====================================================
-         */
-        int trackedLevel =
-                selfPropellingBoat.getEngineTailwindLevel();
-
-        if (tailwindLevel <= 0
-                && trackedLevel > 0) {
-
-            tailwindLevel =
-                    trackedLevel;
-        }
-
-        /*
-         * Защита диапазона I-III.
+         * Защита диапазона.
          */
         tailwindLevel =
                 Math.max(
@@ -147,29 +121,163 @@ public abstract class SelfPropellingBoatVelocityMixin {
 
         /*
          * =====================================================
-         * СИНХРОНИЗИРУЕМ ENGINE TRACKER
+         * СКОРОСТЬ ДВИГАТЕЛЯ
+         * =====================================================
+         *
+         * Вот здесь непосредственно меняется
+         * скорость самого двигателя.
+         *
+         * Никакого другого значения скорости
+         * из SelfPropellingBoatEntity больше
+         * не берём.
+         */
+        double maximumSpeed;
+
+        switch (tailwindLevel) {
+
+            case 1 -> maximumSpeed =
+                    TAILWIND_I_SPEED;
+
+            case 2 -> maximumSpeed =
+                    TAILWIND_II_SPEED;
+
+            case 3 -> maximumSpeed =
+                    TAILWIND_III_SPEED;
+
+            default -> maximumSpeed =
+                    BASE_ENGINE_SPEED;
+        }
+
+        /*
+         * =====================================================
+         * РУЛЕНИЕ A / D
          * =====================================================
          */
-        if (tailwindLevel > 0
-                && tailwindLevel
-                        != trackedLevel) {
+        if (selfPropellingBoat.isEnginePressingLeft()
+                && !selfPropellingBoat.isEnginePressingRight()) {
 
-            selfPropellingBoat.setEngineTailwindLevel(
-                    tailwindLevel
+            selfPropellingBoat.setYaw(
+                    selfPropellingBoat.getYaw()
+                            - ENGINE_STEERING_SPEED
+            );
+
+        } else if (
+                selfPropellingBoat.isEnginePressingRight()
+                        && !selfPropellingBoat.isEnginePressingLeft()
+        ) {
+
+            selfPropellingBoat.setYaw(
+                    selfPropellingBoat.getYaw()
+                            + ENGINE_STEERING_SPEED
             );
         }
 
         /*
          * =====================================================
-         * ПРИМЕНЯЕМ ДВИГАТЕЛЬ
+         * ТЕКУЩАЯ СКОРОСТЬ
+         * =====================================================
+         */
+        Vec3d velocity =
+                selfPropellingBoat.getVelocity();
+
+        /*
+         * =====================================================
+         * НАПРАВЛЕНИЕ ЛОДКИ
+         * =====================================================
+         */
+        double radians =
+                Math.toRadians(
+                        selfPropellingBoat.getYaw()
+                );
+
+        Vec3d forward =
+                new Vec3d(
+                        -Math.sin(radians),
+                        0.0D,
+                        Math.cos(radians)
+                );
+
+        /*
+         * =====================================================
+         * СКОРОСТЬ ВПЕРЁД
          * =====================================================
          *
-         * applySelfPropulsion()
-         * берёт getMaximumSpeed(),
-         * а он теперь получает тот же уровень,
-         * который мы только что гарантированно
-         * установили в ENGINE_TAILWIND_LEVEL.
+         * Берём только составляющую скорости,
+         * направленную туда, куда смотрит лодка.
          */
-        selfPropellingBoat.applySelfPropulsion();
+        double forwardSpeed =
+                velocity.x * forward.x
+                        + velocity.z * forward.z;
+
+        forwardSpeed =
+                Math.max(
+                        0.0D,
+                        forwardSpeed
+                );
+
+        /*
+         * =====================================================
+         * РАЗГОН
+         * =====================================================
+         */
+        double targetSpeed =
+                forwardSpeed
+                        + ENGINE_ACCELERATION;
+
+        /*
+         * Главный лимит.
+         *
+         * Без зачарования:
+         * 0.45
+         *
+         * I:
+         * 0.62
+         *
+         * II:
+         * 0.72
+         *
+         * III:
+         * 0.84
+         */
+        targetSpeed =
+                Math.min(
+                        targetSpeed,
+                        maximumSpeed
+                );
+
+        /*
+         * Если лодка стоит,
+         * двигатель должен начать тянуть
+         * сразу.
+         */
+        if (targetSpeed < BASE_ENGINE_SPEED) {
+
+            targetSpeed =
+                    Math.min(
+                            BASE_ENGINE_SPEED,
+                            maximumSpeed
+                    );
+        }
+
+        /*
+         * =====================================================
+         * ПРИМЕНЯЕМ СКОРОСТЬ
+         * =====================================================
+         *
+         * X/Z:
+         * двигатель.
+         *
+         * Y:
+         * ванильная физика лодки.
+         *
+         * Поэтому вертикальная физика не меняется.
+         */
+        selfPropellingBoat.setVelocity(
+                forward.x * targetSpeed,
+                velocity.y,
+                forward.z * targetSpeed
+        );
+
+        selfPropellingBoat.velocityDirty = true;
     }
 }
