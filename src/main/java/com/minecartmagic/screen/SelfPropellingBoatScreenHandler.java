@@ -17,32 +17,46 @@ public class SelfPropellingBoatScreenHandler
     public static final int FUEL_SLOT = 0;
 
     /*
-     * Координаты настоящего Slot должны совпадать
-     * с координатами картинки топливного слота
-     * в SelfPropellingBoatScreen.
+     * =====================================================
+     * СЛОТ ТОПЛИВА
+     * =====================================================
+     *
+     * Screen рисует настоящий слот на:
+     *
+     * X = 79
+     * Y = 30
+     *
+     * Поэтому хитбокс должен иметь ровно те же координаты.
      */
     private static final int FUEL_SLOT_X = 79;
     private static final int FUEL_SLOT_Y = 30;
 
     /*
-     * Нижний инвентарь игрока.
+     * =====================================================
+     * ИНВЕНТАРЬ ИГРОКА
+     * =====================================================
      */
     private static final int PLAYER_INVENTORY_Y = 84;
 
     private static final int HOTBAR_Y = 142;
 
     private final Inventory fuelInventory;
+
     private final PropertyDelegate propertyDelegate;
+
     private final SelfPropellingBoatEntity boat;
 
     /*
-     * Client constructor.
+     * =====================================================
+     * CLIENT CONSTRUCTOR
+     * =====================================================
      */
     public SelfPropellingBoatScreenHandler(
             int syncId,
             PlayerInventory playerInventory,
             int entityId
     ) {
+
         this(
                 syncId,
                 playerInventory,
@@ -53,13 +67,16 @@ public class SelfPropellingBoatScreenHandler
     }
 
     /*
-     * Server constructor.
+     * =====================================================
+     * SERVER CONSTRUCTOR
+     * =====================================================
      */
     public SelfPropellingBoatScreenHandler(
             int syncId,
             PlayerInventory playerInventory,
             SelfPropellingBoatEntity boat
     ) {
+
         this(
                 syncId,
                 playerInventory,
@@ -76,6 +93,7 @@ public class SelfPropellingBoatScreenHandler
             PropertyDelegate propertyDelegate,
             SelfPropellingBoatEntity boat
     ) {
+
         super(
                 ModScreenHandlers.SELF_PROPELLING_BOAT,
                 syncId
@@ -97,12 +115,8 @@ public class SelfPropellingBoatScreenHandler
 
         /*
          * =================================================
-         * СЛОТ ТОПЛИВА
+         * ТОПЛИВНЫЙ SLOT
          * =================================================
-         *
-         * ВАЖНО:
-         * X/Y здесь теперь совпадают с отрисованным
-         * слотом в SelfPropellingBoatScreen.
          */
         addSlot(
                 new FuelSlot(
@@ -220,6 +234,7 @@ public class SelfPropellingBoatScreenHandler
                 getBurnTime();
 
         if (burnTime <= 0) {
+
             return 0;
         }
 
@@ -241,10 +256,12 @@ public class SelfPropellingBoatScreenHandler
     ) {
 
         if (boat == null) {
+
             return true;
         }
 
         if (boat.isRemoved()) {
+
             return false;
         }
 
@@ -253,6 +270,11 @@ public class SelfPropellingBoatScreenHandler
         ) <= 64.0D;
     }
 
+    /*
+     * =====================================================
+     * SHIFT-CLICK
+     * =====================================================
+     */
     @Override
     public ItemStack quickMove(
             PlayerEntity player,
@@ -271,6 +293,7 @@ public class SelfPropellingBoatScreenHandler
                 );
 
         if (!slot.hasStack()) {
+
             return ItemStack.EMPTY;
         }
 
@@ -325,7 +348,9 @@ public class SelfPropellingBoatScreenHandler
             } else {
 
                 /*
-                 * Main inventory -> hotbar.
+                 * =================================================
+                 * MAIN INVENTORY -> HOTBAR
+                 * =================================================
                  */
                 if (slotIndex >= 1
                         && slotIndex < 28) {
@@ -345,6 +370,9 @@ public class SelfPropellingBoatScreenHandler
                                 && slotIndex < 37
                 ) {
 
+                    /*
+                     * HOTBAR -> MAIN INVENTORY
+                     */
                     if (!insertItem(
                             original,
                             1,
@@ -402,9 +430,9 @@ public class SelfPropellingBoatScreenHandler
     }
 
     /*
-     * =================================================
-     * ТОПЛИВНЫЙ SLOT
-     * =================================================
+     * =====================================================
+     * FUEL SLOT
+     * =====================================================
      */
     private static class FuelSlot
             extends Slot {
@@ -440,14 +468,15 @@ public class SelfPropellingBoatScreenHandler
 
         @Override
         public int getMaxItemCount() {
+
             return 64;
         }
     }
 
     /*
-     * =================================================
+     * =====================================================
      * PROPERTY DELEGATE
-     * =================================================
+     * =====================================================
      */
     private static class BoatPropertyDelegate
             implements PropertyDelegate {
@@ -457,6 +486,7 @@ public class SelfPropellingBoatScreenHandler
         private BoatPropertyDelegate(
                 SelfPropellingBoatEntity boat
         ) {
+
             this.boat =
                     boat;
         }
@@ -488,6 +518,7 @@ public class SelfPropellingBoatScreenHandler
 
         @Override
         public int size() {
+
             return 2;
         }
     }
