@@ -26,6 +26,18 @@ public abstract class BoatTailwindSpeedMixin {
         BoatEntity boat =
                 (BoatEntity) (Object) this;
 
+        /*
+         * Для самоходной лодки с работающим двигателем
+         * скорость полностью контролирует
+         * SelfPropellingBoatEntity.applySelfPropulsion().
+         *
+         * Поэтому обычный Tailwind здесь не вмешивается.
+         */
+        if (boat instanceof SelfPropellingBoatEntity selfPropellingBoat
+                && selfPropellingBoat.hasFuel()) {
+            return;
+        }
+
         int level =
                 ModEnchantments.getTailwindLevel(
                         boat
@@ -36,36 +48,9 @@ public abstract class BoatTailwindSpeedMixin {
         }
 
         /*
-         * =================================================
-         * САМОХОДНАЯ ЛОДКА
-         * =================================================
-         *
-         * Если топлива НЕТ:
-         *
-         * работает обычная BoatEntity-физика,
-         * поэтому Tailwind использует обычные
-         * значения ванильной лодочной механики.
-         *
-         * Если топливо ЕСТЬ:
-         *
-         * updateVelocity уже перехватывается
-         * SelfPropellingBoatVelocityMixin,
-         * поэтому сюда не заходим.
+         * Без топлива самоходная лодка использует
+         * обычную ванильную физику + Попутный ветер.
          */
-        if (boat instanceof SelfPropellingBoatEntity selfPropellingBoat) {
-
-            if (selfPropellingBoat.hasFuel()) {
-                return;
-            }
-
-            /*
-             * Без топлива:
-             *
-             * ТОЧНО ТЕ ЖЕ лимиты,
-             * что у обычной лодки.
-             */
-        }
-
         if (!pressingForward) {
             return;
         }
@@ -74,15 +59,6 @@ public abstract class BoatTailwindSpeedMixin {
             return;
         }
 
-        /*
-         * Для обычной лодки и для самоходной
-         * лодки БЕЗ топлива используются одни
-         * и те же значения.
-         *
-         * I   = 0.55
-         * II  = 0.65
-         * III = 0.75
-         */
         double maxSpeed = switch (level) {
             case 1 -> 0.55D;
             case 2 -> 0.65D;
