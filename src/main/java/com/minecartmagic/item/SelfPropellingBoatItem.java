@@ -48,11 +48,8 @@ public class SelfPropellingBoatItem extends Item {
         }
 
         /*
-         * На клиенте только показываем
-         * успешное использование.
-         *
-         * Создание entity происходит
-         * на сервере.
+         * Client:
+         * только подтверждаем использование.
          */
         if (world.isClient()) {
 
@@ -67,9 +64,6 @@ public class SelfPropellingBoatItem extends Item {
                         world
                 );
 
-        /*
-         * Позиция установки.
-         */
         boat.setPosition(
                 hit.getPos().x,
                 hit.getPos().y,
@@ -77,33 +71,22 @@ public class SelfPropellingBoatItem extends Item {
         );
 
         /*
-         * Пока у нас только одна версия —
-         * дубовая.
+         * Пока только дубовый вариант.
          */
         boat.setVariant(
                 BoatEntity.Type.OAK
         );
 
-        /*
-         * Поворачиваем лодку по направлению
-         * взгляда игрока.
-         */
         boat.setYaw(
                 user.getYaw()
         );
 
         /*
          * =================================================
-         * ПОПУТНЫЙ ВЕТЕР
+         * TAILWIND
          * =================================================
-         *
-         * Переносим зачарование с ItemStack
-         * на новую entity через уже существующую
-         * систему ModEnchantments.
-         *
-         * Никакого отдельного EngineTailwindLevel
-         * здесь больше нет.
          */
+
         int tailwindLevel =
                 ModEnchantments.getTailwindLevel(
                         stack
@@ -111,14 +94,25 @@ public class SelfPropellingBoatItem extends Item {
 
         if (tailwindLevel > 0) {
 
+            /*
+             * Основная система attachment.
+             */
             ModEnchantments.setTailwindLevel(
                     boat,
+                    tailwindLevel
+            );
+
+            /*
+             * Отдельно записываем уровень,
+             * который используется двигателем.
+             */
+            boat.setEngineTailwindLevel(
                     tailwindLevel
             );
         }
 
         /*
-         * Создаём entity в мире.
+         * Создаём лодку.
          */
         world.spawnEntity(
                 boat
@@ -126,11 +120,10 @@ public class SelfPropellingBoatItem extends Item {
 
         /*
          * Creative:
-         * предмет не расходуется.
+         * предмет остаётся.
          *
          * Survival:
-         * одна самоходная лодка исчезает
-         * из руки.
+         * лодка расходуется.
          */
         if (!user.getAbilities().creativeMode) {
 
