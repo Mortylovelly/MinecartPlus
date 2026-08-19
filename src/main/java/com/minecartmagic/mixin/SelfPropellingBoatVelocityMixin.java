@@ -28,14 +28,14 @@ public abstract class SelfPropellingBoatVelocityMixin {
                 (BoatEntity) (Object) this;
 
         /*
-         * Работаем только с самоходной лодкой.
+         * Работаем только с нашей самоходной лодкой.
          */
         if (!(boat instanceof SelfPropellingBoatEntity selfPropellingBoat)) {
             return;
         }
 
         /*
-         * Без топлива двигатель не вмешивается.
+         * Без топлива двигатель не работает.
          */
         if (!selfPropellingBoat.hasFuel()) {
             return;
@@ -49,11 +49,19 @@ public abstract class SelfPropellingBoatVelocityMixin {
         }
 
         /*
-         * Вся физика двигателя уже находится
-         * внутри SelfPropellingBoatEntity.
+         * Передаём существующему двигателю:
          *
-         * Здесь только передаём состояние A/D.
+         * pressingLeft
+         * pressingRight
+         * client/server
+         *
+         * Сам расчёт скорости находится
+         * внутри SelfPropellingBoatEntity.
          */
-        selfPropellingBoat.applySelfPropulsion();
+        selfPropellingBoat.applySelfPropulsion(
+                pressingLeft,
+                pressingRight,
+                boat.getWorld().isClient()
+        );
     }
 }
