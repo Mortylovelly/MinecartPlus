@@ -21,15 +21,16 @@ public class SelfPropellingBoatScreenHandler
      * СЛОТ ТОПЛИВА
      * =====================================================
      *
-     * Screen рисует настоящий слот на:
+     * В SelfPropellingBoatScreen текстура топлива
+     * реально рисуется на Y = 36.
      *
-     * X = 79
-     * Y = 30
+     * Поэтому настоящий Slot тоже должен быть Y = 36.
      *
-     * Поэтому хитбокс должен иметь ровно те же координаты.
+     * Ранее здесь было 30, из-за чего hitbox находился
+     * на 6 пикселей выше визуальной текстуры.
      */
     private static final int FUEL_SLOT_X = 79;
-    private static final int FUEL_SLOT_Y = 30;
+    private static final int FUEL_SLOT_Y = 36;
 
     /*
      * =====================================================
@@ -348,9 +349,7 @@ public class SelfPropellingBoatScreenHandler
             } else {
 
                 /*
-                 * =================================================
-                 * MAIN INVENTORY -> HOTBAR
-                 * =================================================
+                 * Main inventory -> hotbar.
                  */
                 if (slotIndex >= 1
                         && slotIndex < 28) {
@@ -371,7 +370,7 @@ public class SelfPropellingBoatScreenHandler
                 ) {
 
                     /*
-                     * HOTBAR -> MAIN INVENTORY
+                     * Hotbar -> main inventory.
                      */
                     if (!insertItem(
                             original,
