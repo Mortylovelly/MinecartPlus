@@ -26,26 +26,29 @@ public abstract class SelfPropellingBoatInteractionMixin {
                 (SelfPropellingBoatEntity) (Object) this;
 
         /*
-         * Работает только с основной рукой.
+         * Только основная рука.
          */
         if (hand != Hand.MAIN_HAND) {
             return;
         }
 
         /*
-         * Если игрок уже сидит в нашей самоходной лодке,
-         * сервер открывает её существующее меню.
+         * Если игрок уже является пассажиром этой лодки,
+         * interaction используется для открытия её GUI.
          *
-         * Сам по себе этот Mixin НЕ вызывается от E.
-         * E будет отправлять обычное entity interaction
-         * через отдельный клиентский Mixin ниже.
+         * ПКМ / Shift здесь НЕ проверяем.
+         *
+         * Клиентский MinecartMagicClient ниже отправляет
+         * сюда interaction именно по клавише Inventory (E).
          */
         if (!boat.getPassengerList().contains(player)) {
             return;
         }
 
         if (!boat.getWorld().isClient()) {
-            player.openHandledScreen(boat);
+            player.openHandledScreen(
+                    boat
+            );
         }
 
         cir.setReturnValue(
