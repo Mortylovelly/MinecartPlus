@@ -17,20 +17,18 @@ public class SelfPropellingBoatScreenHandler
     public static final int FUEL_SLOT = 0;
 
     /*
-     * Слот топлива.
+     * Один слот топлива.
      */
     private static final int FUEL_SLOT_X = 79;
     private static final int FUEL_SLOT_Y = 36;
 
     /*
-     * ВАЖНО:
-     *
-     * Реальные слоты игрока теперь ниже
-     * панели самоходной лодки.
+     * Стандартное расположение
+     * нижнего инвентаря.
      */
-    private static final int PLAYER_INVENTORY_Y = 104;
+    private static final int PLAYER_INVENTORY_Y = 84;
 
-    private static final int HOTBAR_Y = 162;
+    private static final int HOTBAR_Y = 142;
 
     private final Inventory fuelInventory;
 
@@ -39,7 +37,7 @@ public class SelfPropellingBoatScreenHandler
     private final SelfPropellingBoatEntity boat;
 
     /*
-     * Клиентский конструктор.
+     * Client constructor.
      */
     public SelfPropellingBoatScreenHandler(
             int syncId,
@@ -57,7 +55,7 @@ public class SelfPropellingBoatScreenHandler
     }
 
     /*
-     * Серверный конструктор.
+     * Server constructor.
      */
     public SelfPropellingBoatScreenHandler(
             int syncId,
@@ -117,12 +115,8 @@ public class SelfPropellingBoatScreenHandler
 
         /*
          * =================================================
-         * ИНВЕНТАРЬ ИГРОКА
+         * 3 РЯДА ИНВЕНТАРЯ ИГРОКА
          * =================================================
-         *
-         * Первый ряд теперь начинается на Y=104.
-         *
-         * Панель лодки заканчивается значительно выше.
          */
         for (int row = 0; row < 3; row++) {
 
@@ -285,7 +279,9 @@ public class SelfPropellingBoatScreenHandler
                 original.copy();
 
         /*
-         * Слот топлива -> инвентарь игрока.
+         * =================================================
+         * ТОПЛИВО -> ИНВЕНТАРЬ
+         * =================================================
          */
         if (slotIndex == FUEL_SLOT) {
 
@@ -307,7 +303,9 @@ public class SelfPropellingBoatScreenHandler
                     );
 
             /*
-             * Предмет игрока -> топливный слот.
+             * =================================================
+             * ИНВЕНТАРЬ -> ТОПЛИВО
+             * =================================================
              */
             if (fuelValue != null
                     && fuelValue > 0) {
@@ -325,7 +323,7 @@ public class SelfPropellingBoatScreenHandler
             } else {
 
                 /*
-                 * Основной инвентарь -> хотбар.
+                 * Main inventory -> hotbar.
                  */
                 if (slotIndex >= 1
                         && slotIndex < 28) {
@@ -401,6 +399,11 @@ public class SelfPropellingBoatScreenHandler
         );
     }
 
+    /*
+     * =================================================
+     * ТОПЛИВНЫЙ SLOT
+     * =================================================
+     */
     private static class FuelSlot
             extends Slot {
 
@@ -439,6 +442,11 @@ public class SelfPropellingBoatScreenHandler
         }
     }
 
+    /*
+     * =================================================
+     * PROPERTY DELEGATE
+     * =================================================
+     */
     private static class BoatPropertyDelegate
             implements PropertyDelegate {
 
@@ -475,9 +483,6 @@ public class SelfPropellingBoatScreenHandler
                 int index,
                 int value
         ) {
-            /*
-             * Сервер является источником истины.
-             */
         }
 
         @Override
