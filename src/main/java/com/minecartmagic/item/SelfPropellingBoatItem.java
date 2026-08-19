@@ -48,8 +48,8 @@ public class SelfPropellingBoatItem extends Item {
         }
 
         /*
-         * Client:
-         * только подтверждаем использование.
+         * Клиент только подтверждает использование.
+         * Entity создаём исключительно на сервере.
          */
         if (world.isClient()) {
 
@@ -58,6 +58,11 @@ public class SelfPropellingBoatItem extends Item {
             );
         }
 
+        /*
+         * =====================================================
+         * СОЗДАЁМ САМОХОДНУЮ ЛОДКУ
+         * =====================================================
+         */
         SelfPropellingBoatEntity boat =
                 new SelfPropellingBoatEntity(
                         ModEntities.SELF_PROPELLING_BOAT,
@@ -71,59 +76,87 @@ public class SelfPropellingBoatItem extends Item {
         );
 
         /*
-         * Пока только дубовый вариант.
+         * Пока используем дубовую модель.
          */
         boat.setVariant(
                 BoatEntity.Type.OAK
         );
 
+        /*
+         * Направление появления.
+         */
         boat.setYaw(
                 user.getYaw()
         );
 
         /*
-         * =================================================
-         * TAILWIND
-         * =================================================
+         * =====================================================
+         * ПОЛУЧАЕМ TAILWIND С ITEMSTACK
+         * =====================================================
          */
-
         int tailwindLevel =
                 ModEnchantments.getTailwindLevel(
                         stack
                 );
 
-        if (tailwindLevel > 0) {
-
-            /*
-             * Основная система attachment.
-             */
-            ModEnchantments.setTailwindLevel(
-                    boat,
-                    tailwindLevel
-            );
-
-            /*
-             * Отдельно записываем уровень,
-             * который используется двигателем.
-             */
-            boat.setEngineTailwindLevel(
-                    tailwindLevel
-            );
-        }
-
         /*
-         * Создаём лодку.
+         * =====================================================
+         * СНАЧАЛА SPAWN
+         * =====================================================
+         *
+         * Это важно.
+         *
+         * Entity теперь полностью зарегистрирована в мире
+         * до того, как мы записываем в неё Attachment
+         * и DataTracker двигателя.
          */
         world.spawnEntity(
                 boat
         );
 
         /*
-         * Creative:
-         * предмет остаётся.
+         * =====================================================
+         * ПЕРЕНОСИМ ЗАЧАРОВАНИЕ ПОСЛЕ SPAWN
+         * =====================================================
          *
-         * Survival:
-         * лодка расходуется.
+         * Основная система:
+         *
+         * Attachment
+         *
+         * +
+         *
+         * command tag
+         *
+         * Резервная система:
+         *
+         * ENGINE_TAILWIND_LEVEL
+         *
+         * Оба источника получают один и тот же уровень.
+         */
+        if (tailwindLevel > 0) {
+
+            ModEnchantments.setTailwindLevel(
+                    boat,
+                    tailwindLevel
+            );
+
+            boat.setEngineTailwindLevel(
+                    tailwindLevel
+            );
+        } else {
+
+            /*
+             * Явно очищаем tracker для незачарованной лодки.
+             */
+            boat.setEngineTailwindLevel(
+                    0
+            );
+        }
+
+        /*
+         * =====================================================
+         * РАСХОД ПРЕДМЕТА
+         * =====================================================
          */
         if (!user.getAbilities().creativeMode) {
 
