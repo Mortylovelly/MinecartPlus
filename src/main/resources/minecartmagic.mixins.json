@@ -9,13 +9,13 @@
     "MinecartDropItemMixin",
     "BoatTailwindPlacementMixin",
     "BoatTailwindSpeedMixin",
-    "BoatTailwindDropMixin",
     "SelfPropellingBoatVelocityMixin",
-    "SelfPropellingBoatInteractionMixin"
+    "BoatTailwindDropMixin"
   ],
   "client": [
     "MinecartGlintMixin",
-    "BoatTailwindGlintMixin"
+    "BoatTailwindGlintMixin",
+    "SelfPropellingBoatInventoryMixin"
   ],
   "injectors": {
     "defaultRequire": 1
