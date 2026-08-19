@@ -5,42 +5,40 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 
 public class SelfPropellingBoatScreen
         extends HandledScreen<SelfPropellingBoatScreenHandler> {
 
-    private static final Identifier INVENTORY_TEXTURE =
-            Identifier.ofVanilla(
-                    "textures/gui/container/inventory.png"
-            );
-
-    private static final Identifier FURNACE_TEXTURE =
-            Identifier.ofVanilla(
-                    "textures/gui/container/furnace.png"
-            );
-
     private static final int WIDTH = 176;
+
+    /*
+     * Верхняя панель:
+     *
+     * 0 - 75
+     *
+     * Нижняя панель:
+     *
+     * 76 - 165
+     */
+    private static final int TOP_PANEL_HEIGHT = 76;
 
     private static final int HEIGHT = 166;
 
     /*
-     * Верхняя панель самоходной лодки.
+     * Первый ряд инвентаря.
      */
-    private static final int PANEL_HEIGHT = 76;
+    private static final int PLAYER_INVENTORY_Y = 84;
 
     /*
-     * С этой координаты начинается vanilla
-     * нижний inventory.
+     * Hotbar.
      */
-    private static final int PLAYER_AREA_Y = 76;
+    private static final int HOTBAR_Y = 142;
 
     public SelfPropellingBoatScreen(
             SelfPropellingBoatScreenHandler handler,
             PlayerInventory inventory,
             Text title
     ) {
-
         super(
                 handler,
                 inventory,
@@ -54,12 +52,12 @@ public class SelfPropellingBoatScreen
                 HEIGHT;
 
         /*
-         * Название "Инвентарь" находится
-         * непосредственно над первым рядом
-         * player slots.
+         * Название player inventory.
+         *
+         * Именно такая схема используется у нормальных
+         * контейнерных GUI: контейнер сверху, инвентарь снизу.
          */
         playerInventoryTitleX = 8;
-
         playerInventoryTitleY = 77;
     }
 
@@ -80,145 +78,126 @@ public class SelfPropellingBoatScreen
                         / 2;
 
         /*
-         * =================================================
-         * НИЖНИЙ VANILLA INVENTORY
-         * =================================================
-         *
-         * Очень важный момент:
-         *
-         * inventory.png:
-         *
-         * source Y = 76
-         *
-         * Именно там начинается нижняя часть
-         * обычного inventory GUI.
-         *
-         * Поэтому:
-         * - skin не рисуем;
-         * - 2x2 crafting не рисуем;
-         * - player inventory выглядит ванильно.
-         */
-        context.drawTexture(
-                INVENTORY_TEXTURE,
-                x,
-                y + PLAYER_AREA_Y,
-                0,
-                76,
-                WIDTH,
-                HEIGHT - PLAYER_AREA_Y,
-                256,
-                256
-        );
-
-        /*
-         * =================================================
-         * ПАНЕЛЬ САМОХОДНОЙ ЛОДКИ
-         * =================================================
-         */
-        int panelX =
-                x;
-
-        int panelY =
-                y;
-
-        int panelBottom =
-                panelY + PANEL_HEIGHT;
-
-        /*
-         * Чёрная рамка.
+         * =====================================================
+         * ВСЁ ОКНО
+         * =====================================================
          */
         context.fill(
-                panelX,
-                panelY,
-                panelX + WIDTH,
-                panelBottom,
+                x,
+                y,
+                x + WIDTH,
+                y + HEIGHT,
                 0xFF373737
         );
 
         /*
-         * Светлая внутренняя поверхность.
+         * =====================================================
+         * ВЕРХНЯЯ ПАНЕЛЬ САМОХОДНОЙ ЛОДКИ
+         * =====================================================
          */
         context.fill(
-                panelX + 1,
-                panelY + 1,
-                panelX + WIDTH - 1,
-                panelBottom - 1,
+                x + 1,
+                y + 1,
+                x + WIDTH - 1,
+                y + TOP_PANEL_HEIGHT,
                 0xFFC6C6C6
         );
 
         /*
-         * Верхняя светлая линия.
+         * Верхняя светлая рамка.
          */
         context.fill(
-                panelX + 2,
-                panelY + 2,
-                panelX + WIDTH - 2,
-                panelY + 3,
+                x + 2,
+                y + 2,
+                x + WIDTH - 2,
+                y + 3,
                 0xFFE8E8E8
         );
 
         /*
-         * Нижняя тёмная линия.
+         * Нижняя тёмная линия верхнего контейнера.
          */
         context.fill(
-                panelX + 2,
-                panelBottom - 3,
-                panelX + WIDTH - 2,
-                panelBottom - 2,
+                x + 2,
+                y + TOP_PANEL_HEIGHT - 2,
+                x + WIDTH - 2,
+                y + TOP_PANEL_HEIGHT,
                 0xFF8A8A8A
         );
 
         /*
-         * =================================================
-         * ЕДИНСТВЕННЫЙ СЛОТ
-         * =================================================
+         * =====================================================
+         * СЛОТ ТОПЛИВА
+         * =====================================================
+         *
+         * Сам Slot в ScreenHandler находится:
+         *
+         * X = 79
+         * Y = 30
+         *
+         * Поэтому здесь используется ровно та же позиция.
          */
-        context.drawTexture(
-                FURNACE_TEXTURE,
-                panelX + 79,
-                panelY + 30,
-                56,
-                53,
-                18,
-                18,
-                256,
-                256
+        drawSlotBackground(
+                context,
+                x + 79,
+                y + 30
         );
 
         /*
-         * =================================================
+         * =====================================================
          * ПЛАМЯ
-         * =================================================
+         * =====================================================
          */
         int flameHeight =
                 handler.getFuelProgress();
 
         if (flameHeight > 0) {
 
-            context.drawTexture(
-                    FURNACE_TEXTURE,
-                    panelX + 103,
-                    panelY + 36
-                            + (14 - flameHeight),
-                    176,
-                    14 - flameHeight,
-                    14,
-                    flameHeight,
-                    256,
-                    256
+            int flameX =
+                    x + 103;
+
+            int flameY =
+                    y + 36;
+
+            /*
+             * Общая высота пламени:
+             * 14 пикселей.
+             */
+            int fullHeight = 14;
+
+            /*
+             * Наша отрисовка делает пламя простой
+             * ванильной оранжевой полосой.
+             */
+            context.fill(
+                    flameX,
+                    flameY
+                            + (fullHeight - flameHeight),
+                    flameX + 14,
+                    flameY + fullHeight,
+                    0xFFE6A23C
+            );
+
+            context.fill(
+                    flameX,
+                    flameY
+                            + (fullHeight - flameHeight),
+                    flameX + 2,
+                    flameY + fullHeight,
+                    0xFFFFCF69
             );
         }
 
         /*
-         * =================================================
-         * ШКАЛА ТОПЛИВА
-         * =================================================
+         * =====================================================
+         * ИНДИКАТОР ТОПЛИВА
+         * =====================================================
          */
         int gaugeX =
-                panelX + 126;
+                x + 126;
 
         int gaugeY =
-                panelY + 12;
+                y + 12;
 
         int gaugeWidth =
                 12;
@@ -274,9 +253,6 @@ public class SelfPropellingBoatScreen
                     0xFFE6A23C
             );
 
-            /*
-             * Блик.
-             */
             context.fill(
                     gaugeX + 3,
                     top,
@@ -285,6 +261,129 @@ public class SelfPropellingBoatScreen
                     0xFFFFCF69
             );
         }
+
+        /*
+         * =====================================================
+         * НИЖНЯЯ ПАНЕЛЬ ИНВЕНТАРЯ ИГРОКА
+         * =====================================================
+         *
+         * ВАЖНО:
+         *
+         * Здесь больше НЕТ inventory.png.
+         *
+         * Поэтому:
+         *
+         * - нет модели игрока;
+         * - нет 2x2 crafting;
+         * - нет верхней части обычного inventory;
+         * - нет наложения текстуры.
+         *
+         * Только контейнерный фон и реальные слоты.
+         */
+        context.fill(
+                x + 1,
+                y + TOP_PANEL_HEIGHT,
+                x + WIDTH - 1,
+                y + HEIGHT - 1,
+                0xFFC6C6C6
+        );
+
+        /*
+         * Разделительная тёмная линия.
+         */
+        context.fill(
+                x + 1,
+                y + TOP_PANEL_HEIGHT,
+                x + WIDTH - 1,
+                y + TOP_PANEL_HEIGHT + 2,
+                0xFF8A8A8A
+        );
+
+        /*
+         * =====================================================
+         * 3 РЯДА ИНВЕНТАРЯ
+         * =====================================================
+         */
+        for (int row = 0; row < 3; row++) {
+
+            for (int column = 0; column < 9; column++) {
+
+                drawSlotBackground(
+                        context,
+                        x + 8 + column * 18,
+                        y + PLAYER_INVENTORY_Y
+                                + row * 18
+                );
+            }
+        }
+
+        /*
+         * =====================================================
+         * HOTBAR
+         * =====================================================
+         */
+        for (int column = 0; column < 9; column++) {
+
+            drawSlotBackground(
+                    context,
+                    x + 8 + column * 18,
+                    y + HOTBAR_Y
+            );
+        }
+    }
+
+    /*
+     * Отрисовка стандартного контейнерного слота.
+     *
+     * Мы рисуем его вручную, чтобы полностью исключить
+     * inventory.png и всё, что относится к экрану игрока.
+     */
+    private void drawSlotBackground(
+            DrawContext context,
+            int x,
+            int y
+    ) {
+
+        /*
+         * Внешняя тёмная рамка.
+         */
+        context.fill(
+                x,
+                y,
+                x + 18,
+                y + 18,
+                0xFF373737
+        );
+
+        /*
+         * Внутренняя поверхность.
+         */
+        context.fill(
+                x + 1,
+                y + 1,
+                x + 17,
+                y + 17,
+                0xFF8B8B8B
+        );
+
+        /*
+         * Верхняя/левая подсветка.
+         */
+        context.fill(
+                x + 1,
+                y + 1,
+                x + 17,
+                y + 2,
+                0xFF555555
+        );
+
+        context.fill(
+                x + 1,
+                y + 1,
+                x + 2,
+                y + 17,
+                0xFF555555
+        );
     }
 
     @Override
@@ -295,7 +394,9 @@ public class SelfPropellingBoatScreen
     ) {
 
         /*
-         * Заголовок.
+         * =====================================================
+         * НАЗВАНИЕ
+         * =====================================================
          */
         context.drawText(
                 textRenderer,
@@ -307,7 +408,9 @@ public class SelfPropellingBoatScreen
         );
 
         /*
-         * "Топливо".
+         * =====================================================
+         * "ТОПЛИВО"
+         * =====================================================
          */
         context.drawText(
                 textRenderer,
@@ -321,7 +424,9 @@ public class SelfPropellingBoatScreen
         );
 
         /*
-         * Количество топлива.
+         * =====================================================
+         * КОЛИЧЕСТВО ТОПЛИВА
+         * =====================================================
          */
         context.drawText(
                 textRenderer,
@@ -336,7 +441,9 @@ public class SelfPropellingBoatScreen
         );
 
         /*
-         * Текущее время горения.
+         * =====================================================
+         * ВРЕМЯ ГОРЕНИЯ
+         * =====================================================
          */
         context.drawText(
                 textRenderer,
