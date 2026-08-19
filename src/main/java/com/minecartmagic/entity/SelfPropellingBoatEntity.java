@@ -2,8 +2,6 @@ package com.minecartmagic.entity;
 
 import com.minecartmagic.ModEnchantments;
 import com.minecartmagic.ModItems;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.entity.EntityType;
@@ -27,10 +25,15 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SelfPropellingBoatEntity
         extends BoatEntity
         implements ExtendedScreenHandlerFactory<Integer> {
+
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger("MinecartMagic");
 
     private static final TrackedData<Integer> BURN_TIME =
             DataTracker.registerData(
@@ -53,33 +56,43 @@ public class SelfPropellingBoatEntity
     private static final int MAX_PASSENGERS = 1;
 
     /*
-     * Скорости самоходной лодки.
+     * =====================================================
+     * ТЕКУЩИЕ СКОРОСТИ ДВИГАТЕЛЯ
+     * =====================================================
      *
-     * Без Tailwind:
-     * 0.50
-     *
-     * Tailwind I:
-     * 0.65
-     *
-     * Tailwind II:
-     * 0.75
-     *
-     * Tailwind III:
-     * 0.88
-     *
-     * Обычные лодки с Tailwind:
-     *
-     * I  ≈ 0.62
-     * II ≈ 0.72
-     * III≈ 0.84
-     *
-     * Поэтому двигатель при том же уровне
-     * немного быстрее обычной лодки.
+     * Без Tailwind = 0.50
+     * Tailwind I   = 0.65
+     * Tailwind II  = 0.75
+     * Tailwind III = 0.88
      */
     private static final double ENGINE_SPEED_NO_TAILWIND = 0.50D;
     private static final double ENGINE_SPEED_TAILWIND_I = 0.65D;
     private static final double ENGINE_SPEED_TAILWIND_II = 0.75D;
     private static final double ENGINE_SPEED_TAILWIND_III = 0.88D;
+
+    /*
+     * Ускорение двигателя.
+     */
+    private static final double BASE_ACCELERATION = 0.025D;
+
+    /*
+     * Скорость руления.
+     */
+    private static final float STEERING_SPEED = 2.5F;
+
+    /*
+     * =====================================================
+     * DEBUG
+     * =====================================================
+     *
+     * Отладка специально ограничена по частоте,
+     * чтобы не засрать log.txt тысячами строк.
+     */
+    private int debugTickCounter = 0;
+
+    private int debugLastEngineLevel = -1;
+    private int debugLastAttachmentLevel = -1;
+    private int debugLastFinalLevel = -1;
 
     private final SimpleInventory fuelInventory =
             new SimpleInventory(1);
@@ -272,76 +285,115 @@ public class SelfPropellingBoatEntity
     }
 
     /*
-     * Получаем уровень Попутного ветра,
-     * который был перенесён на самоходную лодку
-     * при её создании.
+     * =====================================================
+     * ПОЛУЧЕНИЕ TAILWIND
+     * =====================================================
      */
     private int getCurrentTailwindLevel() {
 
-        int level =
+        int engineLevel =
                 getEngineTailwindLevel();
 
-        if (level > 0) {
-            return level;
-        }
-
-        /*
-         * Резервная проверка attachment.
-         */
         int attachmentLevel =
                 ModEnchantments.getTailwindLevel(
                         this
                 );
 
-        if (attachmentLevel > 0) {
+        int finalLevel;
 
-            level =
-                    Math.min(
-                            3,
-                            attachmentLevel
-                    );
+        if (engineLevel > 0) {
+            finalLevel = engineLevel;
+        } else {
+            finalLevel = attachmentLevel;
+        }
+
+        finalLevel =
+                Math.max(
+                        0,
+                        Math.min(
+                                3,
+                                finalLevel
+                        )
+                );
+
+        /*
+         * Если значение изменилось —
+         * сразу записываем подробную информацию.
+         */
+        if (engineLevel != debugLastEngineLevel
+                || attachmentLevel != debugLastAttachmentLevel
+                || finalLevel != debugLastFinalLevel) {
+
+            LOGGER.info(
+                    "[MinecartMagic DEBUG] Self-propelling boat #{} Tailwind changed: " +
+                            "engineLevel={}, attachmentLevel={}, finalLevel={}, hasFuel={}, side={}",
+                    getId(),
+                    engineLevel,
+                    attachmentLevel,
+                    finalLevel,
+                    hasFuel(),
+                    getWorld().isClient() ? "CLIENT" : "SERVER"
+            );
+
+            debugLastEngineLevel =
+                    engineLevel;
+
+            debugLastAttachmentLevel =
+                    attachmentLevel;
+
+            debugLastFinalLevel =
+                    finalLevel;
+        }
+
+        /*
+         * Если tracker не содержит актуальный уровень,
+         * синхронизируем его.
+         */
+        if (finalLevel > 0
+                && engineLevel != finalLevel) {
 
             setEngineTailwindLevel(
-                    level
+                    finalLevel
             );
         }
 
-        return Math.max(
-                0,
-                Math.min(
-                        3,
-                        level
-                )
-        );
+        return finalLevel;
     }
 
     /*
-     * Реальная скорость работающего двигателя.
-     *
-     * Теперь это НЕ просто потолок.
-     * Двигатель действительно держит эту скорость.
+     * =====================================================
+     * МАКСИМАЛЬНАЯ СКОРОСТЬ
+     * =====================================================
      */
     public double getMaximumSpeed() {
 
         int level =
                 getCurrentTailwindLevel();
 
-        return switch (level) {
+        double speed =
+                switch (level) {
 
-            case 1 ->
-                    ENGINE_SPEED_TAILWIND_I;
+                    case 1 ->
+                            ENGINE_SPEED_TAILWIND_I;
 
-            case 2 ->
-                    ENGINE_SPEED_TAILWIND_II;
+                    case 2 ->
+                            ENGINE_SPEED_TAILWIND_II;
 
-            case 3 ->
-                    ENGINE_SPEED_TAILWIND_III;
+                    case 3 ->
+                            ENGINE_SPEED_TAILWIND_III;
 
-            default ->
-                    ENGINE_SPEED_NO_TAILWIND;
-        };
+                    default ->
+                            ENGINE_SPEED_NO_TAILWIND;
+                };
+
+        return speed;
     }
 
+    /*
+     * =====================================================
+     * УПРАВЛЕНИЕ
+     * =====================================================
+     */
     @Override
     public void setInputs(
             boolean pressingLeft,
@@ -352,7 +404,7 @@ public class SelfPropellingBoatEntity
 
         /*
          * Без топлива:
-         * обычная ванильная лодка.
+         * полностью обычная лодка.
          */
         if (!hasFuel()) {
 
@@ -367,7 +419,8 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * С двигателем:
+         * С топливом:
+         *
          * A/D остаются рулением.
          * W/S отключены.
          */
@@ -379,6 +432,11 @@ public class SelfPropellingBoatEntity
         );
     }
 
+    /*
+     * =====================================================
+     * ДВИГАТЕЛЬ
+     * =====================================================
+     */
     public void applySelfPropulsion(
             boolean pressingLeft,
             boolean pressingRight,
@@ -393,10 +451,6 @@ public class SelfPropellingBoatEntity
             return;
         }
 
-        /*
-         * Используем уже существующий yaw лодки.
-         * Не создаём дополнительную систему поворота.
-         */
         Vec3d velocity =
                 getVelocity();
 
@@ -413,32 +467,7 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * ==================================================
-         * ГЛАВНОЕ ИЗМЕНЕНИЕ
-         * ==================================================
-         *
-         * Раньше:
-         *
-         * forwardSpeed + 0.025
-         *
-         * и потом min(maxSpeed).
-         *
-         * Из-за этого двигатель мог никогда
-         * не достигать разных лимитов.
-         *
-         * Теперь работающий двигатель напрямую
-         * удерживает скорость своего уровня Tailwind.
-         */
-        double targetSpeed =
-                getMaximumSpeed();
-
-        /*
-         * Если лодка уже движется быстрее этого значения
-         * из-за внешнего толчка или физики, не даём
-         * двигателю мгновенно ускорить её ещё сильнее.
-         *
-         * Двигатель только устанавливает свой
-         * собственный рабочий режим.
+         * Текущая скорость вдоль носа.
          */
         double currentForwardSpeed =
                 velocity.x * forward.x
@@ -450,19 +479,110 @@ public class SelfPropellingBoatEntity
                         currentForwardSpeed
                 );
 
+        /*
+         * Получаем уровень.
+         */
+        int tailwindLevel =
+                getCurrentTailwindLevel();
+
+        /*
+         * Получаем текущий лимит двигателя.
+         */
+        double maximumSpeed =
+                getMaximumSpeed();
+
+        /*
+         * Существующая сила разгона.
+         */
+        double acceleration =
+                BASE_ACCELERATION;
+
+        /*
+         * =================================================
+         * DEBUG ВО ВРЕМЯ РАБОТЫ ДВИГАТЕЛЯ
+         * =================================================
+         *
+         * Примерно раз в секунду выводим:
+         *
+         * уровень
+         * текущую скорость
+         * целевую скорость
+         * максимум
+         * сторону CLIENT/SERVER
+         */
+        debugTickCounter++;
+
+        if (debugTickCounter >= 20) {
+
+            debugTickCounter = 0;
+
+            LOGGER.info(
+                    "[MinecartMagic DEBUG] Self-propelling boat #{} ENGINE: " +
+                            "tailwind={}, currentSpeed={}, maxSpeed={}, acceleration={}, " +
+                            "hasFuel={}, water={}, side={}, yaw={}",
+                    getId(),
+                    tailwindLevel,
+                    currentForwardSpeed,
+                    maximumSpeed,
+                    acceleration,
+                    hasFuel(),
+                    isTouchingWater(),
+                    clientSide ? "CLIENT" : "SERVER",
+                    getYaw()
+            );
+        }
+
+        /*
+         * Разгон.
+         */
+        double targetSpeed =
+                currentForwardSpeed
+                        + acceleration;
+
+        /*
+         * Максимальная скорость двигателя.
+         */
         targetSpeed =
-                Math.max(
+                Math.min(
                         targetSpeed,
-                        Math.min(
-                                currentForwardSpeed,
-                                getMaximumSpeed()
-                        )
+                        maximumSpeed
                 );
 
         /*
-         * Только X/Z.
+         * При запуске двигатель сразу начинает
+         * тянуть.
+         */
+        if (targetSpeed < ENGINE_SPEED_NO_TAILWIND) {
+
+            targetSpeed =
+                    Math.min(
+                            ENGINE_SPEED_NO_TAILWIND,
+                            maximumSpeed
+                    );
+        }
+
+        /*
+         * =================================================
+         * DEBUG ПО ФАКТИЧЕСКОМУ targetSpeed
+         * =================================================
+         */
+        if (debugTickCounter == 0) {
+
+            LOGGER.info(
+                    "[MinecartMagic DEBUG] Self-propelling boat #{} TARGET: " +
+                            "tailwind={}, targetSpeed={}, currentSpeed={}, maxSpeed={}",
+                    getId(),
+                    tailwindLevel,
+                    targetSpeed,
+                    currentForwardSpeed,
+                    maximumSpeed
+            );
+        }
+
+        /*
+         * Только горизонтальная скорость.
          *
-         * Y полностью оставляем ванильной.
+         * Y не меняем.
          */
         setVelocity(
                 forward.x * targetSpeed,
@@ -513,10 +633,6 @@ public class SelfPropellingBoatEntity
 
         tickFuel();
 
-        /*
-         * Обычная физика BoatEntity
-         * остаётся нетронутой.
-         */
         super.tick();
     }
 
@@ -530,6 +646,9 @@ public class SelfPropellingBoatEntity
             return true;
         }
 
+        /*
+         * Creative.
+         */
         if (source.getAttacker()
                 instanceof PlayerEntity player
                 && player.getAbilities().creativeMode) {
@@ -539,6 +658,9 @@ public class SelfPropellingBoatEntity
             return true;
         }
 
+        /*
+         * Возвращаем топливо.
+         */
         ItemStack fuelStack =
                 fuelInventory.removeStack(
                         0
@@ -551,6 +673,9 @@ public class SelfPropellingBoatEntity
             );
         }
 
+        /*
+         * Возвращаем самоходную лодку.
+         */
         ItemStack boatStack =
                 new ItemStack(
                         ModItems.SELF_PROPELLING_BOAT
@@ -646,6 +771,9 @@ public class SelfPropellingBoatEntity
                 )
         );
 
+        /*
+         * Восстановление Tailwind для старых лодок.
+         */
         if (getEngineTailwindLevel() <= 0) {
 
             int attachmentLevel =
