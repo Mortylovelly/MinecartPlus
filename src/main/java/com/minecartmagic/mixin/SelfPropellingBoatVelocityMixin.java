@@ -28,7 +28,7 @@ public abstract class SelfPropellingBoatVelocityMixin {
                 (BoatEntity) (Object) this;
 
         /*
-         * Работаем только с нашей самоходной лодкой.
+         * Только наша самоходная лодка.
          */
         if (!(boat instanceof SelfPropellingBoatEntity selfPropellingBoat)) {
             return;
@@ -49,14 +49,12 @@ public abstract class SelfPropellingBoatVelocityMixin {
         }
 
         /*
-         * Передаём существующему двигателю:
+         * Передаём существующему двигателю
+         * только фактическое состояние A/D
+         * и сторону мира.
          *
-         * pressingLeft
-         * pressingRight
-         * client/server
-         *
-         * Сам расчёт скорости находится
-         * внутри SelfPropellingBoatEntity.
+         * Сам двигатель НЕ меняет yaw.
+         * Поворот остаётся ванильным.
          */
         selfPropellingBoat.applySelfPropulsion(
                 pressingLeft,
