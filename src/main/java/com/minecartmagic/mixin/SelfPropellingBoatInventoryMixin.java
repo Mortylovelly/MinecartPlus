@@ -19,7 +19,6 @@ public abstract class SelfPropellingBoatInventoryMixin {
     private void minecartmagic$openBoatScreen(
             CallbackInfo ci
     ) {
-
         MinecraftClient client =
                 (MinecraftClient) (Object) this;
 
@@ -35,15 +34,27 @@ public abstract class SelfPropellingBoatInventoryMixin {
             return;
         }
 
+        /*
+         * Только когда игрок уже сидит
+         * в самоходной лодке.
+         */
         if (!(client.player.getVehicle()
                 instanceof SelfPropellingBoatEntity)) {
             return;
         }
 
+        /*
+         * Используется стандартная клавиша Inventory.
+         *
+         * По умолчанию это E.
+         */
         if (!client.options.inventoryKey.wasPressed()) {
             return;
         }
 
+        /*
+         * Отправляем существующий пакет открытия меню.
+         */
         ClientPlayNetworking.send(
                 BoatScreenPayload.INSTANCE
         );
