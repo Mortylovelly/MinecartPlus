@@ -22,22 +22,23 @@ public class SelfPropellingBoatScreen
 
     private static final int WIDTH = 176;
 
-    private static final int HEIGHT = 166;
-
     /*
-     * Наше меню стало выше.
+     * Было 166.
      *
-     * Это НЕ двигает слоты игрока.
-     * Оно только закрывает несколько пикселей
-     * старого верхнего фона.
+     * Делаем место для опущенного инвентаря.
      */
-    private static final int TOP_HEIGHT = 82;
+    private static final int HEIGHT = 176;
 
     /*
-     * Реальная верхняя граница панели
-     * самоходной лодки.
+     * Верхняя панель самоходной лодки.
      */
-    private static final int PANEL_Y = 6;
+    private static final int PANEL_HEIGHT = 82;
+
+    /*
+     * Сам инвентарь начинает рисоваться
+     * с этой же координаты, что и слоты.
+     */
+    private static final int INVENTORY_TOP = 86;
 
     public SelfPropellingBoatScreen(
             SelfPropellingBoatScreenHandler handler,
@@ -58,11 +59,12 @@ public class SelfPropellingBoatScreen
                 HEIGHT;
 
         /*
-         * Не меняем стандартное расположение
-         * названия инвентаря.
+         * Подпись игрока размещаем уже
+         * над первым рядом его слотов.
          */
         playerInventoryTitleX = 8;
-        playerInventoryTitleY = 70;
+
+        playerInventoryTitleY = 75;
     }
 
     @Override
@@ -83,42 +85,39 @@ public class SelfPropellingBoatScreen
 
         /*
          * =================================================
-         * НИЖНИЙ VANILLA INVENTORY
+         * НИЖНИЙ ВАНИЛЬНЫЙ ИНВЕНТАРЬ
          * =================================================
          *
-         * Только нижняя его часть.
+         * Используем только нижний кусок
+         * inventory.png.
          *
-         * ВАЖНО:
-         * его экранная позиция не меняется.
+         * Никаких skin/crafting сверху.
          */
         context.drawTexture(
                 INVENTORY_TEXTURE,
                 x,
-                y + 76,
+                y + INVENTORY_TOP,
                 0,
                 76,
                 WIDTH,
-                HEIGHT - 76,
+                HEIGHT - INVENTORY_TOP,
                 256,
                 256
         );
 
         /*
          * =================================================
-         * НАША ПАНЕЛЬ САМОХОДНОЙ ЛОДКИ
+         * ВЕРХНЕЕ МЕНЮ ЛОДКИ
          * =================================================
-         *
-         * Она начинается чуть ниже верхней границы,
-         * чтобы закрыть выступающий кусок старого GUI.
          */
         int panelX =
                 x;
 
         int panelY =
-                y + PANEL_Y;
+                y;
 
         int panelBottom =
-                panelY + TOP_HEIGHT;
+                panelY + PANEL_HEIGHT;
 
         /*
          * Внешняя рамка.
@@ -132,7 +131,7 @@ public class SelfPropellingBoatScreen
         );
 
         /*
-         * Основная светлая часть.
+         * Основная поверхность.
          */
         context.fill(
                 panelX + 1,
@@ -143,7 +142,7 @@ public class SelfPropellingBoatScreen
         );
 
         /*
-         * Светлая верхняя грань.
+         * Верхняя подсветка.
          */
         context.fill(
                 panelX + 2,
@@ -166,11 +165,8 @@ public class SelfPropellingBoatScreen
 
         /*
          * =================================================
-         * СЛОТ ТОПЛИВА
+         * ЕДИНСТВЕННЫЙ СЛОТ ТОПЛИВА
          * =================================================
-         *
-         * Все элементы нашего меню также смещены
-         * на PANEL_Y.
          */
         context.drawTexture(
                 FURNACE_TEXTURE,
@@ -186,7 +182,7 @@ public class SelfPropellingBoatScreen
 
         /*
          * =================================================
-         * ПЛАМЯ
+         * ОГОНЬ
          * =================================================
          */
         int flameHeight =
@@ -213,7 +209,6 @@ public class SelfPropellingBoatScreen
          * ШКАЛА
          * =================================================
          */
-
         int gaugeX =
                 panelX + 126;
 
@@ -286,31 +281,34 @@ public class SelfPropellingBoatScreen
     ) {
 
         /*
-         * Текст тоже смещаем вместе с панелью.
+         * Название.
          */
-        int textOffset =
-                PANEL_Y;
-
         context.drawText(
                 textRenderer,
                 title,
                 8,
-                7 + textOffset,
+                7,
                 0x404040,
                 false
         );
 
+        /*
+         * Топливо.
+         */
         context.drawText(
                 textRenderer,
                 Text.translatable(
                         "container.minecartmagic.fuel"
                 ),
                 69,
-                18 + textOffset,
+                18,
                 0x404040,
                 false
         );
 
+        /*
+         * Запас.
+         */
         context.drawText(
                 textRenderer,
                 Text.translatable(
@@ -318,11 +316,14 @@ public class SelfPropellingBoatScreen
                         handler.getFuelStackCount()
                 ),
                 8,
-                50 + textOffset,
+                50,
                 0x404040,
                 false
         );
 
+        /*
+         * Оставшееся время.
+         */
         context.drawText(
                 textRenderer,
                 Text.translatable(
@@ -330,9 +331,14 @@ public class SelfPropellingBoatScreen
                         handler.getRemainingSeconds()
                 ),
                 8,
-                61 + textOffset,
+                61,
                 0x404040,
                 false
         );
+
+        /*
+         * playerInventoryTitle намеренно
+         * не рисуем вручную.
+         */
     }
 }
