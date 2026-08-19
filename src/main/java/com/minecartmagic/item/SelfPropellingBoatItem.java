@@ -49,7 +49,7 @@ public class SelfPropellingBoatItem extends Item {
 
         /*
          * Клиент только подтверждает использование.
-         * Entity создаём исключительно на сервере.
+         * Создание entity производится на сервере.
          */
         if (world.isClient()) {
 
@@ -57,6 +57,16 @@ public class SelfPropellingBoatItem extends Item {
                     stack
             );
         }
+
+        /*
+         * =====================================================
+         * ПОЛУЧАЕМ УРОВЕНЬ TAILWIND С ПРЕДМЕТА
+         * =====================================================
+         */
+        int tailwindLevel =
+                ModEnchantments.getTailwindLevel(
+                        stack
+                );
 
         /*
          * =====================================================
@@ -75,40 +85,21 @@ public class SelfPropellingBoatItem extends Item {
                 hit.getPos().z
         );
 
-        /*
-         * Пока используем дубовую модель.
-         */
         boat.setVariant(
                 BoatEntity.Type.OAK
         );
 
-        /*
-         * Направление появления.
-         */
         boat.setYaw(
                 user.getYaw()
         );
 
         /*
          * =====================================================
-         * ПОЛУЧАЕМ TAILWIND С ITEMSTACK
-         * =====================================================
-         */
-        int tailwindLevel =
-                ModEnchantments.getTailwindLevel(
-                        stack
-                );
-
-        /*
-         * =====================================================
-         * СНАЧАЛА SPAWN
+         * СНАЧАЛА РЕГИСТРИРУЕМ ENTITY В МИРЕ
          * =====================================================
          *
-         * Это важно.
-         *
-         * Entity теперь полностью зарегистрирована в мире
-         * до того, как мы записываем в неё Attachment
-         * и DataTracker двигателя.
+         * Это принципиально важно для attachments,
+         * command tags и DataTracker.
          */
         world.spawnEntity(
                 boat
@@ -116,37 +107,44 @@ public class SelfPropellingBoatItem extends Item {
 
         /*
          * =====================================================
-         * ПЕРЕНОСИМ ЗАЧАРОВАНИЕ ПОСЛЕ SPAWN
+         * ПОСЛЕ SPAWN ПЕРЕНОСИМ TAILWIND
          * =====================================================
-         *
-         * Основная система:
-         *
-         * Attachment
-         *
-         * +
-         *
-         * command tag
-         *
-         * Резервная система:
-         *
-         * ENGINE_TAILWIND_LEVEL
-         *
-         * Оба источника получают один и тот же уровень.
          */
         if (tailwindLevel > 0) {
 
+            /*
+             * Основное хранилище мода.
+             */
             ModEnchantments.setTailwindLevel(
                     boat,
                     tailwindLevel
             );
 
+            /*
+             * Отдельное синхронизированное значение
+             * двигателя.
+             */
             boat.setEngineTailwindLevel(
                     tailwindLevel
             );
+
+            /*
+             * Дополнительная явная запись command tag.
+             *
+             * ModEnchantments.setTailwindLevel()
+             * уже делает это, но здесь оставляем
+             * дополнительную гарантию.
+             */
+            boat.addCommandTag(
+                    ModEnchantments.getTailwindTag(
+                            tailwindLevel
+                    )
+            );
+
         } else {
 
             /*
-             * Явно очищаем tracker для незачарованной лодки.
+             * Незачарованная самоходная лодка.
              */
             boat.setEngineTailwindLevel(
                     0
