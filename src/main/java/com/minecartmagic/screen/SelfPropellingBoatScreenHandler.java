@@ -16,14 +16,20 @@ public class SelfPropellingBoatScreenHandler
 
     public static final int FUEL_SLOT = 0;
 
-    /*
-     * Положение единственного слота внутри GUI.
-     */
     private static final int FUEL_SLOT_X = 79;
     private static final int FUEL_SLOT_Y = 36;
 
+    /*
+     * Слоты игрока начинаются ниже нашей панели.
+     */
+    private static final int PLAYER_INVENTORY_Y = 94;
+
+    private static final int HOTBAR_Y = 152;
+
     private final Inventory fuelInventory;
+
     private final PropertyDelegate propertyDelegate;
+
     private final SelfPropellingBoatEntity boat;
 
     /*
@@ -34,6 +40,7 @@ public class SelfPropellingBoatScreenHandler
             PlayerInventory playerInventory,
             int entityId
     ) {
+
         this(
                 syncId,
                 playerInventory,
@@ -51,6 +58,7 @@ public class SelfPropellingBoatScreenHandler
             PlayerInventory playerInventory,
             SelfPropellingBoatEntity boat
     ) {
+
         this(
                 syncId,
                 playerInventory,
@@ -67,14 +75,20 @@ public class SelfPropellingBoatScreenHandler
             PropertyDelegate propertyDelegate,
             SelfPropellingBoatEntity boat
     ) {
+
         super(
                 ModScreenHandlers.SELF_PROPELLING_BOAT,
                 syncId
         );
 
-        this.fuelInventory = fuelInventory;
-        this.propertyDelegate = propertyDelegate;
-        this.boat = boat;
+        this.fuelInventory =
+                fuelInventory;
+
+        this.propertyDelegate =
+                propertyDelegate;
+
+        this.boat =
+                boat;
 
         checkSize(
                 fuelInventory,
@@ -82,8 +96,11 @@ public class SelfPropellingBoatScreenHandler
         );
 
         /*
-         * ЕДИНСТВЕННЫЙ слот самоходной лодки.
+         * =================================================
+         * ЕДИНСТВЕННЫЙ СЛОТ ЛОДКИ
+         * =================================================
          */
+
         addSlot(
                 new FuelSlot(
                         fuelInventory,
@@ -94,25 +111,37 @@ public class SelfPropellingBoatScreenHandler
         );
 
         /*
-         * Инвентарь игрока.
+         * =================================================
+         * ИНВЕНТАРЬ ИГРОКА
+         * =================================================
+         *
+         * Теперь он физически находится ниже
+         * нашей панели.
          */
         for (int row = 0; row < 3; row++) {
+
             for (int column = 0; column < 9; column++) {
 
                 addSlot(
                         new Slot(
                                 playerInventory,
-                                column + row * 9 + 9,
+                                column
+                                        + row * 9
+                                        + 9,
                                 8 + column * 18,
-                                84 + row * 18
+                                PLAYER_INVENTORY_Y
+                                        + row * 18
                         )
                 );
             }
         }
 
         /*
-         * Хотбар.
+         * =================================================
+         * HOTBAR
+         * =================================================
          */
+
         for (int slot = 0; slot < 9; slot++) {
 
             addSlot(
@@ -120,7 +149,7 @@ public class SelfPropellingBoatScreenHandler
                             playerInventory,
                             slot,
                             8 + slot * 18,
-                            142
+                            HOTBAR_Y
                     )
             );
         }
@@ -138,10 +167,6 @@ public class SelfPropellingBoatScreenHandler
         return propertyDelegate.get(1);
     }
 
-    /*
-     * 0..13 — высота пламени,
-     * как у ванильной печи.
-     */
     public int getFuelProgress() {
 
         int burnTime =
@@ -152,6 +177,7 @@ public class SelfPropellingBoatScreenHandler
 
         if (burnTime <= 0
                 || fuelTime <= 0) {
+
             return 0;
         }
 
@@ -163,10 +189,6 @@ public class SelfPropellingBoatScreenHandler
         );
     }
 
-    /*
-     * 0..100 — процент оставшегося времени
-     * текущего топлива.
-     */
     public int getFuelPercent() {
 
         int burnTime =
@@ -177,6 +199,7 @@ public class SelfPropellingBoatScreenHandler
 
         if (burnTime <= 0
                 || fuelTime <= 0) {
+
             return 0;
         }
 
@@ -190,10 +213,6 @@ public class SelfPropellingBoatScreenHandler
         );
     }
 
-    /*
-     * Оставшееся время текущего топлива
-     * в секундах.
-     */
     public int getRemainingSeconds() {
 
         int burnTime =
@@ -206,10 +225,6 @@ public class SelfPropellingBoatScreenHandler
         return (burnTime + 19) / 20;
     }
 
-    /*
-     * Количество топлива, которое сейчас
-     * находится в слоте.
-     */
     public int getFuelStackCount() {
 
         if (fuelInventory == null) {
@@ -217,7 +232,9 @@ public class SelfPropellingBoatScreenHandler
         }
 
         return fuelInventory
-                .getStack(FUEL_SLOT)
+                .getStack(
+                        FUEL_SLOT
+                )
                 .getCount();
     }
 
@@ -225,6 +242,7 @@ public class SelfPropellingBoatScreenHandler
     public boolean canUse(
             PlayerEntity player
     ) {
+
         if (boat == null) {
             return true;
         }
@@ -243,13 +261,17 @@ public class SelfPropellingBoatScreenHandler
             PlayerEntity player,
             int slotIndex
     ) {
+
         if (slotIndex < 0
                 || slotIndex >= slots.size()) {
+
             return ItemStack.EMPTY;
         }
 
         Slot slot =
-                slots.get(slotIndex);
+                slots.get(
+                        slotIndex
+                );
 
         if (!slot.hasStack()) {
             return ItemStack.EMPTY;
@@ -262,7 +284,7 @@ public class SelfPropellingBoatScreenHandler
                 original.copy();
 
         /*
-         * Fuel slot -> player inventory.
+         * Fuel slot -> player.
          */
         if (slotIndex == FUEL_SLOT) {
 
@@ -272,6 +294,7 @@ public class SelfPropellingBoatScreenHandler
                     37,
                     true
             )) {
+
                 return ItemStack.EMPTY;
             }
 
@@ -283,7 +306,7 @@ public class SelfPropellingBoatScreenHandler
                     );
 
             /*
-             * Player inventory -> fuel slot.
+             * Player -> fuel slot.
              */
             if (fuelValue != null
                     && fuelValue > 0) {
@@ -294,6 +317,7 @@ public class SelfPropellingBoatScreenHandler
                         FUEL_SLOT + 1,
                         false
                 )) {
+
                     return ItemStack.EMPTY;
                 }
 
@@ -301,6 +325,9 @@ public class SelfPropellingBoatScreenHandler
 
                 /*
                  * Main inventory -> hotbar.
+                 *
+                 * Индексы слотов НЕ изменились.
+                 * Мы изменили только их экранную Y.
                  */
                 if (slotIndex >= 1
                         && slotIndex < 28) {
@@ -311,12 +338,10 @@ public class SelfPropellingBoatScreenHandler
                             37,
                             false
                     )) {
+
                         return ItemStack.EMPTY;
                     }
 
-                /*
-                 * Hotbar -> main inventory.
-                 */
                 } else if (
                         slotIndex >= 28
                                 && slotIndex < 37
@@ -328,25 +353,31 @@ public class SelfPropellingBoatScreenHandler
                             28,
                             false
                     )) {
+
                         return ItemStack.EMPTY;
                     }
 
                 } else {
+
                     return ItemStack.EMPTY;
                 }
             }
         }
 
         if (original.isEmpty()) {
+
             slot.setStack(
                     ItemStack.EMPTY
             );
+
         } else {
+
             slot.markDirty();
         }
 
         if (original.getCount()
                 == copied.getCount()) {
+
             return ItemStack.EMPTY;
         }
 
@@ -362,6 +393,7 @@ public class SelfPropellingBoatScreenHandler
     public void onClosed(
             PlayerEntity player
     ) {
+
         super.onClosed(
                 player
         );
@@ -371,9 +403,6 @@ public class SelfPropellingBoatScreenHandler
         );
     }
 
-    /*
-     * Единственный топливный слот.
-     */
     private static class FuelSlot
             extends Slot {
 
@@ -383,6 +412,7 @@ public class SelfPropellingBoatScreenHandler
                 int x,
                 int y
         ) {
+
             super(
                     inventory,
                     index,
@@ -395,6 +425,7 @@ public class SelfPropellingBoatScreenHandler
         public boolean canInsert(
                 ItemStack stack
         ) {
+
             Integer fuelValue =
                     FuelRegistry.INSTANCE.get(
                             stack.getItem()
@@ -410,9 +441,6 @@ public class SelfPropellingBoatScreenHandler
         }
     }
 
-    /*
-     * Синхронизация состояния печного двигателя.
-     */
     private static class BoatPropertyDelegate
             implements PropertyDelegate {
 
@@ -421,13 +449,18 @@ public class SelfPropellingBoatScreenHandler
         private BoatPropertyDelegate(
                 SelfPropellingBoatEntity boat
         ) {
-            this.boat = boat;
+
+            this.boat =
+                    boat;
         }
 
         @Override
-        public int get(int index) {
+        public int get(
+                int index
+        ) {
 
             return switch (index) {
+
                 case 0 ->
                         boat.getBurnTime();
 
