@@ -42,29 +42,15 @@ public class SelfPropellingBoatEntity
                     TrackedDataHandlerRegistry.INTEGER
             );
 
-    /*
-     * Отдельный синхронизированный уровень Tailwind
-     * именно для двигателя этой сущности.
-     *
-     * Это устраняет ситуацию, когда обычное
-     * чтение enchantment видно на лодке, но
-     * двигатель получает 0.
-     */
-    private static final TrackedData<Integer> ENGINE_TAILWIND_LEVEL =
-            DataTracker.registerData(
-                    SelfPropellingBoatEntity.class,
-                    TrackedDataHandlerRegistry.INTEGER
-            );
-
     private static final int MAX_PASSENGERS = 1;
 
     /*
-     * Базовая скорость двигателя без Tailwind.
+     * Скорость двигателя без Tailwind.
      */
     private static final double BASE_ENGINE_SPEED = 0.45D;
 
     /*
-     * Скорость разгона.
+     * Разгон.
      */
     private static final double ACCELERATION = 0.025D;
 
@@ -108,11 +94,6 @@ public class SelfPropellingBoatEntity
                 FUEL_TIME,
                 0
         );
-
-        builder.add(
-                ENGINE_TAILWIND_LEVEL,
-                0
-        );
     }
 
     public SimpleInventory getFuelInventory() {
@@ -128,27 +109,6 @@ public class SelfPropellingBoatEntity
     public int getFuelTime() {
         return getDataTracker().get(
                 FUEL_TIME
-        );
-    }
-
-    public int getEngineTailwindLevel() {
-        return getDataTracker().get(
-                ENGINE_TAILWIND_LEVEL
-        );
-    }
-
-    public void setEngineTailwindLevel(
-            int level
-    ) {
-        getDataTracker().set(
-                ENGINE_TAILWIND_LEVEL,
-                Math.max(
-                        0,
-                        Math.min(
-                                3,
-                                level
-                        )
-                )
         );
     }
 
@@ -218,7 +178,7 @@ public class SelfPropellingBoatEntity
                 fuelStack.getItem();
 
         /*
-         * Убираем только один предмет топлива.
+         * Тратим ровно один предмет.
          */
         fuelStack.decrement(1);
 
@@ -269,26 +229,22 @@ public class SelfPropellingBoatEntity
     }
 
     /*
-     * =====================================================
-     * СКОРОСТЬ ДВИГАТЕЛЯ
-     * =====================================================
+     * Двигательный лимит.
      *
-     * Без чар:
-     * 0.45
+     * 0 = 0.45
+     * I = 0.62
+     * II = 0.72
+     * III = 0.84
      *
-     * Tailwind I:
-     * 0.62
-     *
-     * Tailwind II:
-     * 0.72
-     *
-     * Tailwind III:
-     * 0.84
+     * Tailwind берём непосредственно
+     * с entity.
      */
     public double getMaximumSpeed() {
 
         int level =
-                getEngineTailwindLevel();
+                ModEnchantments.getTailwindLevel(
+                        this
+                );
 
         return switch (level) {
             case 1 -> 0.62D;
@@ -308,7 +264,7 @@ public class SelfPropellingBoatEntity
 
         /*
          * Без топлива:
-         * полностью обычная лодка.
+         * обычная ванильная лодка.
          */
         if (!hasFuel()) {
 
@@ -324,8 +280,8 @@ public class SelfPropellingBoatEntity
 
         /*
          * С топливом:
-         * A/D остаются рулём.
-         * W/S отключены.
+         * A/D = руль
+         * W/S = отключены.
          */
         super.setInputs(
                 pressingLeft,
@@ -335,46 +291,46 @@ public class SelfPropellingBoatEntity
         );
     }
 
+    /*
+     * Двигатель.
+     *
+     * ВАЖНО:
+     * Этот метод теперь вызывается только сервером.
+     */
     public void applySelfPropulsion(
             boolean pressingLeft,
             boolean pressingRight,
-            boolean clientSide
+            boolean ignoredClientSide
     ) {
 
         if (!hasFuel()) {
             return;
         }
 
-        /*
-         * Двигатель работает только в воде.
-         */
         if (!isTouchingWater()) {
             return;
         }
 
         /*
-         * Руление.
+         * A/D — руль.
          */
-        if (clientSide) {
+        if (pressingLeft
+                && !pressingRight) {
 
-            if (pressingLeft
-                    && !pressingRight) {
+            setYaw(
+                    getYaw()
+                            - STEERING_SPEED
+            );
 
-                setYaw(
-                        getYaw()
-                                - STEERING_SPEED
-                );
+        } else if (
+                pressingRight
+                        && !pressingLeft
+        ) {
 
-            } else if (
-                    pressingRight
-                            && !pressingLeft
-            ) {
-
-                setYaw(
-                        getYaw()
-                                + STEERING_SPEED
-                );
-            }
+            setYaw(
+                    getYaw()
+                            + STEERING_SPEED
+            );
         }
 
         Vec3d velocity =
@@ -396,7 +352,8 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Текущая скорость только по носу.
+         * Берём только скорость по направлению
+         * носа.
          */
         double forwardSpeed =
                 velocity.x * forward.x
@@ -409,14 +366,39 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Берём лимит напрямую из
-         * синхронизированного поля двигателя.
+         * Tailwind читается ПРЯМО С ENTITY.
+         *
+         * Никакой зависимости от GUI,
+         * клиента или pressingForward.
          */
-        double maximumSpeed =
-                getMaximumSpeed();
+        int tailwindLevel =
+                ModEnchantments.getTailwindLevel(
+                        this
+                );
+
+        double maximumSpeed;
+
+        switch (tailwindLevel) {
+
+            case 1:
+                maximumSpeed = 0.62D;
+                break;
+
+            case 2:
+                maximumSpeed = 0.72D;
+                break;
+
+            case 3:
+                maximumSpeed = 0.84D;
+                break;
+
+            default:
+                maximumSpeed = BASE_ENGINE_SPEED;
+                break;
+        }
 
         /*
-         * Плавный разгон.
+         * Разгон.
          */
         double targetSpeed =
                 forwardSpeed
@@ -424,14 +406,12 @@ public class SelfPropellingBoatEntity
 
         targetSpeed =
                 Math.min(
-                        targetSpeed,
-                        maximumSpeed
+                        maximumSpeed,
+                        targetSpeed
                 );
 
         /*
-         * Даже если ванильная физика дала очень
-         * маленькую скорость, двигатель должен
-         * разгоняться до своего базового уровня.
+         * Гарантируем двигательную минимальную скорость.
          */
         if (targetSpeed < BASE_ENGINE_SPEED) {
 
@@ -443,9 +423,10 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Меняем только горизонтальную скорость.
+         * Меняем только X/Z.
          *
-         * velocity.y остаётся полностью ванильной.
+         * Y полностью принадлежит ванильной
+         * BoatEntity физике.
          */
         setVelocity(
                 forward.x * targetSpeed,
@@ -467,10 +448,6 @@ public class SelfPropellingBoatEntity
             Hand hand
     ) {
 
-        /*
-         * Shift + ПКМ снаружи:
-         * открыть меню топлива.
-         */
         if (player.isSneaking()
                 && !getPassengerList().contains(player)) {
 
@@ -513,10 +490,6 @@ public class SelfPropellingBoatEntity
             return true;
         }
 
-        /*
-         * Creative:
-         * без дропа.
-         */
         if (source.getAttacker()
                 instanceof PlayerEntity player
                 && player.getAbilities().creativeMode) {
@@ -526,13 +499,8 @@ public class SelfPropellingBoatEntity
             return true;
         }
 
-        /*
-         * Возвращаем топливо.
-         */
         ItemStack fuelStack =
-                fuelInventory.removeStack(
-                        0
-                );
+                fuelInventory.removeStack(0);
 
         if (!fuelStack.isEmpty()) {
 
@@ -541,28 +509,18 @@ public class SelfPropellingBoatEntity
             );
         }
 
-        /*
-         * Возвращаем самоходную лодку.
-         */
         ItemStack boatStack =
                 new ItemStack(
                         ModItems.SELF_PROPELLING_BOAT
                 );
 
         /*
-         * Сохраняем именно тот уровень,
-         * который использовал двигатель.
+         * Сохраняем Tailwind с entity.
          */
         int tailwindLevel =
-                getEngineTailwindLevel();
-
-        if (tailwindLevel <= 0) {
-
-            tailwindLevel =
-                    ModEnchantments.getTailwindLevel(
-                            this
-                    );
-        }
+                ModEnchantments.getTailwindLevel(
+                        this
+                );
 
         if (tailwindLevel > 0) {
 
@@ -611,11 +569,6 @@ public class SelfPropellingBoatEntity
                 getFuelTime()
         );
 
-        nbt.putInt(
-                "EngineTailwindLevel",
-                getEngineTailwindLevel()
-        );
-
         nbt.put(
                 "FuelInventory",
                 fuelInventory.toNbtList(
@@ -644,31 +597,6 @@ public class SelfPropellingBoatEntity
                         "FuelTime"
                 )
         );
-
-        setEngineTailwindLevel(
-                nbt.getInt(
-                        "EngineTailwindLevel"
-                )
-        );
-
-        /*
-         * Совместимость со старыми самоходными лодками,
-         * у которых отдельного поля ещё не было.
-         */
-        if (getEngineTailwindLevel() <= 0) {
-
-            int attachmentLevel =
-                    ModEnchantments.getTailwindLevel(
-                            this
-                    );
-
-            if (attachmentLevel > 0) {
-
-                setEngineTailwindLevel(
-                        attachmentLevel
-                );
-            }
-        }
 
         if (nbt.contains(
                 "FuelInventory",
@@ -711,6 +639,7 @@ public class SelfPropellingBoatEntity
     public Integer getScreenOpeningData(
             ServerPlayerEntity player
     ) {
+
         return getId();
     }
 }
