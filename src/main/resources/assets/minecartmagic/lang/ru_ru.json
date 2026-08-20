@@ -1,7 +1,18 @@
 {
   "enchantment.minecartmagic.traction": "Тяга",
   "enchantment.minecartmagic.tailwind": "Попутный ветер",
+
   "item.minecartmagic.self_propelling_boat": "Самоходная лодка",
+  "item.minecartmagic.self_propelling_oak_boat": "Дубовая самоходная лодка",
+  "item.minecartmagic.self_propelling_spruce_boat": "Еловая самоходная лодка",
+  "item.minecartmagic.self_propelling_birch_boat": "Берёзовая самоходная лодка",
+  "item.minecartmagic.self_propelling_jungle_boat": "Самоходная лодка из тропического дерева",
+  "item.minecartmagic.self_propelling_acacia_boat": "Акациевая самоходная лодка",
+  "item.minecartmagic.self_propelling_dark_oak_boat": "Самоходная лодка из тёмного дуба",
+  "item.minecartmagic.self_propelling_mangrove_boat": "Мангровая самоходная лодка",
+  "item.minecartmagic.self_propelling_cherry_boat": "Вишнёвая самоходная лодка",
+  "item.minecartmagic.self_propelling_bamboo_raft": "Бамбуковый самоходный плот",
+
   "container.minecartmagic.self_propelling_boat": "Самоходная лодка",
   "container.minecartmagic.fuel": "Топливо",
   "container.minecartmagic.fuel_count": "Запас: %s",
