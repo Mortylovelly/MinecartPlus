@@ -1,17 +1,20 @@
 package com.minecartmagic.client;
 
-import net.minecraft.client.render.entity.BoatEntityRenderer;
+import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.minecraft.client.render.entity.EntityRendererFactory;
+import software.bernie.geckolib.renderer.GeoEntityRenderer;
 
 public class SelfPropellingBoatRenderer
-        extends BoatEntityRenderer {
+        extends GeoEntityRenderer<SelfPropellingBoatEntity> {
 
     public SelfPropellingBoatRenderer(
             EntityRendererFactory.Context context
     ) {
         super(
                 context,
-                false
+                new SelfPropellingBoatModel()
         );
+
+        shadowRadius = 0.8F;
     }
 }
