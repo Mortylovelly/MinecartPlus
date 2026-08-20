@@ -1,5 +1,6 @@
 package com.minecartmagic;
 
+import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
@@ -93,7 +94,7 @@ public final class ModEnchantments {
             AbstractMinecartEntity minecart
     ) {
         Integer level =
-                minecart.getAttached(
+                ((AttachmentTarget) minecart).getAttached(
                         MinecartMagicAttachments.TRACTION_LEVEL
                 );
 
@@ -138,7 +139,7 @@ public final class ModEnchantments {
         int safeLevel =
                 Math.max(0, level);
 
-        minecart.setAttached(
+        ((AttachmentTarget) minecart).setAttached(
                 MinecartMagicAttachments.TRACTION_LEVEL,
                 safeLevel
         );
@@ -170,7 +171,7 @@ public final class ModEnchantments {
             BoatEntity boat
     ) {
         Integer level =
-                boat.getAttached(
+                ((AttachmentTarget) boat).getAttached(
                         MinecartMagicAttachments.TAILWIND_LEVEL
                 );
 
@@ -213,7 +214,7 @@ public final class ModEnchantments {
         int safeLevel =
                 Math.max(0, level);
 
-        boat.setAttached(
+        ((AttachmentTarget) boat).setAttached(
                 MinecartMagicAttachments.TAILWIND_LEVEL,
                 safeLevel
         );
