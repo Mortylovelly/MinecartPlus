@@ -16,10 +16,27 @@ import net.minecraft.world.World;
 
 public class SelfPropellingBoatItem extends Item {
 
+    private final BoatEntity.Type variant;
+
     public SelfPropellingBoatItem(
             Item.Settings settings
     ) {
+        this(
+                settings,
+                BoatEntity.Type.OAK
+        );
+    }
+
+    public SelfPropellingBoatItem(
+            Item.Settings settings,
+            BoatEntity.Type variant
+    ) {
         super(settings);
+        this.variant = variant;
+    }
+
+    public BoatEntity.Type getVariant() {
+        return variant;
     }
 
     @Override
@@ -49,7 +66,7 @@ public class SelfPropellingBoatItem extends Item {
 
         /*
          * Клиент только подтверждает использование.
-         * Создание entity производится на сервере.
+         * Entity создаётся на сервере.
          */
         if (world.isClient()) {
 
@@ -58,21 +75,11 @@ public class SelfPropellingBoatItem extends Item {
             );
         }
 
-        /*
-         * =====================================================
-         * ПОЛУЧАЕМ УРОВЕНЬ TAILWIND С ПРЕДМЕТА
-         * =====================================================
-         */
         int tailwindLevel =
                 ModEnchantments.getTailwindLevel(
                         stack
                 );
 
-        /*
-         * =====================================================
-         * СОЗДАЁМ САМОХОДНУЮ ЛОДКУ
-         * =====================================================
-         */
         SelfPropellingBoatEntity boat =
                 new SelfPropellingBoatEntity(
                         ModEntities.SELF_PROPELLING_BOAT,
@@ -86,55 +93,28 @@ public class SelfPropellingBoatItem extends Item {
         );
 
         boat.setVariant(
-                BoatEntity.Type.OAK
+                variant
         );
 
         boat.setYaw(
                 user.getYaw()
         );
 
-        /*
-         * =====================================================
-         * СНАЧАЛА РЕГИСТРИРУЕМ ENTITY В МИРЕ
-         * =====================================================
-         *
-         * Это принципиально важно для attachments,
-         * command tags и DataTracker.
-         */
         world.spawnEntity(
                 boat
         );
 
-        /*
-         * =====================================================
-         * ПОСЛЕ SPAWN ПЕРЕНОСИМ TAILWIND
-         * =====================================================
-         */
         if (tailwindLevel > 0) {
 
-            /*
-             * Основное хранилище мода.
-             */
             ModEnchantments.setTailwindLevel(
                     boat,
                     tailwindLevel
             );
 
-            /*
-             * Отдельное синхронизированное значение
-             * двигателя.
-             */
             boat.setEngineTailwindLevel(
                     tailwindLevel
             );
 
-            /*
-             * Дополнительная явная запись command tag.
-             *
-             * ModEnchantments.setTailwindLevel()
-             * уже делает это, но здесь оставляем
-             * дополнительную гарантию.
-             */
             boat.addCommandTag(
                     ModEnchantments.getTailwindTag(
                             tailwindLevel
@@ -143,21 +123,12 @@ public class SelfPropellingBoatItem extends Item {
 
         } else {
 
-            /*
-             * Незачарованная самоходная лодка.
-             */
             boat.setEngineTailwindLevel(
                     0
             );
         }
 
-        /*
-         * =====================================================
-         * РАСХОД ПРЕДМЕТА
-         * =====================================================
-         */
         if (!user.getAbilities().creativeMode) {
-
             stack.decrement(1);
         }
 
