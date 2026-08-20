@@ -1,7 +1,18 @@
 {
   "enchantment.minecartmagic.traction": "Traction",
   "enchantment.minecartmagic.tailwind": "Tailwind",
+
   "item.minecartmagic.self_propelling_boat": "Self-Propelling Boat",
+  "item.minecartmagic.self_propelling_oak_boat": "Oak Self-Propelling Boat",
+  "item.minecartmagic.self_propelling_spruce_boat": "Spruce Self-Propelling Boat",
+  "item.minecartmagic.self_propelling_birch_boat": "Birch Self-Propelling Boat",
+  "item.minecartmagic.self_propelling_jungle_boat": "Jungle Self-Propelling Boat",
+  "item.minecartmagic.self_propelling_acacia_boat": "Acacia Self-Propelling Boat",
+  "item.minecartmagic.self_propelling_dark_oak_boat": "Dark Oak Self-Propelling Boat",
+  "item.minecartmagic.self_propelling_mangrove_boat": "Mangrove Self-Propelling Boat",
+  "item.minecartmagic.self_propelling_cherry_boat": "Cherry Self-Propelling Boat",
+  "item.minecartmagic.self_propelling_bamboo_raft": "Bamboo Self-Propelling Raft",
+
   "container.minecartmagic.self_propelling_boat": "Self-Propelling Boat",
   "container.minecartmagic.fuel": "Fuel",
   "container.minecartmagic.fuel_count": "Reserve: %s",
