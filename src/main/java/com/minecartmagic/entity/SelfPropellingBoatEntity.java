@@ -27,10 +27,14 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.bernie.geckolib.animatable.GeoEntity;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
 public class SelfPropellingBoatEntity
         extends BoatEntity
-        implements ExtendedScreenHandlerFactory<Integer> {
+        implements ExtendedScreenHandlerFactory<Integer>, GeoEntity {
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger("MinecartMagic");
@@ -90,6 +94,14 @@ public class SelfPropellingBoatEntity
 
     private final SimpleInventory fuelInventory =
             new SimpleInventory(1);
+
+    /*
+     * =====================================================
+     * GeckoLib
+     * =====================================================
+     */
+    private final AnimatableInstanceCache geoCache =
+            GeckoLibUtil.createInstanceCache(this);
 
     public SelfPropellingBoatEntity(
             EntityType<? extends SelfPropellingBoatEntity> entityType,
@@ -793,5 +805,28 @@ public class SelfPropellingBoatEntity
             ServerPlayerEntity player
     ) {
         return getId();
+    }
+
+    /*
+     * =====================================================
+     * GeckoLib
+     * =====================================================
+     */
+
+    @Override
+    public void registerControllers(
+            AnimatableManager.ControllerRegistrar controllers
+    ) {
+        /*
+         * Анимаций пока нет.
+         *
+         * Когда появятся .animation.json,
+         * сюда добавим контроллеры.
+         */
+    }
+
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return geoCache;
     }
 }
