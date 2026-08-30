@@ -6,8 +6,7 @@ import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.util.Identifier;
 import software.bernie.geckolib.model.GeoModel;
 
-public class SelfPropellingBoatModel
-        extends GeoModel<SelfPropellingBoatEntity> {
+public class SelfPropellingBoatModel extends GeoModel<SelfPropellingBoatEntity> {
 
     private static final Identifier WOOD_MODEL =
             MinecartMagicMod.id(
@@ -33,8 +32,7 @@ public class SelfPropellingBoatModel
     public Identifier getModelResource(
             SelfPropellingBoatEntity animatable
     ) {
-        return animatable.getVariant()
-                == BoatEntity.Type.BAMBOO
+        return animatable.getVariant() == BoatEntity.Type.BAMBOO
                 ? BAMBOO_MODEL
                 : WOOD_MODEL;
     }
@@ -43,43 +41,40 @@ public class SelfPropellingBoatModel
     public Identifier getTextureResource(
             SelfPropellingBoatEntity animatable
     ) {
-        BoatEntity.Type type =
-                animatable.getVariant();
+        BoatEntity.Type type = animatable.getVariant();
 
-        String suffix =
-                animatable.hasFuel()
-                        ? "_on"
-                        : "";
+        String suffix = animatable.hasFuel()
+                ? "_on"
+                : "";
 
-        String name =
-                switch (type) {
-                    case SPRUCE ->
-                            "self_propeled_spruce_boat";
+        String name = switch (type) {
+            case SPRUCE ->
+                    "self_propeled_spruce_boat";
 
-                    case BIRCH ->
-                            "self_propeled_birch_boat";
+            case BIRCH ->
+                    "self_propeled_birch_boat";
 
-                    case JUNGLE ->
-                            "self_propeled_jungle_boat";
+            case JUNGLE ->
+                    "self_propeled_jungle_boat";
 
-                    case ACACIA ->
-                            "self_propeled_acacia_boat";
+            case ACACIA ->
+                    "self_propeled_acacia_boat";
 
-                    case DARK_OAK ->
-                            "self_propeled_dark_oak_boat";
+            case DARK_OAK ->
+                    "self_propeled_dark_oak_boat";
 
-                    case MANGROVE ->
-                            "self_propeled_mangrove_boat";
+            case MANGROVE ->
+                    "self_propeled_mangrove_boat";
 
-                    case CHERRY ->
-                            "self_propeled_cherry_boat";
+            case CHERRY ->
+                    "self_propeled_cherry_boat";
 
-                    case BAMBOO ->
-                            "self_propelled_bamboo_raft";
+            case BAMBOO ->
+                    "self_propelled_bamboo_raft";
 
-                    case OAK ->
-                            "self_propeled_oak_boat";
-                };
+            case OAK ->
+                    "self_propeled_oak_boat";
+        };
 
         return MinecartMagicMod.id(
                 "textures/entity/"
@@ -93,8 +88,7 @@ public class SelfPropellingBoatModel
     public Identifier getAnimationResource(
             SelfPropellingBoatEntity animatable
     ) {
-        return animatable.getVariant()
-                == BoatEntity.Type.BAMBOO
+        return animatable.getVariant() == BoatEntity.Type.BAMBOO
                 ? BAMBOO_ANIMATIONS
                 : WOOD_ANIMATIONS;
     }
