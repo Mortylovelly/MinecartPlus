@@ -1,7 +1,6 @@
 package com.minecartmagic.client;
 
 import com.minecartmagic.entity.SelfPropellingBoatEntity;
-import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.RotationAxis;
@@ -21,51 +20,56 @@ public class SelfPropellingBoatRenderer
         shadowRadius = 0.8F;
     }
 
+    /**
+     * GeckoLib уже сам поворачивает модель по yaw:
+     *
+     * 180 - rotationYaw
+     *
+     * Наша геометрия лодки ориентирована относительно
+     * противоположной локальной продольной оси.
+     *
+     * Поэтому меняем только локальную ориентацию модели
+     * здесь, не трогая yaw самой Entity.
+     *
+     * В отличие от предыдущего варианта, мы НЕ вращаем
+     * MatrixStack до super.render().
+     *
+     * Это происходит внутри реального GeckoLib
+     * applyRotations(), который мы сейчас переопределяем.
+     */
     @Override
-    public void render(
-            SelfPropellingBoatEntity entity,
-            float entityYaw,
-            float tickDelta,
+    protected void applyRotations(
+            SelfPropellingBoatEntity animatable,
             MatrixStack matrices,
-            VertexConsumerProvider vertexConsumers,
-            int light
+            float ageInTicks,
+            float rotationYaw,
+            float partialTick,
+            float nativeScale
     ) {
         /*
-         * GeckoLib уже выполняет свой стандартный поворот:
-         *
-         * 180° - entityYaw
-         *
-         * Наша .geo-модель ориентирована относительно другой
-         * локальной оси, поэтому дополнительно разворачиваем
-         * модель на 180°.
-         *
-         * Итоговая ориентация:
-         *
-         * (180° - yaw) + 180°
-         * = -yaw
-         *
-         * То есть модель теперь ориентируется так же,
-         * как сама BoatEntity.
-         *
-         * Никакую физику лодки это не меняет.
+         * Точно такая же базовая ориентация,
+         * которую делает GeckoLib.
          */
-        matrices.push();
+        matrices.multiply(
+                RotationAxis.POSITIVE_Y.rotationDegrees(
+                        180.0F - rotationYaw
+                )
+        );
 
+        /*
+         * Важный момент:
+         *
+         * .geo-модель имеет противоположное направление
+         * продольной оси относительно стандартной
+         * GeckoLib entity model.
+         *
+         * Поэтому исправляем ТОЛЬКО локальную ориентацию
+         * самой геометрии.
+         */
         matrices.multiply(
                 RotationAxis.POSITIVE_Y.rotationDegrees(
                         180.0F
                 )
         );
-
-        super.render(
-                entity,
-                entityYaw,
-                tickDelta,
-                matrices,
-                vertexConsumers,
-                light
-        );
-
-        matrices.pop();
     }
 }
