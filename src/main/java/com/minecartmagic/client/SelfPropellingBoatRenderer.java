@@ -3,6 +3,7 @@ package com.minecartmagic.client;
 import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
 
@@ -30,24 +31,39 @@ public class SelfPropellingBoatRenderer
             float nativeScale
     ) {
         /*
-         * GeoEntityRenderer по умолчанию использует:
+         * НЕЛЬЗЯ использовать обычный rotationYaw GeckoLib
+         * вслепую для нашей лодки.
          *
-         * 180° - rotationYaw
+         * Берём именно интерполированный yaw самой BoatEntity:
          *
-         * Но наша .geo-модель построена носом в +Z,
-         * тогда как стандартная геометрия Boat ориентирована
-         * относительно противоположной локальной оси.
+         * previousYaw -> currentYaw
          *
-         * Для нашей модели правильное соответствие:
+         * Это устраняет визуальные рывки между client/server
+         * и делает модель следовать реальному вращению сущности.
+         */
+        float previousYaw = entity.prevYaw;
+        float currentYaw = entity.getYaw();
+
+        float interpolatedYaw = MathHelper.lerpAngleDegrees(
+                partialTick,
+                previousYaw,
+                currentYaw
+        );
+
+        /*
+         * GeckoLib обычно делает:
          *
-         * -rotationYaw
+         * 180 - yaw
          *
-         * Поэтому yaw самой BoatEntity используется напрямую,
-         * без дополнительного искусственного разворота.
+         * Для нашей геометрии нужен эквивалент:
+         *
+         * -yaw
+         *
+         * Поэтому используем интерполированный yaw.
          */
         matrices.multiply(
                 RotationAxis.POSITIVE_Y.rotationDegrees(
-                        -rotationYaw
+                        -interpolatedYaw
                 )
         );
     }
