@@ -2,7 +2,6 @@ package com.minecartmagic.client;
 
 import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.RenderType;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRendererFactory;
@@ -32,11 +31,6 @@ public class SelfPropellingBoatRenderer
      * =====================================================
      * ОРИЕНТАЦИЯ ЛОДКИ
      * =====================================================
-     *
-     * Это текущая рабочая ориентация модели.
-     *
-     * Не добавляем никаких дополнительных поворотов
-     * в render() или в маску.
      */
     @Override
     protected void applyRotations(
@@ -63,33 +57,23 @@ public class SelfPropellingBoatRenderer
 
     /*
      * =====================================================
-     * РЕНДЕР КОСТЕЙ
+     * BOTTOM_NO_WATER -> VANILLA WATER MASK
      * =====================================================
      *
-     * Используем существующий bone:
+     * Используем уже существующий bone:
      *
      * bottom_no_water
      *
-     * Он больше НЕ рисуется обычной текстурой.
-     *
+     * Он не рендерится обычной текстурой.
      * Вместо этого его геометрия отправляется в
-     * RenderLayer.getWaterMask().
-     *
-     * Поэтому маска получает:
-     *
-     * - тот же pivot
-     * - тот же rotation
-     * - те же cubes
-     * - ту же ориентацию
-     *
-     * что и реальная модель лодки.
+     * специальный water-mask layer Minecraft.
      */
     @Override
     public void renderRecursively(
             MatrixStack matrices,
             SelfPropellingBoatEntity entity,
             GeoBone bone,
-            RenderType renderType,
+            RenderLayer renderLayer,
             VertexConsumerProvider vertexConsumers,
             VertexConsumer buffer,
             boolean isReRender,
@@ -99,17 +83,15 @@ public class SelfPropellingBoatRenderer
             int colour
     ) {
         /*
-         * =================================================
-         * BOTTOM_NO_WATER
-         * =================================================
+         * Именно эту кость используем как маску воды.
          */
         if ("bottom_no_water".equals(
                 bone.getName()
         )) {
 
             /*
-             * При re-render GeckoLib не создаём
-             * дополнительную water mask.
+             * Во время re-render GeckoLib
+             * дополнительную маску не создаём.
              */
             if (!isReRender) {
 
@@ -117,7 +99,7 @@ public class SelfPropellingBoatRenderer
 
                 /*
                  * Полностью повторяем стандартные
-                 * преобразования GeckoLib для bone.
+                 * преобразования конкретного GeoBone.
                  */
                 software.bernie.geckolib.util.RenderUtil.translateMatrixToBone(
                         matrices,
@@ -145,9 +127,7 @@ public class SelfPropellingBoatRenderer
                 );
 
                 /*
-                 * Получаем именно ванильный water-mask layer.
-                 *
-                 * Он не рисует текстуру дерева.
+                 * Получаем настоящий water-mask layer.
                  */
                 VertexConsumer waterMaskBuffer =
                         vertexConsumers.getBuffer(
@@ -155,8 +135,8 @@ public class SelfPropellingBoatRenderer
                         );
 
                 /*
-                 * Рисуем существующий bottom_no_water
-                 * как depth-mask.
+                 * Отрисовываем РЕАЛЬНУЮ геометрию
+                 * bottom_no_water как water mask.
                  */
                 renderCubesOfBone(
                         matrices,
@@ -167,34 +147,26 @@ public class SelfPropellingBoatRenderer
                         colour
                 );
 
-                /*
-                 * bottom_no_water не должен иметь обычного
-                 * текстурного рендера.
-                 */
-                matrices.popPose();
+                matrices.pop();
             }
 
             /*
-             * Очень важно:
+             * Не отправляем этот bone в обычный
+             * GeckoLib-рендер.
              *
-             * Не вызываем super.renderRecursively()
-             * для этого bone.
-             *
-             * Поэтому деревянной плиты от него больше
-             * не появляется.
+             * Поэтому деревянной пластины больше нет.
              */
             return;
         }
 
         /*
-         * Все остальные bone рендерим совершенно
-         * обычным GeckoLib способом.
+         * Все остальные кости работают как раньше.
          */
         super.renderRecursively(
                 matrices,
                 entity,
                 bone,
-                renderType,
+                renderLayer,
                 vertexConsumers,
                 buffer,
                 isReRender,
@@ -210,10 +182,8 @@ public class SelfPropellingBoatRenderer
      * PRE-RENDER
      * =====================================================
      *
-     * Никакой самодельной плоскости здесь больше нет.
-     *
-     * Вся маска берётся непосредственно из
-     * bottom_no_water.
+     * Здесь больше ничего не создаём.
+     * Никаких дополнительных квадратов.
      */
     @Override
     public void preRender(
