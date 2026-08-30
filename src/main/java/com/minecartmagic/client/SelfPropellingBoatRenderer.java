@@ -2,6 +2,7 @@ package com.minecartmagic.client;
 
 import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.RenderType;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRendererFactory;
@@ -9,8 +10,8 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix4f;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
+import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
 
 public class SelfPropellingBoatRenderer
@@ -31,6 +32,11 @@ public class SelfPropellingBoatRenderer
      * =====================================================
      * ОРИЕНТАЦИЯ ЛОДКИ
      * =====================================================
+     *
+     * Это текущая рабочая ориентация модели.
+     *
+     * Не добавляем никаких дополнительных поворотов
+     * в render() или в маску.
      */
     @Override
     protected void applyRotations(
@@ -57,8 +63,157 @@ public class SelfPropellingBoatRenderer
 
     /*
      * =====================================================
-     * WATER MASK
+     * РЕНДЕР КОСТЕЙ
      * =====================================================
+     *
+     * Используем существующий bone:
+     *
+     * bottom_no_water
+     *
+     * Он больше НЕ рисуется обычной текстурой.
+     *
+     * Вместо этого его геометрия отправляется в
+     * RenderLayer.getWaterMask().
+     *
+     * Поэтому маска получает:
+     *
+     * - тот же pivot
+     * - тот же rotation
+     * - те же cubes
+     * - ту же ориентацию
+     *
+     * что и реальная модель лодки.
+     */
+    @Override
+    public void renderRecursively(
+            MatrixStack matrices,
+            SelfPropellingBoatEntity entity,
+            GeoBone bone,
+            RenderType renderType,
+            VertexConsumerProvider vertexConsumers,
+            VertexConsumer buffer,
+            boolean isReRender,
+            float partialTick,
+            int packedLight,
+            int packedOverlay,
+            int colour
+    ) {
+        /*
+         * =================================================
+         * BOTTOM_NO_WATER
+         * =================================================
+         */
+        if ("bottom_no_water".equals(
+                bone.getName()
+        )) {
+
+            /*
+             * При re-render GeckoLib не создаём
+             * дополнительную water mask.
+             */
+            if (!isReRender) {
+
+                matrices.push();
+
+                /*
+                 * Полностью повторяем стандартные
+                 * преобразования GeckoLib для bone.
+                 */
+                software.bernie.geckolib.util.RenderUtil.translateMatrixToBone(
+                        matrices,
+                        bone
+                );
+
+                software.bernie.geckolib.util.RenderUtil.translateToPivotPoint(
+                        matrices,
+                        bone
+                );
+
+                software.bernie.geckolib.util.RenderUtil.rotateMatrixAroundBone(
+                        matrices,
+                        bone
+                );
+
+                software.bernie.geckolib.util.RenderUtil.scaleMatrixForBone(
+                        matrices,
+                        bone
+                );
+
+                software.bernie.geckolib.util.RenderUtil.translateAwayFromPivotPoint(
+                        matrices,
+                        bone
+                );
+
+                /*
+                 * Получаем именно ванильный water-mask layer.
+                 *
+                 * Он не рисует текстуру дерева.
+                 */
+                VertexConsumer waterMaskBuffer =
+                        vertexConsumers.getBuffer(
+                                RenderLayer.getWaterMask()
+                        );
+
+                /*
+                 * Рисуем существующий bottom_no_water
+                 * как depth-mask.
+                 */
+                renderCubesOfBone(
+                        matrices,
+                        bone,
+                        waterMaskBuffer,
+                        packedLight,
+                        packedOverlay,
+                        colour
+                );
+
+                /*
+                 * bottom_no_water не должен иметь обычного
+                 * текстурного рендера.
+                 */
+                matrices.popPose();
+            }
+
+            /*
+             * Очень важно:
+             *
+             * Не вызываем super.renderRecursively()
+             * для этого bone.
+             *
+             * Поэтому деревянной плиты от него больше
+             * не появляется.
+             */
+            return;
+        }
+
+        /*
+         * Все остальные bone рендерим совершенно
+         * обычным GeckoLib способом.
+         */
+        super.renderRecursively(
+                matrices,
+                entity,
+                bone,
+                renderType,
+                vertexConsumers,
+                buffer,
+                isReRender,
+                partialTick,
+                packedLight,
+                packedOverlay,
+                colour
+        );
+    }
+
+    /*
+     * =====================================================
+     * PRE-RENDER
+     * =====================================================
+     *
+     * Никакой самодельной плоскости здесь больше нет.
+     *
+     * Вся маска берётся непосредственно из
+     * bottom_no_water.
      */
     @Override
     public void preRender(
@@ -84,79 +239,6 @@ public class SelfPropellingBoatRenderer
                 packedLight,
                 packedOverlay,
                 colour
-        );
-
-        if (isReRender || vertexConsumers == null) {
-            return;
-        }
-
-        renderWaterMask(
-                matrices,
-                vertexConsumers
-        );
-    }
-
-    /*
-     * =====================================================
-     * ВОДЯНАЯ МАСКА
-     * =====================================================
-     *
-     * Координаты .geo задаются в пикселях,
-     * поэтому переводим их в блоки через /16.
-     */
-    private void renderWaterMask(
-            MatrixStack matrices,
-            VertexConsumerProvider vertexConsumers
-    ) {
-        VertexConsumer consumer =
-                vertexConsumers.getBuffer(
-                        RenderLayer.getWaterMask()
-                );
-
-        Matrix4f matrix =
-                matrices.peek().getPositionMatrix();
-
-        float minX =
-                -13.0F / 16.0F;
-
-        float maxX =
-                13.0F / 16.0F;
-
-        float minZ =
-                -9.0F / 16.0F;
-
-        float maxZ =
-                9.0F / 16.0F;
-
-        float y =
-                3.0F / 16.0F;
-
-        consumer.vertex(
-                matrix,
-                minX,
-                y,
-                minZ
-        );
-
-        consumer.vertex(
-                matrix,
-                minX,
-                y,
-                maxZ
-        );
-
-        consumer.vertex(
-                matrix,
-                maxX,
-                y,
-                maxZ
-        );
-
-        consumer.vertex(
-                matrix,
-                maxX,
-                y,
-                minZ
         );
     }
 }
