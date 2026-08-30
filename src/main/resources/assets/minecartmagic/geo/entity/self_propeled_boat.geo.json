@@ -120,23 +120,12 @@
 				},
 				{
 					"name": "bottom_no_water",
-					"pivot": [0, -11, 5],
+					"pivot": [0, 0, 5],
 					"cubes": [
 						{
-							"origin": [-14, -19, -2],
-							"size": [28, 17, 6],
+							"origin": [-12, -1, -7],
+							"size": [24, 2, 20],
 							"uv": [60, 99]
-						}
-					]
-				},
-				{
-					"name": "water_blocker",
-					"pivot": [0, 0, 0],
-					"cubes": [
-						{
-							"origin": [-12, -1, -10],
-							"size": [24, 1, 20],
-							"uv": [1, 1]
 						}
 					]
 				}
