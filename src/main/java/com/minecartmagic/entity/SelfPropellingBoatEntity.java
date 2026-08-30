@@ -68,18 +68,11 @@ public class SelfPropellingBoatEntity
      * Tailwind I   = 0.65
      * Tailwind II  = 0.75
      * Tailwind III = 0.88
-     *
-     * Это именно скорость работающего двигателя.
      */
     private static final double ENGINE_SPEED_NO_TAILWIND = 0.50D;
     private static final double ENGINE_SPEED_TAILWIND_I = 0.65D;
     private static final double ENGINE_SPEED_TAILWIND_II = 0.75D;
     private static final double ENGINE_SPEED_TAILWIND_III = 0.88D;
-
-    /*
-     * Скорость руления.
-     */
-    private static final float STEERING_SPEED = 2.5F;
 
     /*
      * =====================================================
@@ -268,6 +261,9 @@ public class SelfPropellingBoatEntity
 
     private void tickFuel() {
 
+        /*
+         * Топливо изменяется только сервером.
+         */
         if (getWorld().isClient()) {
             return;
         }
@@ -277,7 +273,6 @@ public class SelfPropellingBoatEntity
         }
 
         if (getBurnTime() > 0) {
-
             setBurnTime(
                     getBurnTime() - 1
             );
@@ -292,7 +287,7 @@ public class SelfPropellingBoatEntity
 
     /*
      * =====================================================
-     * УРОВЕНЬ TAILWIND
+     * TAILWIND
      * =====================================================
      */
     private int getCurrentTailwindLevel() {
@@ -322,10 +317,6 @@ public class SelfPropellingBoatEntity
                         )
                 );
 
-        /*
-         * Логируем только изменение уровня,
-         * чтобы не засорять консоль.
-         */
         if (engineLevel != debugLastEngineLevel
                 || attachmentLevel != debugLastAttachmentLevel
                 || finalLevel != debugLastFinalLevel) {
@@ -353,11 +344,8 @@ public class SelfPropellingBoatEntity
                     finalLevel;
         }
 
-        /*
-         * Сохраняем уровень в tracker,
-         * если он пришёл из attachment.
-         */
-        if (finalLevel > 0
+        if (!getWorld().isClient()
+                && finalLevel > 0
                 && engineLevel != finalLevel) {
 
             setEngineTailwindLevel(
@@ -370,7 +358,7 @@ public class SelfPropellingBoatEntity
 
     /*
      * =====================================================
-     * СКОРОСТЬ ДВИГАТЕЛЯ
+     * МАКСИМАЛЬНАЯ СКОРОСТЬ
      * =====================================================
      */
     public double getMaximumSpeed() {
@@ -404,7 +392,7 @@ public class SelfPropellingBoatEntity
 
         /*
          * Без топлива:
-         * полностью обычная лодка.
+         * полностью ванильное управление лодкой.
          */
         if (!hasFuel()) {
 
@@ -419,7 +407,7 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * С двигателем:
+         * С работающим двигателем:
          *
          * A/D = руление
          * W/S = отключены
@@ -436,12 +424,41 @@ public class SelfPropellingBoatEntity
      * =====================================================
      * ДВИГАТЕЛЬ
      * =====================================================
+     *
+     * ВАЖНО:
+     *
+     * Физическая скорость устанавливается ТОЛЬКО SERVER.
+     *
+     * Раньше метод вызывался на клиенте и сервере,
+     * после чего обе стороны самостоятельно делали
+     * setVelocity(). Это приводило к рассинхрону:
+     *
+     * "Самоходная лодка moved wrongly!"
+     *
+     * и к скачкам rotation/yaw на клиенте.
+     *
+     * Теперь:
+     *
+     * SERVER -> рассчитывает физику
+     * CLIENT -> не изменяет velocity
+     *
+     * Клиент получает состояние от сервера как обычная
+     * ванильная сетевая сущность.
      */
     public void applySelfPropulsion(
             boolean pressingLeft,
             boolean pressingRight,
             boolean clientSide
     ) {
+
+        /*
+         * Никогда не изменяем физику на клиенте.
+         */
+        if (clientSide
+                || getWorld().isClient()) {
+
+            return;
+        }
 
         if (!hasFuel()) {
             return;
@@ -455,7 +472,7 @@ public class SelfPropellingBoatEntity
                 getVelocity();
 
         /*
-         * Используем уже существующий yaw.
+         * Используем настоящий yaw BoatEntity.
          */
         double radians =
                 Math.toRadians(
@@ -469,43 +486,14 @@ public class SelfPropellingBoatEntity
                         Math.cos(radians)
                 );
 
-        /*
-         * Получаем уровень Tailwind.
-         */
         int tailwindLevel =
                 getCurrentTailwindLevel();
 
-        /*
-         * =================================================
-         * ГЛАВНЫЙ ФИКС
-         * =================================================
-         *
-         * БЫЛО:
-         *
-         * currentSpeed + 0.025
-         *
-         * и затем принудительный минимум 0.50.
-         *
-         * Поэтому лодка с Tailwind III всё равно
-         * получала targetSpeed=0.50.
-         *
-         * ТЕПЕРЬ:
-         *
-         * двигатель напрямую держит скорость своего
-         * уровня.
-         *
-         * 0  -> 0.50
-         * I  -> 0.65
-         * II -> 0.75
-         * III-> 0.88
-         */
         double targetSpeed =
                 getMaximumSpeed();
 
         /*
-         * Если лодка уже движется быстрее
-         * текущего лимита из-за внешнего воздействия,
-         * не уменьшаем скорость мгновенно.
+         * Скорость вдоль направления лодки.
          */
         double currentForwardSpeed =
                 velocity.x * forward.x
@@ -517,6 +505,11 @@ public class SelfPropellingBoatEntity
                         currentForwardSpeed
                 );
 
+        /*
+         * Если внешняя физика уже разогнала лодку
+         * сильнее её текущего лимита, не тормозим
+         * её мгновенно.
+         */
         if (currentForwardSpeed > targetSpeed) {
 
             targetSpeed =
@@ -533,27 +526,32 @@ public class SelfPropellingBoatEntity
             debugTickCounter = 0;
 
             LOGGER.info(
-                    "[MinecartMagic DEBUG] Self-propelling boat #{} ENGINE: " +
+                    "[MinecartMagic DEBUG] Self-propelling boat #{} ENGINE SERVER: " +
                             "tailwind={}, currentSpeed={}, targetSpeed={}, maxSpeed={}, " +
-                            "hasFuel={}, water={}, side={}, yaw={}",
+                            "water={}, yaw={}, pressingLeft={}, pressingRight={}, " +
+                            "velocity=({}, {}, {}), pos=({}, {}, {})",
                     getId(),
                     tailwindLevel,
                     currentForwardSpeed,
                     targetSpeed,
                     getMaximumSpeed(),
-                    hasFuel(),
                     isTouchingWater(),
-                    clientSide
-                            ? "CLIENT"
-                            : "SERVER",
-                    getYaw()
+                    getYaw(),
+                    pressingLeft,
+                    pressingRight,
+                    velocity.x,
+                    velocity.y,
+                    velocity.z,
+                    getX(),
+                    getY(),
+                    getZ()
             );
         }
 
         /*
          * Только горизонтальная скорость.
          *
-         * Y полностью сохраняется.
+         * Y оставляем ванильной.
          */
         setVelocity(
                 forward.x * targetSpeed,
@@ -576,7 +574,7 @@ public class SelfPropellingBoatEntity
     ) {
 
         /*
-         * Существующее Shift + ПКМ снаружи.
+         * Shift + ПКМ снаружи открывает меню.
          */
         if (player.isSneaking()
                 && !getPassengerList().contains(player)) {
@@ -602,10 +600,14 @@ public class SelfPropellingBoatEntity
     @Override
     public void tick() {
 
+        /*
+         * Топливо — серверная логика.
+         */
         tickFuel();
 
         /*
-         * Ванильная физика BoatEntity.
+         * Вся стандартная физика BoatEntity
+         * продолжает выполняться.
          */
         super.tick();
     }
@@ -819,9 +821,6 @@ public class SelfPropellingBoatEntity
     ) {
         /*
          * Анимаций пока нет.
-         *
-         * Когда появятся .animation.json,
-         * сюда добавим контроллеры.
          */
     }
 
