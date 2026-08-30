@@ -4,6 +4,7 @@ import com.minecartmagic.ModEnchantments;
 import com.minecartmagic.ModItems;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
@@ -59,10 +60,27 @@ public class SelfPropellingBoatEntity
 
     private static final int MAX_PASSENGERS = 1;
 
+    /*
+     * =====================================================
+     * СКОРОСТИ ДВИГАТЕЛЯ
+     * =====================================================
+     */
+
     private static final double ENGINE_SPEED_NO_TAILWIND = 0.50D;
     private static final double ENGINE_SPEED_TAILWIND_I = 0.65D;
     private static final double ENGINE_SPEED_TAILWIND_II = 0.75D;
     private static final double ENGINE_SPEED_TAILWIND_III = 0.88D;
+
+    /*
+     * Скорость руления.
+     */
+    private static final float STEERING_SPEED = 2.5F;
+
+    /*
+     * =====================================================
+     * DEBUG
+     * =====================================================
+     */
 
     private int debugTickCounter = 0;
 
@@ -72,6 +90,12 @@ public class SelfPropellingBoatEntity
 
     private final SimpleInventory fuelInventory =
             new SimpleInventory(1);
+
+    /*
+     * =====================================================
+     * GeckoLib
+     * =====================================================
+     */
 
     private final AnimatableInstanceCache geoCache =
             GeckoLibUtil.createInstanceCache(this);
@@ -91,39 +115,6 @@ public class SelfPropellingBoatEntity
     @Override
     protected int getMaxPassengers() {
         return MAX_PASSENGERS;
-    }
-
-    /*
-     * =====================================================
-     * ПАССАЖИР
-     * =====================================================
-     *
-     * Ванильная BoatEntity ориентирует пассажира относительно
-     * своей yaw.
-     *
-     * Наша Geo-модель визуально перевёрнута относительно
-     * ванильной локальной оси, поэтому персонажа тоже
-     * необходимо развернуть на 180 градусов.
-     *
-     * Это меняет только yaw пассажира.
-     * Положение пассажира, коллизии и физика лодки
-     * остаются ванильными.
-     */
-    @Override
-    protected void clampPassengerYaw(
-            net.minecraft.entity.Entity passenger
-    ) {
-        super.clampPassengerYaw(
-                passenger
-        );
-
-        passenger.setYaw(
-                passenger.getYaw() + 180.0F
-        );
-
-        passenger.setHeadYaw(
-                passenger.getHeadYaw() + 180.0F
-        );
     }
 
     @Override
@@ -283,6 +274,7 @@ public class SelfPropellingBoatEntity
         }
 
         if (getBurnTime() > 0) {
+
             setBurnTime(
                     getBurnTime() - 1
             );
@@ -294,6 +286,83 @@ public class SelfPropellingBoatEntity
             setFuelTime(0);
         }
     }
+
+    /*
+     * =====================================================
+     * ПАССАЖИР
+     * =====================================================
+     *
+     * Используем стандартную посадку BoatEntity,
+     * но после неё разворачиваем пассажира на 180°.
+     *
+     * Саму лодку НЕ вращаем.
+     * Физика и yaw лодки НЕ меняются.
+     */
+
+    @Override
+    protected void updatePassengerPosition(
+            Entity passenger,
+            Entity.PositionUpdater positionUpdater
+    ) {
+        super.updatePassengerPosition(
+                passenger,
+                positionUpdater
+        );
+
+        /*
+         * Самоходная лодка визуально развернута
+         * относительно стандартной ориентации посадки
+         * пассажира.
+         *
+         * Поэтому разворачиваем только пассажира.
+         */
+
+        float yaw =
+                passenger.getYaw() + 180.0F;
+
+        passenger.setYaw(
+                yaw
+        );
+
+        passenger.setHeadYaw(
+                yaw
+        );
+
+        passenger.setBodyYaw(
+                yaw
+        );
+    }
+
+    @Override
+    protected void clampPassengerYaw(
+            Entity passenger
+    ) {
+        /*
+         * Не используем стандартное ограничение BoatEntity,
+         * которое снова пытается притянуть пассажира
+         * к yaw самой лодки.
+         *
+         * Наш passenger уже намеренно развернут на 180°.
+         */
+    }
+
+    @Override
+    public void onPassengerLookAround(
+            Entity passenger
+    ) {
+        /*
+         * Ничего не делаем.
+         *
+         * Иначе BoatEntity снова синхронизирует направление
+         * взгляда пассажира с собственной ориентацией.
+         */
+    }
+
+    /*
+     * =====================================================
+     * УРОВЕНЬ TAILWIND
+     * =====================================================
+     */
 
     private int getCurrentTailwindLevel() {
 
@@ -349,8 +418,7 @@ public class SelfPropellingBoatEntity
                     finalLevel;
         }
 
-        if (!getWorld().isClient()
-                && finalLevel > 0
+        if (finalLevel > 0
                 && engineLevel != finalLevel) {
 
             setEngineTailwindLevel(
@@ -360,6 +428,12 @@ public class SelfPropellingBoatEntity
 
         return finalLevel;
     }
+
+    /*
+     * =====================================================
+     * СКОРОСТЬ
+     * =====================================================
+     */
 
     public double getMaximumSpeed() {
 
@@ -410,20 +484,17 @@ public class SelfPropellingBoatEntity
         );
     }
 
+    /*
+     * =====================================================
+     * ДВИГАТЕЛЬ
+     * =====================================================
+     */
+
     public void applySelfPropulsion(
             boolean pressingLeft,
             boolean pressingRight,
             boolean clientSide
     ) {
-
-        /*
-         * Физика двигателя только на сервере.
-         */
-        if (clientSide
-                || getWorld().isClient()) {
-
-            return;
-        }
 
         if (!hasFuel()) {
             return;
@@ -477,25 +548,20 @@ public class SelfPropellingBoatEntity
             debugTickCounter = 0;
 
             LOGGER.info(
-                    "[MinecartMagic DEBUG] Self-propelling boat #{} ENGINE SERVER: " +
+                    "[MinecartMagic DEBUG] Self-propelling boat #{} ENGINE: " +
                             "tailwind={}, currentSpeed={}, targetSpeed={}, maxSpeed={}, " +
-                            "water={}, yaw={}, pressingLeft={}, pressingRight={}, " +
-                            "velocity=({}, {}, {}), pos=({}, {}, {})",
+                            "hasFuel={}, water={}, side={}, yaw={}",
                     getId(),
                     tailwindLevel,
                     currentForwardSpeed,
                     targetSpeed,
                     getMaximumSpeed(),
+                    hasFuel(),
                     isTouchingWater(),
-                    getYaw(),
-                    pressingLeft,
-                    pressingRight,
-                    velocity.x,
-                    velocity.y,
-                    velocity.z,
-                    getX(),
-                    getY(),
-                    getZ()
+                    clientSide
+                            ? "CLIENT"
+                            : "SERVER",
+                    getYaw()
             );
         }
 
@@ -731,6 +797,12 @@ public class SelfPropellingBoatEntity
     ) {
         return getId();
     }
+
+    /*
+     * =====================================================
+     * GeckoLib
+     * =====================================================
+     */
 
     @Override
     public void registerControllers(
