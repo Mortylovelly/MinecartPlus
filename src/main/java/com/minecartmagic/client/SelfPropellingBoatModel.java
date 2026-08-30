@@ -10,22 +10,22 @@ public class SelfPropellingBoatModel extends GeoModel<SelfPropellingBoatEntity> 
 
     private static final Identifier WOOD_MODEL =
             MinecartMagicMod.id(
-                    "geo/entity/self_propelling_boat.geo.json"
+                    "geo/entity/self_propeled_boat.geo.json"
             );
 
     private static final Identifier BAMBOO_MODEL =
             MinecartMagicMod.id(
-                    "geo/entity/self_propelling_bamboo_raft.geo.json"
+                    "geo/entity/self_propeled_bamboo_raft.geo.json"
             );
 
     private static final Identifier WOOD_ANIMATIONS =
             MinecartMagicMod.id(
-                    "animations/entity/self_propelling_boat.animation.json"
+                    "animations/entity/self_propeled_boat.animation.json"
             );
 
     private static final Identifier BAMBOO_ANIMATIONS =
             MinecartMagicMod.id(
-                    "animations/entity/self_propelling_bamboo_raft.animation.json"
+                    "animations/entity/self_propeled_bamboo_raft.animation.json"
             );
 
     @Override
@@ -70,7 +70,7 @@ public class SelfPropellingBoatModel extends GeoModel<SelfPropellingBoatEntity> 
                     "self_propeled_cherry_boat";
 
             case BAMBOO ->
-                    "self_propelled_bamboo_raft";
+                    "self_propeled_bamboo_raft";
 
             case OAK ->
                     "self_propeled_oak_boat";
