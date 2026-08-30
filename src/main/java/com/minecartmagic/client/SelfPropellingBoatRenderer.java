@@ -1,10 +1,11 @@
 package com.minecartmagic.client;
 
 import com.minecartmagic.entity.SelfPropellingBoatEntity;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.RotationAxis;
+import net.minecraft.util.Identifier;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
 
 public class SelfPropellingBoatRenderer
@@ -21,50 +22,54 @@ public class SelfPropellingBoatRenderer
         shadowRadius = 0.8F;
     }
 
+    /*
+     * ВАЖНО:
+     *
+     * GeoEntityRenderer сам выполняет ванильную
+     * трансформацию:
+     *
+     * 180 - entityYaw
+     *
+     * Поэтому здесь больше НЕ добавляем
+     * дополнительный поворот 180 градусов.
+     *
+     * Благодаря этому визуальная модель использует
+     * ту же систему ориентации, что и BoatEntity.
+     */
+
     @Override
-    protected void applyRotations(
+    public RenderLayer getRenderType(
             SelfPropellingBoatEntity entity,
-            MatrixStack matrices,
-            float ageInTicks,
-            float rotationYaw,
-            float partialTick,
-            float nativeScale
+            Identifier texture,
+            VertexConsumerProvider provider,
+            float partialTick
     ) {
         /*
-         * НЕЛЬЗЯ использовать обычный rotationYaw GeckoLib
-         * вслепую для нашей лодки.
+         * Используем полностью непрозрачный entity-render.
          *
-         * Берём именно интерполированный yaw самой BoatEntity:
-         *
-         * previousYaw -> currentYaw
-         *
-         * Это устраняет визуальные рывки между client/server
-         * и делает модель следовать реальному вращению сущности.
+         * Это важно для модели лодки:
+         * вода не должна визуально просвечивать
+         * через непрозрачную геометрию.
          */
-        float previousYaw = entity.prevYaw;
-        float currentYaw = entity.getYaw();
+        return RenderLayer.getEntitySolid(texture);
+    }
 
-        float interpolatedYaw = MathHelper.lerpAngleDegrees(
-                partialTick,
-                previousYaw,
-                currentYaw
-        );
-
-        /*
-         * GeckoLib обычно делает:
-         *
-         * 180 - yaw
-         *
-         * Для нашей геометрии нужен эквивалент:
-         *
-         * -yaw
-         *
-         * Поэтому используем интерполированный yaw.
-         */
-        matrices.multiply(
-                RotationAxis.POSITIVE_Y.rotationDegrees(
-                        -interpolatedYaw
-                )
+    @Override
+    public void render(
+            SelfPropellingBoatEntity entity,
+            float entityYaw,
+            float tickDelta,
+            MatrixStack matrices,
+            VertexConsumerProvider vertexConsumers,
+            int light
+    ) {
+        super.render(
+                entity,
+                entityYaw,
+                tickDelta,
+                matrices,
+                vertexConsumers,
+                light
         );
     }
 }
