@@ -109,7 +109,7 @@ public class SelfPropellingBoatModel
                             "self_propeled_cherry_boat";
 
                     case BAMBOO ->
-                            "self_propeled_bamboo_raft";
+                            "self_propelled_bamboo_raft";
 
                     case OAK ->
                             "self_propeled_oak_boat";
