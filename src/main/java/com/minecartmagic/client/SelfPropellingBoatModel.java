@@ -54,31 +54,31 @@ public class SelfPropellingBoatModel
         String name =
                 switch (type) {
                     case SPRUCE ->
-                            "self_propelled_spruce_boat";
+                            "self_propeled_spruce_boat";
 
                     case BIRCH ->
-                            "self_propelled_birch_boat";
+                            "self_propeled_birch_boat";
 
                     case JUNGLE ->
-                            "self_propelled_jungle_boat";
+                            "self_propeled_jungle_boat";
 
                     case ACACIA ->
-                            "self_propelled_acacia_boat";
+                            "self_propeled_acacia_boat";
 
                     case DARK_OAK ->
-                            "self_propelled_dark_oak_boat";
+                            "self_propeled_dark_oak_boat";
 
                     case MANGROVE ->
-                            "self_propelled_mangrove_boat";
+                            "self_propeled_mangrove_boat";
 
                     case CHERRY ->
-                            "self_propelled_cherry_boat";
+                            "self_propeled_cherry_boat";
 
                     case BAMBOO ->
                             "self_propelled_bamboo_raft";
 
                     case OAK ->
-                            "self_propelled_oak_boat";
+                            "self_propeled_oak_boat";
                 };
 
         return MinecartMagicMod.id(
