@@ -438,20 +438,17 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * ВАЖНО:
+         * Пустая лодка:
          *
-         * Физическую скорость двигателя меняет только сервер.
+         * двигатель меняется только на сервере.
          *
-         * Раньше клиент тоже самостоятельно ставил velocity,
-         * после чего сервер присылал своё состояние обратно.
-         * Из-за этого появлялись:
+         * Лодка с пассажиром:
          *
-         * moved wrongly!
-         * огромные расхождения yaw
-         * вращение/рывки
-         * визуально обратное движение
+         * двигатель применяется и на клиенте,
+         * чтобы сохраниться нормальное клиентское
+         * предсказание движения.
          */
-        if (clientSide) {
+        if (clientSide && getPassengerList().isEmpty()) {
             return;
         }
 
@@ -459,17 +456,17 @@ public class SelfPropellingBoatEntity
                 getVelocity();
 
         /*
-         * Используем настоящий rotation vector сущности.
+         * Используем реальный rotation vector
+         * BoatEntity.
          *
-         * Это направление взгляда BoatEntity в Minecraft,
-         * поэтому нам больше не нужно вручную угадывать,
-         * какие знаки должны стоять перед sin/cos.
+         * Поэтому направление двигателя совпадает
+         * с направлением самой лодки.
          */
         Vec3d forward =
                 getRotationVec(1.0F);
 
         /*
-         * Двигатель работает только горизонтально.
+         * Только горизонтальная составляющая.
          */
         forward =
                 new Vec3d(
@@ -478,9 +475,6 @@ public class SelfPropellingBoatEntity
                         forward.z
                 );
 
-        /*
-         * На случай теоретически нулевого вектора.
-         */
         if (forward.lengthSquared() < 1.0E-8D) {
             return;
         }
@@ -495,7 +489,7 @@ public class SelfPropellingBoatEntity
                 getMaximumSpeed();
 
         /*
-         * Текущая скорость именно вдоль носа лодки.
+         * Скорость вдоль текущего направления лодки.
          */
         double currentForwardSpeed =
                 velocity.x * forward.x
@@ -508,8 +502,7 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Не уменьшаем скорость, если лодка уже движется
-         * быстрее установленной скорости двигателя.
+         * Не сбрасываем скорость ниже уже набранной.
          */
         if (currentForwardSpeed > targetSpeed) {
 
@@ -526,8 +519,8 @@ public class SelfPropellingBoatEntity
             LOGGER.info(
                     "[MinecartMagic DEBUG] Self-propelling boat #{} ENGINE: " +
                             "tailwind={}, currentSpeed={}, targetSpeed={}, maxSpeed={}, " +
-                            "hasFuel={}, water={}, side=SERVER, yaw={}, forward=({}, {}, {}), " +
-                            "velocity=({}, {}, {})",
+                            "hasFuel={}, water={}, side={}, passengers={}, yaw={}, " +
+                            "forward=({}, {}, {}), velocity=({}, {}, {})",
                     getId(),
                     tailwindLevel,
                     currentForwardSpeed,
@@ -535,6 +528,10 @@ public class SelfPropellingBoatEntity
                     getMaximumSpeed(),
                     hasFuel(),
                     isTouchingWater(),
+                    clientSide
+                            ? "CLIENT"
+                            : "SERVER",
+                    getPassengerList().size(),
                     getYaw(),
                     forward.x,
                     forward.y,
@@ -546,8 +543,8 @@ public class SelfPropellingBoatEntity
         }
 
         /*
-         * Тяга двигателя направлена строго по forward vector
-         * BoatEntity.
+         * Применяем тягу строго вперёд относительно
+         * текущего направления BoatEntity.
          */
         setVelocity(
                 forward.x * targetSpeed,
