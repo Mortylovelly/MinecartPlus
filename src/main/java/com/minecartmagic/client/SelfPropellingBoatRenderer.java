@@ -17,4 +17,22 @@ public class SelfPropellingBoatRenderer
 
         shadowRadius = 0.8F;
     }
+
+    @Override
+    protected float calculateYRot(
+            SelfPropellingBoatEntity animatable,
+            float yHeadRot,
+            float partialTick
+    ) {
+        /*
+         * Для нашей лодки берём настоящий интерполированный
+         * yaw самой Entity.
+         *
+         * Это не меняет физику или управление.
+         * Меняется только визуальный поворот модели.
+         */
+        return animatable.getYaw(
+                partialTick
+        );
+    }
 }
