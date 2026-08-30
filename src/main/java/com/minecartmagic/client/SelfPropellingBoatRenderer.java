@@ -5,8 +5,8 @@ import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRendererFactory;
-import net.minecraft.client.util.math.MathHelper;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
@@ -31,11 +31,6 @@ public class SelfPropellingBoatRenderer
      * =====================================================
      * ОРИЕНТАЦИЯ ЛОДКИ
      * =====================================================
-     *
-     * Это уже рабочая ориентация нашей модели.
-     *
-     * В render() НИКАКОЙ дополнительный поворот
-     * больше не выполняется.
      */
     @Override
     protected void applyRotations(
@@ -64,12 +59,6 @@ public class SelfPropellingBoatRenderer
      * =====================================================
      * WATER MASK
      * =====================================================
-     *
-     * Маска вызывается после того, как GeckoLib уже
-     * подготовил PoseStack для нашей сущности.
-     *
-     * Поэтому она получает ТО ЖЕ положение и поворот,
-     * что и модель.
      */
     @Override
     public void preRender(
@@ -112,20 +101,8 @@ public class SelfPropellingBoatRenderer
      * ВОДЯНАЯ МАСКА
      * =====================================================
      *
-     * ВАЖНО:
-     *
-     * Координаты geo-модели заданы в ПИКСЕЛЯХ.
-     *
-     * Поэтому:
-     *
-     * 26 px = 26 / 16 блока
-     * 18 px = 18 / 16 блока
-     * 3 px  =  3 / 16 блока
-     *
-     * Раньше здесь ошибочно использовались 26 и 18
-     * непосредственно как мировые координаты.
-     *
-     * Из-за этого появлялся огромный квадрат над лодкой.
+     * Координаты .geo задаются в пикселях,
+     * поэтому переводим их в блоки через /16.
      */
     private void renderWaterMask(
             MatrixStack matrices,
@@ -139,10 +116,6 @@ public class SelfPropellingBoatRenderer
         Matrix4f matrix =
                 matrices.peek().getPositionMatrix();
 
-        /*
-         * Соответствует внутренней области
-         * bottom_no_water из geo-модели.
-         */
         float minX =
                 -13.0F / 16.0F;
 
@@ -155,23 +128,9 @@ public class SelfPropellingBoatRenderer
         float maxZ =
                 9.0F / 16.0F;
 
-        /*
-         * Поверхность находится всего на 3 px
-         * выше локального нуля модели.
-         *
-         * Это координата МОДЕЛИ, а не мира.
-         */
         float y =
                 3.0F / 16.0F;
 
-        /*
-         * Рисуем ровно одну плоскость.
-         *
-         * Она не имеет деревянной текстуры.
-         *
-         * RenderLayer.getWaterMask() используется
-         * только для маскирования воды.
-         */
         consumer.vertex(
                 matrix,
                 minX,
