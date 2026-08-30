@@ -20,26 +20,9 @@ public class SelfPropellingBoatRenderer
         shadowRadius = 0.8F;
     }
 
-    /**
-     * GeckoLib уже сам поворачивает модель по yaw:
-     *
-     * 180 - rotationYaw
-     *
-     * Наша геометрия лодки ориентирована относительно
-     * противоположной локальной продольной оси.
-     *
-     * Поэтому меняем только локальную ориентацию модели
-     * здесь, не трогая yaw самой Entity.
-     *
-     * В отличие от предыдущего варианта, мы НЕ вращаем
-     * MatrixStack до super.render().
-     *
-     * Это происходит внутри реального GeckoLib
-     * applyRotations(), который мы сейчас переопределяем.
-     */
     @Override
     protected void applyRotations(
-            SelfPropellingBoatEntity animatable,
+            SelfPropellingBoatEntity entity,
             MatrixStack matrices,
             float ageInTicks,
             float rotationYaw,
@@ -47,28 +30,24 @@ public class SelfPropellingBoatRenderer
             float nativeScale
     ) {
         /*
-         * Точно такая же базовая ориентация,
-         * которую делает GeckoLib.
+         * GeoEntityRenderer по умолчанию использует:
+         *
+         * 180° - rotationYaw
+         *
+         * Но наша .geo-модель построена носом в +Z,
+         * тогда как стандартная геометрия Boat ориентирована
+         * относительно противоположной локальной оси.
+         *
+         * Для нашей модели правильное соответствие:
+         *
+         * -rotationYaw
+         *
+         * Поэтому yaw самой BoatEntity используется напрямую,
+         * без дополнительного искусственного разворота.
          */
         matrices.multiply(
                 RotationAxis.POSITIVE_Y.rotationDegrees(
-                        180.0F - rotationYaw
-                )
-        );
-
-        /*
-         * Важный момент:
-         *
-         * .geo-модель имеет противоположное направление
-         * продольной оси относительно стандартной
-         * GeckoLib entity model.
-         *
-         * Поэтому исправляем ТОЛЬКО локальную ориентацию
-         * самой геометрии.
-         */
-        matrices.multiply(
-                RotationAxis.POSITIVE_Y.rotationDegrees(
-                        180.0F
+                        -rotationYaw
                 )
         );
     }
