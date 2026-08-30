@@ -402,17 +402,17 @@ public class SelfPropellingBoatEntity
                 );
 
         /*
-         * Это направление совпадает с ванильной
-         * системой ориентации BoatEntity.
+         * Направление двигателя синхронизировано
+         * с ориентацией ванильной BoatEntity.
          *
-         * Не менять знак здесь без проверки,
-         * иначе двигатель будет ехать задом.
+         * Раньше здесь был обратный вектор,
+         * из-за чего лодка ехала кормой вперёд.
          */
         Vec3d forward =
                 new Vec3d(
-                        -Math.sin(radians),
+                        Math.sin(radians),
                         0.0D,
-                        Math.cos(radians)
+                        -Math.cos(radians)
                 );
 
         int tailwindLevel =
@@ -446,7 +446,7 @@ public class SelfPropellingBoatEntity
             LOGGER.info(
                     "[MinecartMagic DEBUG] Self-propelling boat #{} ENGINE: " +
                             "tailwind={}, currentSpeed={}, targetSpeed={}, maxSpeed={}, " +
-                            "hasFuel={}, water={}, side={}, yaw={}, velocity=({}, {}, {})",
+                            "hasFuel={}, water={}, side={}, yaw={}, forward=({}, {}, {})",
                     getId(),
                     tailwindLevel,
                     currentForwardSpeed,
@@ -458,9 +458,9 @@ public class SelfPropellingBoatEntity
                             ? "CLIENT"
                             : "SERVER",
                     getYaw(),
-                    velocity.x,
-                    velocity.y,
-                    velocity.z
+                    forward.x,
+                    forward.y,
+                    forward.z
             );
         }
 
@@ -701,9 +701,6 @@ public class SelfPropellingBoatEntity
     public void registerControllers(
             AnimatableManager.ControllerRegistrar controllers
     ) {
-        /*
-         * Анимаций пока нет.
-         */
     }
 
     @Override
