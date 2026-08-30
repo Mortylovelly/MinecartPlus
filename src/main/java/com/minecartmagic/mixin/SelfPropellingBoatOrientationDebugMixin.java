@@ -1,15 +1,20 @@
 package com.minecartmagic.mixin;
 
 import com.minecartmagic.entity.SelfPropellingBoatEntity;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.vehicle.BoatEntity;
+import net.minecraft.fluid.FluidState;
+import net.minecraft.registry.tag.FluidTags;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Mixin(BoatEntity.class)
 public abstract class SelfPropellingBoatOrientationDebugMixin {
@@ -17,7 +22,13 @@ public abstract class SelfPropellingBoatOrientationDebugMixin {
     private static final Logger LOGGER =
             LoggerFactory.getLogger("MinecartMagic");
 
-    private long minecartmagic$lastLoggedTick = Long.MIN_VALUE;
+    private static final long DEBUG_INTERVAL = 5L;
+
+    private long minecartmagic$lastLoggedTick =
+            Long.MIN_VALUE;
+
+    @Shadow
+    public float prevYaw;
 
     @Inject(
             method = "getVisualRotationYInDegrees",
@@ -29,43 +40,26 @@ public abstract class SelfPropellingBoatOrientationDebugMixin {
         BoatEntity boat =
                 (BoatEntity) (Object) this;
 
-        /*
-         * Логируем только нашу самоходную лодку.
-         */
         if (!(boat instanceof SelfPropellingBoatEntity selfPropellingBoat)) {
             return;
         }
 
-        /*
-         * Только клиент.
-         *
-         * Именно клиентский visual yaw интересует
-         * GeckoLib при рендере.
-         */
         if (!boat.getWorld().isClient()) {
             return;
         }
 
-        long tick =
+        long currentTick =
                 boat.getWorld().getTime();
 
-        /*
-         * Не спамим консоль каждый вызов рендера.
-         *
-         * Один лог примерно раз в 10 тиков.
-         */
-        if (tick == minecartmagic$lastLoggedTick
-                || tick - minecartmagic$lastLoggedTick < 10) {
+        if (currentTick - minecartmagic$lastLoggedTick < DEBUG_INTERVAL) {
             return;
         }
 
-        minecartmagic$lastLoggedTick = tick;
+        minecartmagic$lastLoggedTick =
+                currentTick;
 
         float entityYaw =
                 boat.getYaw();
-
-        float previousYaw =
-                boat.prevYaw;
 
         float visualYaw =
                 cir.getReturnValue();
@@ -95,74 +89,157 @@ public abstract class SelfPropellingBoatOrientationDebugMixin {
         Direction movementDirection =
                 boat.getMovementDirection();
 
+        Vec3d rotationVector =
+                boat.getRotationVector(
+                        boat.getPitch(),
+                        visualYaw
+                );
+
+        BlockPos centerPos =
+                boat.getBlockPos();
+
+        BlockPos belowPos =
+                centerPos.down();
+
+        FluidState centerFluid =
+                boat.getWorld().getFluidState(
+                        centerPos
+                );
+
+        FluidState belowFluid =
+                boat.getWorld().getFluidState(
+                        belowPos
+                );
+
+        boolean centerWater =
+                centerFluid.isIn(
+                        FluidTags.WATER
+                );
+
+        boolean belowWater =
+                belowFluid.isIn(
+                        FluidTags.WATER
+                );
+
+        boolean moving =
+                horizontalSpeed > 0.00001D;
+
+        String passengerInfo;
+
+        if (boat.getPassengerList().isEmpty()) {
+            passengerInfo = "NONE";
+        } else {
+            passengerInfo =
+                    boat.getPassengerList()
+                            .stream()
+                            .map(
+                                    passenger ->
+                                            passenger.getType()
+                                                    .toString()
+                            )
+                            .reduce(
+                                    (a, b) -> a + "," + b
+                            )
+                            .orElse("UNKNOWN");
+        }
+
+        String rendererInfo =
+                getRendererInfo(
+                        selfPropellingBoat
+                );
+
         LOGGER.info(
-                "[SELF_BOAT_ORIENTATION] " +
+                "[SELF_BOAT_DEBUG] " +
                         "id={} tick={} " +
+                        "variant={} fuel={} " +
+                        "engineTailwind={} " +
                         "entityYaw={} " +
-                        "previousYaw={} " +
+                        "prevYaw={} " +
                         "visualYaw={} " +
                         "lerpTargetYaw={} " +
+                        "pitch={} " +
+                        "rotationVector=({},{},{}) " +
                         "velocity=({},{},{}) " +
                         "horizontalSpeed={} " +
                         "velocityYaw={} " +
                         "movementDirection={} " +
-                        "variant={} " +
-                        "fuel={}",
+                        "moving={} " +
+                        "touchingWater={} " +
+                        "centerWater={} " +
+                        "belowWater={} " +
+                        "centerPos={} " +
+                        "passengers={} " +
+                        "renderer={}",
                 selfPropellingBoat.getId(),
-                tick,
+                currentTick,
 
-                String.format(
-                        "%.3f",
-                        entityYaw
-                ),
+                selfPropellingBoat.getVariant(),
+                selfPropellingBoat.hasFuel(),
+                selfPropellingBoat.getEngineTailwindLevel(),
 
-                String.format(
-                        "%.3f",
-                        previousYaw
-                ),
+                format(entityYaw),
+                format(prevYaw),
+                format(visualYaw),
+                format(lerpTargetYaw),
 
-                String.format(
-                        "%.3f",
-                        visualYaw
-                ),
+                format(boat.getPitch()),
 
-                String.format(
-                        "%.3f",
-                        lerpTargetYaw
-                ),
+                format(rotationVector.x),
+                format(rotationVector.y),
+                format(rotationVector.z),
 
-                String.format(
-                        "%.5f",
-                        velocity.x
-                ),
+                format(velocity.x),
+                format(velocity.y),
+                format(velocity.z),
 
-                String.format(
-                        "%.5f",
-                        velocity.y
-                ),
-
-                String.format(
-                        "%.5f",
-                        velocity.z
-                ),
-
-                String.format(
-                        "%.5f",
-                        horizontalSpeed
-                ),
+                format(horizontalSpeed),
 
                 Double.isNaN(velocityYaw)
                         ? "NaN"
-                        : String.format(
-                                "%.3f",
-                                velocityYaw
-                        ),
+                        : format(velocityYaw),
 
                 movementDirection,
+                moving,
 
-                selfPropellingBoat.getVariant(),
+                boat.isTouchingWater(),
+                centerWater,
+                belowWater,
 
-                selfPropellingBoat.hasFuel()
+                centerPos,
+                passengerInfo,
+
+                rendererInfo
+        );
+    }
+
+    private static String getRendererInfo(
+            SelfPropellingBoatEntity boat
+    ) {
+        try {
+            MinecraftClient client =
+                    MinecraftClient.getInstance();
+
+            if (client.world == null) {
+                return "CLIENT_WORLD_NULL";
+            }
+
+            return client.getEntityRenderDispatcher()
+                    .getRenderer(boat)
+                    .getClass()
+                    .getName();
+
+        } catch (Exception exception) {
+            return "ERROR:" +
+                    exception.getClass().getSimpleName();
+        }
+    }
+
+    private static String format(
+            double value
+    ) {
+        return String.format(
+                "%.5f",
+                value
         );
     }
 }
