@@ -21,5 +21,13 @@ public class MinecartMagicClient
                 ModScreenHandlers.SELF_PROPELLING_BOAT,
                 SelfPropellingBoatScreen::new
         );
+
+        /*
+         * Диагностика самоходной лодки.
+         *
+         * Только логирование.
+         * Физика, renderer и entity не изменяются.
+         */
+        SelfPropellingBoatDebug.init();
     }
 }
