@@ -24,6 +24,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.slf4j.Logger;
@@ -292,11 +293,25 @@ public class SelfPropellingBoatEntity
      * ПАССАЖИР
      * =====================================================
      *
-     * Используем стандартную посадку BoatEntity,
-     * но после неё разворачиваем пассажира на 180°.
+     * ВАЖНО:
      *
-     * Саму лодку НЕ вращаем.
-     * Физика и yaw лодки НЕ меняются.
+     * Мы больше НЕ меняем yaw пассажира в
+     * updatePassengerPosition().
+     *
+     * Minecraft сам обновляет положение пассажира,
+     * а clampPassengerYaw() ниже говорит лодке:
+     *
+     * "центральное направление пассажира =
+     *  yaw лодки + 180°".
+     *
+     * Благодаря этому:
+     *
+     * - пассажир сидит задом относительно стандартной
+     *   ориентации лодки;
+     * - он не начинает вращаться;
+     * - игрок может свободно поворачивать камеру;
+     * - лодка сама продолжает использовать обычный yaw;
+     * - физика лодки вообще не меняется.
      */
 
     @Override
@@ -308,29 +323,6 @@ public class SelfPropellingBoatEntity
                 passenger,
                 positionUpdater
         );
-
-        /*
-         * Самоходная лодка визуально развернута
-         * относительно стандартной ориентации посадки
-         * пассажира.
-         *
-         * Поэтому разворачиваем только пассажира.
-         */
-
-        float yaw =
-                passenger.getYaw() + 180.0F;
-
-        passenger.setYaw(
-                yaw
-        );
-
-        passenger.setHeadYaw(
-                yaw
-        );
-
-        passenger.setBodyYaw(
-                yaw
-        );
     }
 
     @Override
@@ -338,12 +330,86 @@ public class SelfPropellingBoatEntity
             Entity passenger
     ) {
         /*
-         * Не используем стандартное ограничение BoatEntity,
-         * которое снова пытается притянуть пассажира
-         * к yaw самой лодки.
+         * Центральное направление посадки.
          *
-         * Наш passenger уже намеренно развернут на 180°.
+         * Обычная BoatEntity использует:
+         *
+         *     boatYaw
+         *
+         * Нам нужно:
+         *
+         *     boatYaw + 180°
          */
+        float targetYaw =
+                getYaw() + 180.0F;
+
+        /*
+         * Фактическое направление пассажира.
+         */
+        float passengerYaw =
+                passenger.getYaw();
+
+        /*
+         * Разница относительно НОВОГО центра.
+         *
+         * wrapDegrees нужен обязательно,
+         * иначе на переходе через ±180° будет
+         * огромная разница, например:
+         *
+         * 179 -> -179
+         *
+         * вместо нормального 2°.
+         */
+        float delta =
+                MathHelper.wrapDegrees(
+                        passengerYaw - targetYaw
+                );
+
+        /*
+         * Ограничение такое же по смыслу,
+         * как в ванильной лодке.
+         *
+         * Игрок всё ещё может смотреть в стороны,
+         * но Minecraft не пытается развернуть его
+         * обратно через 180°.
+         */
+        float clampedDelta =
+                MathHelper.clamp(
+                        delta,
+                        -105.0F,
+                        105.0F
+                );
+
+        /*
+         * Исправляем prevYaw тоже.
+         *
+         * Это важно для интерполяции:
+         * без этого визуально может появляться
+         * резкий рывок/вращение.
+         */
+        passenger.prevYaw +=
+                clampedDelta - delta;
+
+        float newYaw =
+                passengerYaw
+                        + clampedDelta
+                        - delta;
+
+        passenger.setYaw(
+                newYaw
+        );
+
+        passenger.setHeadYaw(
+                newYaw
+        );
+
+        /*
+         * Тело пассажира тоже должно смотреть
+         * относительно нашей перевёрнутой посадки.
+         */
+        passenger.setBodyYaw(
+                targetYaw
+        );
     }
 
     @Override
@@ -351,11 +417,14 @@ public class SelfPropellingBoatEntity
             Entity passenger
     ) {
         /*
-         * Ничего не делаем.
+         * Не задаём yaw вручную здесь.
          *
-         * Иначе BoatEntity снова синхронизирует направление
-         * взгляда пассажира с собственной ориентацией.
+         * Просто применяем нашу модифицированную
+         * ванильную логику ограничения.
          */
+        clampPassengerYaw(
+                passenger
+        );
     }
 
     /*
@@ -431,7 +500,7 @@ public class SelfPropellingBoatEntity
 
     /*
      * =====================================================
-     * СКОРОСТЬ
+     * СКОРОСТЬ ДВИГАТЕЛЯ
      * =====================================================
      */
 
