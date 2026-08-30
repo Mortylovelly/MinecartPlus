@@ -31,14 +31,8 @@ public class SelfPropellingBoatRenderer
             float nativeScale
     ) {
         /*
-         * Не используем стандартный applyRotations GeckoLib,
-         * потому что он добавляет 180 - yaw.
-         *
-         * Наша .geo-модель уже ориентирована так,
-         * чтобы ей соответствовал обычный yaw лодки.
-         *
-         * Берём интерполированный yaw самой BoatEntity,
-         * чтобы на клиенте модель плавно следовала за сущностью.
+         * Берём настоящий интерполированный yaw BoatEntity,
+         * как у ванильной лодки.
          */
         float interpolatedYaw =
                 MathHelper.lerpAngleDegrees(
@@ -47,9 +41,23 @@ public class SelfPropellingBoatRenderer
                         entity.getYaw()
                 );
 
+        /*
+         * GeckoLib-модель имеет направление, противоположное
+         * направлению BoatEntity.
+         *
+         * Дополнительные 180° переворачивают ТОЛЬКО визуальную
+         * модель. Физика, yaw сущности и пассажир не изменяются.
+         *
+         * Итог:
+         *   - лодка физически плывёт правильно;
+         *   - модель смотрит в направлении движения;
+         *   - пассажир не начинает вращаться;
+         *   - никаких дополнительных render() и вторичных
+         *     поворотов нет.
+         */
         matrices.multiply(
                 RotationAxis.POSITIVE_Y.rotationDegrees(
-                        -interpolatedYaw
+                        180.0F - interpolatedYaw
                 )
         );
     }
