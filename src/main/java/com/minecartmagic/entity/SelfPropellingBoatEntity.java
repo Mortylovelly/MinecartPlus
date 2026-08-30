@@ -4,7 +4,6 @@ import com.minecartmagic.ModEnchantments;
 import com.minecartmagic.ModItems;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
@@ -24,7 +23,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.slf4j.Logger;
@@ -61,27 +59,12 @@ public class SelfPropellingBoatEntity
 
     private static final int MAX_PASSENGERS = 1;
 
-    /*
-     * =====================================================
-     * СКОРОСТИ ДВИГАТЕЛЯ
-     * =====================================================
-     */
-
     private static final double ENGINE_SPEED_NO_TAILWIND = 0.50D;
     private static final double ENGINE_SPEED_TAILWIND_I = 0.65D;
     private static final double ENGINE_SPEED_TAILWIND_II = 0.75D;
     private static final double ENGINE_SPEED_TAILWIND_III = 0.88D;
 
-    /*
-     * Скорость руления.
-     */
     private static final float STEERING_SPEED = 2.5F;
-
-    /*
-     * =====================================================
-     * DEBUG
-     * =====================================================
-     */
 
     private int debugTickCounter = 0;
 
@@ -91,12 +74,6 @@ public class SelfPropellingBoatEntity
 
     private final SimpleInventory fuelInventory =
             new SimpleInventory(1);
-
-    /*
-     * =====================================================
-     * GeckoLib
-     * =====================================================
-     */
 
     private final AnimatableInstanceCache geoCache =
             GeckoLibUtil.createInstanceCache(this);
@@ -288,151 +265,6 @@ public class SelfPropellingBoatEntity
         }
     }
 
-    /*
-     * =====================================================
-     * ПАССАЖИР
-     * =====================================================
-     *
-     * ВАЖНО:
-     *
-     * Мы больше НЕ меняем yaw пассажира в
-     * updatePassengerPosition().
-     *
-     * Minecraft сам обновляет положение пассажира,
-     * а clampPassengerYaw() ниже говорит лодке:
-     *
-     * "центральное направление пассажира =
-     *  yaw лодки + 180°".
-     *
-     * Благодаря этому:
-     *
-     * - пассажир сидит задом относительно стандартной
-     *   ориентации лодки;
-     * - он не начинает вращаться;
-     * - игрок может свободно поворачивать камеру;
-     * - лодка сама продолжает использовать обычный yaw;
-     * - физика лодки вообще не меняется.
-     */
-
-    @Override
-    protected void updatePassengerPosition(
-            Entity passenger,
-            Entity.PositionUpdater positionUpdater
-    ) {
-        super.updatePassengerPosition(
-                passenger,
-                positionUpdater
-        );
-    }
-
-    @Override
-    protected void clampPassengerYaw(
-            Entity passenger
-    ) {
-        /*
-         * Центральное направление посадки.
-         *
-         * Обычная BoatEntity использует:
-         *
-         *     boatYaw
-         *
-         * Нам нужно:
-         *
-         *     boatYaw + 180°
-         */
-        float targetYaw =
-                getYaw() + 180.0F;
-
-        /*
-         * Фактическое направление пассажира.
-         */
-        float passengerYaw =
-                passenger.getYaw();
-
-        /*
-         * Разница относительно НОВОГО центра.
-         *
-         * wrapDegrees нужен обязательно,
-         * иначе на переходе через ±180° будет
-         * огромная разница, например:
-         *
-         * 179 -> -179
-         *
-         * вместо нормального 2°.
-         */
-        float delta =
-                MathHelper.wrapDegrees(
-                        passengerYaw - targetYaw
-                );
-
-        /*
-         * Ограничение такое же по смыслу,
-         * как в ванильной лодке.
-         *
-         * Игрок всё ещё может смотреть в стороны,
-         * но Minecraft не пытается развернуть его
-         * обратно через 180°.
-         */
-        float clampedDelta =
-                MathHelper.clamp(
-                        delta,
-                        -105.0F,
-                        105.0F
-                );
-
-        /*
-         * Исправляем prevYaw тоже.
-         *
-         * Это важно для интерполяции:
-         * без этого визуально может появляться
-         * резкий рывок/вращение.
-         */
-        passenger.prevYaw +=
-                clampedDelta - delta;
-
-        float newYaw =
-                passengerYaw
-                        + clampedDelta
-                        - delta;
-
-        passenger.setYaw(
-                newYaw
-        );
-
-        passenger.setHeadYaw(
-                newYaw
-        );
-
-        /*
-         * Тело пассажира тоже должно смотреть
-         * относительно нашей перевёрнутой посадки.
-         */
-        passenger.setBodyYaw(
-                targetYaw
-        );
-    }
-
-    @Override
-    public void onPassengerLookAround(
-            Entity passenger
-    ) {
-        /*
-         * Не задаём yaw вручную здесь.
-         *
-         * Просто применяем нашу модифицированную
-         * ванильную логику ограничения.
-         */
-        clampPassengerYaw(
-                passenger
-        );
-    }
-
-    /*
-     * =====================================================
-     * УРОВЕНЬ TAILWIND
-     * =====================================================
-     */
-
     private int getCurrentTailwindLevel() {
 
         int engineLevel =
@@ -498,12 +330,6 @@ public class SelfPropellingBoatEntity
         return finalLevel;
     }
 
-    /*
-     * =====================================================
-     * СКОРОСТЬ ДВИГАТЕЛЯ
-     * =====================================================
-     */
-
     public double getMaximumSpeed() {
 
         int level =
@@ -553,12 +379,6 @@ public class SelfPropellingBoatEntity
         );
     }
 
-    /*
-     * =====================================================
-     * ДВИГАТЕЛЬ
-     * =====================================================
-     */
-
     public void applySelfPropulsion(
             boolean pressingLeft,
             boolean pressingRight,
@@ -581,6 +401,13 @@ public class SelfPropellingBoatEntity
                         getYaw()
                 );
 
+        /*
+         * Это направление совпадает с ванильной
+         * системой ориентации BoatEntity.
+         *
+         * Не менять знак здесь без проверки,
+         * иначе двигатель будет ехать задом.
+         */
         Vec3d forward =
                 new Vec3d(
                         -Math.sin(radians),
@@ -619,7 +446,7 @@ public class SelfPropellingBoatEntity
             LOGGER.info(
                     "[MinecartMagic DEBUG] Self-propelling boat #{} ENGINE: " +
                             "tailwind={}, currentSpeed={}, targetSpeed={}, maxSpeed={}, " +
-                            "hasFuel={}, water={}, side={}, yaw={}",
+                            "hasFuel={}, water={}, side={}, yaw={}, velocity=({}, {}, {})",
                     getId(),
                     tailwindLevel,
                     currentForwardSpeed,
@@ -630,7 +457,10 @@ public class SelfPropellingBoatEntity
                     clientSide
                             ? "CLIENT"
                             : "SERVER",
-                    getYaw()
+                    getYaw(),
+                    velocity.x,
+                    velocity.y,
+                    velocity.z
             );
         }
 
@@ -866,12 +696,6 @@ public class SelfPropellingBoatEntity
     ) {
         return getId();
     }
-
-    /*
-     * =====================================================
-     * GeckoLib
-     * =====================================================
-     */
 
     @Override
     public void registerControllers(
