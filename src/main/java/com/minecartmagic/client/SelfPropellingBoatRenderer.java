@@ -5,10 +5,12 @@ import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRendererFactory;
+import net.minecraft.client.util.math.MathHelper;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
+import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
 
 public class SelfPropellingBoatRenderer
@@ -27,16 +29,13 @@ public class SelfPropellingBoatRenderer
 
     /*
      * =====================================================
-     * ОРИЕНТАЦИЯ МОДЕЛИ
+     * ОРИЕНТАЦИЯ ЛОДКИ
      * =====================================================
      *
-     * Это наша рабочая ориентация.
+     * Это уже рабочая ориентация нашей модели.
      *
-     * GeckoLib должен получить только один поворот:
-     *
-     * 180 - yaw
-     *
-     * Дополнительного render-поворота больше нет.
+     * В render() НИКАКОЙ дополнительный поворот
+     * больше не выполняется.
      */
     @Override
     protected void applyRotations(
@@ -66,58 +65,67 @@ public class SelfPropellingBoatRenderer
      * WATER MASK
      * =====================================================
      *
-     * ВАЖНО:
+     * Маска вызывается после того, как GeckoLib уже
+     * подготовил PoseStack для нашей сущности.
      *
-     * Здесь больше НЕ используется квадрат размером
-     * 16 x 18 мировых блоков.
-     *
-     * Размер задаётся в координатах модели.
-     *
-     * 1 пиксель модели = 1/16 блока.
+     * Поэтому она получает ТО ЖЕ положение и поворот,
+     * что и модель.
      */
     @Override
-    public void render(
-            SelfPropellingBoatEntity entity,
-            float entityYaw,
-            float partialTick,
+    public void preRender(
             MatrixStack matrices,
-            VertexConsumerProvider vertexConsumers,
-            int packedLight
+            SelfPropellingBoatEntity entity,
+            BakedGeoModel model,
+            @Nullable VertexConsumerProvider vertexConsumers,
+            @Nullable VertexConsumer buffer,
+            boolean isReRender,
+            float partialTick,
+            int packedLight,
+            int packedOverlay,
+            int colour
     ) {
-        /*
-         * Сначала обычная GeckoLib-модель.
-         *
-         * Это сохраняет всю уже рабочую ориентацию,
-         * текстуру, пассажира и анимационную систему.
-         */
-        super.render(
-                entity,
-                entityYaw,
-                partialTick,
+        super.preRender(
                 matrices,
+                entity,
+                model,
                 vertexConsumers,
-                packedLight
+                buffer,
+                isReRender,
+                partialTick,
+                packedLight,
+                packedOverlay,
+                colour
+        );
+
+        if (isReRender || vertexConsumers == null) {
+            return;
+        }
+
+        renderWaterMask(
+                matrices,
+                vertexConsumers
         );
     }
 
     /*
      * =====================================================
-     * WATER MASK
+     * ВОДЯНАЯ МАСКА
      * =====================================================
      *
-     * Рисуем маску в системе координат модели.
+     * ВАЖНО:
      *
-     * Размеры соответствуют внутренней части корпуса:
+     * Координаты geo-модели заданы в ПИКСЕЛЯХ.
      *
-     * X: -13 .. +13
-     * Z: -9  .. +9
+     * Поэтому:
      *
-     * После масштабирования GeckoLib это:
+     * 26 px = 26 / 16 блока
+     * 18 px = 18 / 16 блока
+     * 3 px  =  3 / 16 блока
      *
-     * 26 / 16 = 1.625 блока
-     * 18 / 16 = 1.125 блока
+     * Раньше здесь ошибочно использовались 26 и 18
+     * непосредственно как мировые координаты.
      *
-     * Никаких 16-18 блоков здесь больше нет.
+     * Из-за этого появлялся огромный квадрат над лодкой.
      */
     private void renderWaterMask(
             MatrixStack matrices,
@@ -131,20 +139,39 @@ public class SelfPropellingBoatRenderer
         Matrix4f matrix =
                 matrices.peek().getPositionMatrix();
 
-        float minX = -13.0F / 16.0F;
-        float maxX = 13.0F / 16.0F;
+        /*
+         * Соответствует внутренней области
+         * bottom_no_water из geo-модели.
+         */
+        float minX =
+                -13.0F / 16.0F;
 
-        float minZ = -9.0F / 16.0F;
-        float maxZ = 9.0F / 16.0F;
+        float maxX =
+                13.0F / 16.0F;
+
+        float minZ =
+                -9.0F / 16.0F;
+
+        float maxZ =
+                9.0F / 16.0F;
 
         /*
-         * Внутри лодки.
+         * Поверхность находится всего на 3 px
+         * выше локального нуля модели.
          *
-         * Чуть выше основания,
-         * чтобы вода не находилась перед маской.
+         * Это координата МОДЕЛИ, а не мира.
          */
-        float y = 3.02F / 16.0F;
+        float y =
+                3.0F / 16.0F;
 
+        /*
+         * Рисуем ровно одну плоскость.
+         *
+         * Она не имеет деревянной текстуры.
+         *
+         * RenderLayer.getWaterMask() используется
+         * только для маскирования воды.
+         */
         consumer.vertex(
                 matrix,
                 minX,
