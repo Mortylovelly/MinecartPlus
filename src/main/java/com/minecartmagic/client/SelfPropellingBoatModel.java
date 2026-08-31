@@ -54,26 +54,28 @@ public class SelfPropellingBoatModel
             10L;
 
     /*
-     * Исходные rotations костей из текущей geo-модели.
+     * =====================================================
+     * БАЗОВАЯ ПОЗА ВЁСЕЛ
+     * =====================================================
      *
-     * Они нужны как базовая поза.
+     * Значения соответствуют текущей geo-модели.
      *
-     * GeckoLib хранит rotations в радианах.
+     * GeckoLib хранит rotation костей в радианах.
      */
     private static final float LEFT_BASE_X =
-            (float) Math.toRadians(-63.0D);
+            (float) Math.toRadians(63.0D);
 
     private static final float LEFT_BASE_Y =
-            (float) Math.toRadians(-36.0D);
+            (float) Math.toRadians(36.0D);
 
     private static final float LEFT_BASE_Z =
             (float) Math.toRadians(20.0D);
 
     private static final float RIGHT_BASE_X =
-            (float) Math.toRadians(-63.0D);
+            (float) Math.toRadians(63.0D);
 
     private static final float RIGHT_BASE_Y =
-            (float) Math.toRadians(36.0D);
+            (float) Math.toRadians(-36.0D);
 
     private static final float RIGHT_BASE_Z =
             (float) Math.toRadians(-20.0D);
@@ -175,13 +177,8 @@ public class SelfPropellingBoatModel
 
     /*
      * =====================================================
-     * VANILLA PADDLE ANIMATION
+     * ВАНИЛЬНАЯ ФАЗА ВЁСЕЛ -> GECKOLIB BONES
      * =====================================================
-     *
-     * Никаких циклов из animation.json.
-     *
-     * Берём настоящую фазу весла непосредственно
-     * из BoatEntity.
      */
     @Override
     public void setCustomAnimations(
@@ -194,10 +191,6 @@ public class SelfPropellingBoatModel
                 instanceId,
                 animationState
         );
-
-        if (!isInitialized()) {
-            return;
-        }
 
         GeoBone leftPaddle =
                 getAnimationProcessor()
@@ -219,11 +212,6 @@ public class SelfPropellingBoatModel
         float tickDelta =
                 animationState.getPartialTick();
 
-        /*
-         * =================================================
-         * ЛЕВОЕ ВЕСЛО
-         * =================================================
-         */
         animateVanillaPaddle(
                 animatable,
                 0,
@@ -234,11 +222,6 @@ public class SelfPropellingBoatModel
                 tickDelta
         );
 
-        /*
-         * =================================================
-         * ПРАВОЕ ВЕСЛО
-         * =================================================
-         */
         animateVanillaPaddle(
                 animatable,
                 1,
@@ -260,8 +243,8 @@ public class SelfPropellingBoatModel
             float tickDelta
     ) {
         /*
-         * Ванильная лодка сама определяет,
-         * движется сейчас это весло или нет.
+         * Когда ванильное весло не движется,
+         * возвращаем исходную позу модели.
          */
         if (!boat.isPaddleMoving(side)) {
 
@@ -281,7 +264,7 @@ public class SelfPropellingBoatModel
         }
 
         /*
-         * Настоящая ванильная фаза весла.
+         * Настоящая фаза весла BoatEntity.
          */
         float paddlePhase =
                 boat.interpolatePaddlePhase(
@@ -290,46 +273,35 @@ public class SelfPropellingBoatModel
                 );
 
         /*
-         * Это та же математическая форма,
-         * которую использует vanilla BoatModel.animatePaddle:
-         *
-         * X:
-         * -60° .. -15°
-         *
-         * Y:
-         * -45° .. +45°
-         *
-         * Поскольку наша модель уже имеет свою
-         * базовую ориентацию, здесь применяем
-         * только разницу относительно ванильной
-         * исходной позы.
+         * Диапазон ванильного движения.
          */
         float vanillaX =
                 MathHelper.clampedLerp(
                         -1.0471976F,
                         -0.2617994F,
-                        (MathHelper.sin(
-                                -paddlePhase
-                        ) + 1.0F) / 2.0F
+                        (
+                                MathHelper.sin(
+                                        -paddlePhase
+                                ) + 1.0F
+                        ) / 2.0F
                 );
 
         float vanillaY =
                 MathHelper.clampedLerp(
                         -0.7853982F,
                         0.7853982F,
-                        (MathHelper.sin(
-                                -paddlePhase + 1.0F
-                        ) + 1.0F) / 2.0F
+                        (
+                                MathHelper.sin(
+                                        -paddlePhase + 1.0F
+                                ) + 1.0F
+                        ) / 2.0F
                 );
 
         /*
-         * Vanilla paddle в состоянии покоя:
+         * Положение покоя vanilla-весла:
          *
          * X = -45°
          * Y = 0°
-         *
-         * Поэтому вычисляем именно delta,
-         * а не заменяем исходную позу нашей модели.
          */
         float deltaX =
                 vanillaX - (-0.7853982F);
@@ -338,12 +310,16 @@ public class SelfPropellingBoatModel
                 vanillaY;
 
         /*
-         * У правого весла зеркалим Y.
+         * Зеркалим движение правого весла.
          */
         if (side == 1) {
             deltaY = -deltaY;
         }
 
+        /*
+         * Добавляем ванильное движение
+         * к базовой позе нашей модели.
+         */
         paddle.setRotX(
                 baseX + deltaX
         );
