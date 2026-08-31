@@ -150,16 +150,19 @@ public class SelfPropellingBoatModel
 
     /*
      * =====================================================
-     * VANILLA PADDLE ANIMATION
+     * ВАНИЛЬНАЯ ФАЗА ВЁСЕЛ
      * =====================================================
      *
-     * Здесь НЕ задаём абсолютное положение костей.
+     * GeckoLib сначала применяет обычное состояние
+     * модели через super.setCustomAnimations().
      *
-     * GeckoLib уже загрузил исходные rotations
-     * непосредственно из geo.json.
+     * После этого мы читаем текущую базовую rotation
+     * каждой кости.
      *
-     * Мы только добавляем к ним относительное
-     * движение ванильного весла.
+     * Затем добавляем ТОЛЬКО delta от ванильной
+     * paddle phase.
+     *
+     * Поэтому delta никогда не накапливается.
      */
     @Override
     public void setCustomAnimations(
@@ -193,17 +196,59 @@ public class SelfPropellingBoatModel
         float tickDelta =
                 animationState.getPartialTick();
 
+        /*
+         * Очень важно:
+         *
+         * Считываем базовые rotations ПОСЛЕ super().
+         *
+         * Это реальные значения, которые сейчас
+         * установлены GeckoLib из .geo.json.
+         */
+        float leftBaseX =
+                leftPaddle.getRotX();
+
+        float leftBaseY =
+                leftPaddle.getRotY();
+
+        float leftBaseZ =
+                leftPaddle.getRotZ();
+
+        float rightBaseX =
+                rightPaddle.getRotX();
+
+        float rightBaseY =
+                rightPaddle.getRotY();
+
+        float rightBaseZ =
+                rightPaddle.getRotZ();
+
+        /*
+         * =================================================
+         * ЛЕВОЕ ВЕСЛО
+         * =================================================
+         */
         animateVanillaPaddle(
                 animatable,
                 0,
                 leftPaddle,
+                leftBaseX,
+                leftBaseY,
+                leftBaseZ,
                 tickDelta
         );
 
+        /*
+         * =================================================
+         * ПРАВОЕ ВЕСЛО
+         * =================================================
+         */
         animateVanillaPaddle(
                 animatable,
                 1,
                 rightPaddle,
+                rightBaseX,
+                rightBaseY,
+                rightBaseZ,
                 tickDelta
         );
     }
@@ -212,22 +257,35 @@ public class SelfPropellingBoatModel
             SelfPropellingBoatEntity boat,
             int side,
             GeoBone paddle,
+            float baseX,
+            float baseY,
+            float baseZ,
             float tickDelta
     ) {
         /*
-         * Если ванильное весло сейчас не гребёт,
-         * вообще ничего не меняем.
-         *
-         * Благодаря этому GeckoLib оставляет
-         * ровно ту исходную позу, которую задал
-         * Blockbench в geo.json.
+         * Если ваниль считает, что это весло сейчас
+         * не движется — полностью возвращаем именно
+         * ту базовую позу, которую GeckoLib дал модели.
          */
         if (!boat.isPaddleMoving(side)) {
+
+            paddle.setRotX(
+                    baseX
+            );
+
+            paddle.setRotY(
+                    baseY
+            );
+
+            paddle.setRotZ(
+                    baseZ
+            );
+
             return;
         }
 
         /*
-         * Настоящая фаза ванильного BoatEntity.
+         * Реальная фаза vanilla BoatEntity.
          */
         float paddlePhase =
                 boat.interpolatePaddlePhase(
@@ -236,14 +294,7 @@ public class SelfPropellingBoatModel
                 );
 
         /*
-         * Это диапазоны, используемые vanilla
-         * BoatModel.animatePaddle().
-         *
-         * X:
-         * -60° .. -15°
-         *
-         * Y:
-         * -45° .. +45°
+         * Диапазон движения vanilla BoatModel.
          */
         float vanillaX =
                 MathHelper.clampedLerp(
@@ -268,7 +319,7 @@ public class SelfPropellingBoatModel
                 );
 
         /*
-         * Состояние покоя ванильного весла:
+         * Vanilla resting position:
          *
          * X = -45°
          * Y = 0°
@@ -280,25 +331,36 @@ public class SelfPropellingBoatModel
                 vanillaY;
 
         /*
-         * ВАЖНО:
+         * Правое весло зеркалится относительно левого.
+         */
+        if (side == 1) {
+            deltaY = -deltaY;
+        }
+
+        /*
+         * КРИТИЧЕСКОЕ ОТЛИЧИЕ ОТ ПРОШЛОГО ВАРИАНТА:
          *
-         * Не задаём setRotX(vanillaX).
-         * Не задаём setRotY(vanillaY).
+         * НЕ делаем:
          *
-         * Добавляем только delta к тому,
-         * что уже находится на GeoBone.
+         * paddle.getRotX() + deltaX
          *
-         * Поэтому pivot и положение весла,
-         * созданные в Blockbench, не меняются.
+         * потому что getRotX() уже мог быть изменён
+         * предыдущим кадром.
+         *
+         * Всегда:
+         *
+         * base rotation + delta.
          */
         paddle.setRotX(
-                paddle.getRotX()
-                        + deltaX
+                baseX + deltaX
         );
 
         paddle.setRotY(
-                paddle.getRotY()
-                        + deltaY
+                baseY + deltaY
+        );
+
+        paddle.setRotZ(
+                baseZ
         );
     }
 
