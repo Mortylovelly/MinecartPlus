@@ -5,12 +5,11 @@ import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.fluid.FluidState;
-import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.resource.ResourceManager;
+import net.minecraft.util.math.MathHelper;
 import software.bernie.geckolib.model.GeoModel;
+import software.bernie.geckolib.cache.object.GeoBone;
+import software.bernie.geckolib.animation.AnimationState;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -139,6 +138,125 @@ public class SelfPropellingBoatModel
         );
 
         return animation;
+    }
+
+    @Override
+    public void setCustomAnimations(
+            SelfPropellingBoatEntity animatable,
+            long instanceId,
+            AnimationState<SelfPropellingBoatEntity> animationState
+    ) {
+        super.setCustomAnimations(
+                animatable,
+                instanceId,
+                animationState
+        );
+
+        GeoBone leftPaddle =
+                getAnimationProcessor()
+                        .getBone(
+                                "paddle_left"
+                        );
+
+        GeoBone rightPaddle =
+                getAnimationProcessor()
+                        .getBone(
+                                "paddle_right"
+                        );
+
+        if (leftPaddle == null
+                || rightPaddle == null) {
+            return;
+        }
+
+        float tickDelta =
+                animationState.getPartialTick();
+
+        float leftPhase =
+                animatable.interpolatePaddlePhase(
+                        0,
+                        tickDelta
+                );
+
+        float rightPhase =
+                animatable.interpolatePaddlePhase(
+                        1,
+                        tickDelta
+                );
+
+        /*
+         * Ванильная лодка использует две разные фазы
+         * для левого и правого весла.
+         *
+         * Ниже повторяется принцип ванильной BoatEntityModel:
+         *
+         * yaw  = движение вперед-назад
+         * pitch = движение весла по дуге
+         *
+         * Все значения в радианах.
+         */
+
+        float leftSin =
+                MathHelper.sin(
+                        -leftPhase
+                );
+
+        float rightSin =
+                MathHelper.sin(
+                        -rightPhase
+                );
+
+        float leftYaw =
+                MathHelper.lerp(
+                        (leftSin + 1.0F) * 0.5F,
+                        -0.5235988F,
+                        0.5235988F
+                );
+
+        float rightYaw =
+                MathHelper.lerp(
+                        (rightSin + 1.0F) * 0.5F,
+                        0.5235988F,
+                        -0.5235988F
+                );
+
+        float leftPitch =
+                MathHelper.lerp(
+                        (
+                                MathHelper.sin(
+                                        -leftPhase + 1.0F
+                                ) + 1.0F
+                        ) * 0.5F,
+                        -1.0471976F,
+                        -0.2617994F
+                );
+
+        float rightPitch =
+                MathHelper.lerp(
+                        (
+                                MathHelper.sin(
+                                        -rightPhase + 1.0F
+                                ) + 1.0F
+                        ) * 0.5F,
+                        -1.0471976F,
+                        -0.2617994F
+                );
+
+        leftPaddle.setRotX(
+                leftPitch
+        );
+
+        leftPaddle.setRotY(
+                leftYaw
+        );
+
+        rightPaddle.setRotX(
+                rightPitch
+        );
+
+        rightPaddle.setRotY(
+                rightYaw
+        );
     }
 
     private static void logModel(
