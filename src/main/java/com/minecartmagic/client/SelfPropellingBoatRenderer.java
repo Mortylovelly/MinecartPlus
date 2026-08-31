@@ -1,9 +1,11 @@
 package com.minecartmagic.client;
 
+import com.minecartmagic.ModEnchantments;
 import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.MathHelper;
@@ -59,14 +61,6 @@ public class SelfPropellingBoatRenderer
      * =====================================================
      * BOTTOM_NO_WATER -> VANILLA WATER MASK
      * =====================================================
-     *
-     * Используем уже существующий bone:
-     *
-     * bottom_no_water
-     *
-     * Он не рендерится обычной текстурой.
-     * Вместо этого его геометрия отправляется в
-     * специальный water-mask layer Minecraft.
      */
     @Override
     public void renderRecursively(
@@ -83,24 +77,18 @@ public class SelfPropellingBoatRenderer
             int colour
     ) {
         /*
-         * Именно эту кость используем как маску воды.
+         * =================================================
+         * WATER MASK
+         * =================================================
          */
         if ("bottom_no_water".equals(
                 bone.getName()
         )) {
 
-            /*
-             * Во время re-render GeckoLib
-             * дополнительную маску не создаём.
-             */
             if (!isReRender) {
 
                 matrices.push();
 
-                /*
-                 * Полностью повторяем стандартные
-                 * преобразования конкретного GeoBone.
-                 */
                 software.bernie.geckolib.util.RenderUtil.translateMatrixToBone(
                         matrices,
                         bone
@@ -126,18 +114,11 @@ public class SelfPropellingBoatRenderer
                         bone
                 );
 
-                /*
-                 * Получаем настоящий water-mask layer.
-                 */
                 VertexConsumer waterMaskBuffer =
                         vertexConsumers.getBuffer(
                                 RenderLayer.getWaterMask()
                         );
 
-                /*
-                 * Отрисовываем РЕАЛЬНУЮ геометрию
-                 * bottom_no_water как water mask.
-                 */
                 renderCubesOfBone(
                         matrices,
                         bone,
@@ -150,25 +131,47 @@ public class SelfPropellingBoatRenderer
                 matrices.pop();
             }
 
-            /*
-             * Не отправляем этот bone в обычный
-             * GeckoLib-рендер.
-             *
-             * Поэтому деревянной пластины больше нет.
-             */
             return;
         }
 
         /*
-         * Все остальные кости работают как раньше.
+         * =================================================
+         * VANILLA ENCHANTMENT GLINT
+         * =================================================
+         *
+         * Если у лодки есть Tailwind:
+         *
+         * обычный buffer заменяется на настоящий
+         * vanilla enchanted-item glint consumer.
+         *
+         * При этом сам GeckoLib render остаётся тем же.
          */
+        VertexConsumer actualBuffer =
+                buffer;
+
+        int tailwindLevel =
+                ModEnchantments.getTailwindLevel(
+                        entity
+                );
+
+        if (tailwindLevel > 0) {
+
+            actualBuffer =
+                    ItemRenderer.getItemGlintConsumer(
+                            vertexConsumers,
+                            renderLayer,
+                            false,
+                            true
+                    );
+        }
+
         super.renderRecursively(
                 matrices,
                 entity,
                 bone,
                 renderLayer,
                 vertexConsumers,
-                buffer,
+                actualBuffer,
                 isReRender,
                 partialTick,
                 packedLight,
@@ -181,9 +184,6 @@ public class SelfPropellingBoatRenderer
      * =====================================================
      * PRE-RENDER
      * =====================================================
-     *
-     * Здесь больше ничего не создаём.
-     * Никаких дополнительных квадратов.
      */
     @Override
     public void preRender(
