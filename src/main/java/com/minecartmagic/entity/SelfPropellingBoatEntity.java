@@ -31,6 +31,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.bernie.geckolib.animatable.GeoEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.animation.AnimationController;
+import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.animation.PlayState;
+import software.bernie.geckolib.animation.RawAnimation;
 import software.bernie.geckolib.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
@@ -69,11 +73,27 @@ public class SelfPropellingBoatEntity
     private static final float STEERING_SPEED = 2.5F;
 
     /*
-     * Сдвиг пассажира вперёд.
-     *
-     * 3 пикселя = 3 / 16 блока.
+     * 3 пикселя вперёд.
      */
-    private static final double PASSENGER_FORWARD_OFFSET = 3.0D / 16.0D;
+    private static final double PASSENGER_FORWARD_OFFSET =
+            3.0D / 16.0D;
+
+    /*
+     * =====================================================
+     * GECKOLIB АНИМАЦИИ ВЁСЕЛ
+     * =====================================================
+     */
+    private static final RawAnimation PADDLE_LEFT_ANIMATION =
+            RawAnimation.begin()
+                    .thenLoop(
+                            "animation.self_propeled_boat.paddle_left"
+                    );
+
+    private static final RawAnimation PADDLE_RIGHT_ANIMATION =
+            RawAnimation.begin()
+                    .thenLoop(
+                            "animation.self_propeled_boat.paddle_right"
+                    );
 
     private int debugTickCounter = 0;
 
@@ -108,12 +128,6 @@ public class SelfPropellingBoatEntity
      * =====================================================
      * ПОЛОЖЕНИЕ ПАССАЖИРА
      * =====================================================
-     *
-     * Ванильная BoatEntity сама вычисляет позицию пассажира.
-     *
-     * Мы не телепортируем игрока каждый тик.
-     * Вместо этого берём ванильную позицию и аккуратно
-     * сдвигаем её на 3 пикселя вперёд относительно лодки.
      */
     @Override
     protected Vec3d getPassengerAttachmentPos(
@@ -433,6 +447,16 @@ public class SelfPropellingBoatEntity
             return;
         }
 
+        /*
+         * При работающем двигателе:
+         *
+         * A/D = руление
+         * W/S = отключены для физики двигателя.
+         *
+         * Ванильное BoatEntity всё равно получает
+         * состояние inputs и само определяет состояние
+         * весел.
+         */
         super.setInputs(
                 pressingLeft,
                 pressingRight,
@@ -766,13 +790,71 @@ public class SelfPropellingBoatEntity
         return getId();
     }
 
+    /*
+     * =====================================================
+     * GECKOLIB
+     * =====================================================
+     */
     @Override
     public void registerControllers(
             AnimatableManager.ControllerRegistrar controllers
     ) {
+
         /*
-         * Анимаций пока нет.
+         * ЛЕВОЕ ВЕСЛО
+         *
+         * Используем ванильное состояние BoatEntity.
          */
+        controllers.add(
+                new AnimationController<>(
+                        this,
+                        "PaddleLeft",
+                        0,
+                        this::paddleLeftController
+                )
+        );
+
+        /*
+         * ПРАВОЕ ВЕСЛО
+         */
+        controllers.add(
+                new AnimationController<>(
+                        this,
+                        "PaddleRight",
+                        0,
+                        this::paddleRightController
+                )
+        );
+    }
+
+    private <E extends SelfPropellingBoatEntity>
+    PlayState paddleLeftController(
+            AnimationState<E> state
+    ) {
+
+        SelfPropellingBoatEntity boat =
+                state.getAnimatable();
+
+        return boat.isPaddleMoving(0)
+                ? state.setAndContinue(
+                        PADDLE_LEFT_ANIMATION
+                )
+                : PlayState.STOP;
+    }
+
+    private <E extends SelfPropellingBoatEntity>
+    PlayState paddleRightController(
+            AnimationState<E> state
+    ) {
+
+        SelfPropellingBoatEntity boat =
+                state.getAnimatable();
+
+        return boat.isPaddleMoving(1)
+                ? state.setAndContinue(
+                        PADDLE_RIGHT_ANIMATION
+                )
+                : PlayState.STOP;
     }
 
     @Override
