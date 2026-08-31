@@ -5,11 +5,10 @@ import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.fluid.FluidState;
-import net.minecraft.registry.tag.FluidTags;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.resource.ResourceManager;
+import software.bernie.geckolib.animation.AnimationState;
+import software.bernie.geckolib.cache.object.GeoBone;
 import software.bernie.geckolib.model.GeoModel;
 
 import java.util.HashMap;
@@ -53,6 +52,31 @@ public class SelfPropellingBoatModel
 
     private static final long DEBUG_INTERVAL =
             10L;
+
+    /*
+     * Исходные rotations костей из текущей geo-модели.
+     *
+     * Они нужны как базовая поза.
+     *
+     * GeckoLib хранит rotations в радианах.
+     */
+    private static final float LEFT_BASE_X =
+            (float) Math.toRadians(-63.0D);
+
+    private static final float LEFT_BASE_Y =
+            (float) Math.toRadians(-36.0D);
+
+    private static final float LEFT_BASE_Z =
+            (float) Math.toRadians(20.0D);
+
+    private static final float RIGHT_BASE_X =
+            (float) Math.toRadians(-63.0D);
+
+    private static final float RIGHT_BASE_Y =
+            (float) Math.toRadians(36.0D);
+
+    private static final float RIGHT_BASE_Z =
+            (float) Math.toRadians(-20.0D);
 
     @Override
     public Identifier getModelResource(
@@ -147,6 +171,190 @@ public class SelfPropellingBoatModel
         );
 
         return animation;
+    }
+
+    /*
+     * =====================================================
+     * VANILLA PADDLE ANIMATION
+     * =====================================================
+     *
+     * Никаких циклов из animation.json.
+     *
+     * Берём настоящую фазу весла непосредственно
+     * из BoatEntity.
+     */
+    @Override
+    public void setCustomAnimations(
+            SelfPropellingBoatEntity animatable,
+            long instanceId,
+            AnimationState<SelfPropellingBoatEntity> animationState
+    ) {
+        super.setCustomAnimations(
+                animatable,
+                instanceId,
+                animationState
+        );
+
+        if (!isInitialized()) {
+            return;
+        }
+
+        GeoBone leftPaddle =
+                getAnimationProcessor()
+                        .getBone(
+                                "paddle_left"
+                        );
+
+        GeoBone rightPaddle =
+                getAnimationProcessor()
+                        .getBone(
+                                "paddle_right"
+                        );
+
+        if (leftPaddle == null
+                || rightPaddle == null) {
+            return;
+        }
+
+        float tickDelta =
+                animationState.getPartialTick();
+
+        /*
+         * =================================================
+         * ЛЕВОЕ ВЕСЛО
+         * =================================================
+         */
+        animateVanillaPaddle(
+                animatable,
+                0,
+                leftPaddle,
+                LEFT_BASE_X,
+                LEFT_BASE_Y,
+                LEFT_BASE_Z,
+                tickDelta
+        );
+
+        /*
+         * =================================================
+         * ПРАВОЕ ВЕСЛО
+         * =================================================
+         */
+        animateVanillaPaddle(
+                animatable,
+                1,
+                rightPaddle,
+                RIGHT_BASE_X,
+                RIGHT_BASE_Y,
+                RIGHT_BASE_Z,
+                tickDelta
+        );
+    }
+
+    private static void animateVanillaPaddle(
+            SelfPropellingBoatEntity boat,
+            int side,
+            GeoBone paddle,
+            float baseX,
+            float baseY,
+            float baseZ,
+            float tickDelta
+    ) {
+        /*
+         * Ванильная лодка сама определяет,
+         * движется сейчас это весло или нет.
+         */
+        if (!boat.isPaddleMoving(side)) {
+
+            paddle.setRotX(
+                    baseX
+            );
+
+            paddle.setRotY(
+                    baseY
+            );
+
+            paddle.setRotZ(
+                    baseZ
+            );
+
+            return;
+        }
+
+        /*
+         * Настоящая ванильная фаза весла.
+         */
+        float paddlePhase =
+                boat.interpolatePaddlePhase(
+                        side,
+                        tickDelta
+                );
+
+        /*
+         * Это та же математическая форма,
+         * которую использует vanilla BoatModel.animatePaddle:
+         *
+         * X:
+         * -60° .. -15°
+         *
+         * Y:
+         * -45° .. +45°
+         *
+         * Поскольку наша модель уже имеет свою
+         * базовую ориентацию, здесь применяем
+         * только разницу относительно ванильной
+         * исходной позы.
+         */
+        float vanillaX =
+                MathHelper.clampedLerp(
+                        -1.0471976F,
+                        -0.2617994F,
+                        (MathHelper.sin(
+                                -paddlePhase
+                        ) + 1.0F) / 2.0F
+                );
+
+        float vanillaY =
+                MathHelper.clampedLerp(
+                        -0.7853982F,
+                        0.7853982F,
+                        (MathHelper.sin(
+                                -paddlePhase + 1.0F
+                        ) + 1.0F) / 2.0F
+                );
+
+        /*
+         * Vanilla paddle в состоянии покоя:
+         *
+         * X = -45°
+         * Y = 0°
+         *
+         * Поэтому вычисляем именно delta,
+         * а не заменяем исходную позу нашей модели.
+         */
+        float deltaX =
+                vanillaX - (-0.7853982F);
+
+        float deltaY =
+                vanillaY;
+
+        /*
+         * У правого весла зеркалим Y.
+         */
+        if (side == 1) {
+            deltaY = -deltaY;
+        }
+
+        paddle.setRotX(
+                baseX + deltaX
+        );
+
+        paddle.setRotY(
+                baseY + deltaY
+        );
+
+        paddle.setRotZ(
+                baseZ
+        );
     }
 
     private static void logModel(
