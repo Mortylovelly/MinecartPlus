@@ -4,11 +4,12 @@ import com.minecartmagic.MinecartMagicMod;
 import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.vehicle.BoatEntity;
-import net.minecraft.resource.ResourceManager;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.cache.object.GeoBone;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.fluid.FluidState;
+import net.minecraft.registry.tag.FluidTags;
+import net.minecraft.resource.ResourceManager;
 import software.bernie.geckolib.model.GeoModel;
 
 import java.util.HashMap;
@@ -31,11 +32,6 @@ public class SelfPropellingBoatModel
     private static final Identifier WOOD_ANIMATIONS =
             MinecartMagicMod.id(
                     "animations/entity/self_propeled_boat.animation.json"
-            );
-
-    private static final Identifier BAMBOO_ANIMATIONS =
-            MinecartMagicMod.id(
-                    "animations/entity/self_propeled_bamboo_raft.animation.json"
             );
 
     private static final Map<Integer, Long> LAST_DEBUG_LOG_TICK =
@@ -108,7 +104,7 @@ public class SelfPropellingBoatModel
                             "self_propeled_cherry_boat";
 
                     case BAMBOO ->
-                            "self_propeled_bamboo_raft";
+                            "self_propelled_bamboo_raft";
 
                     case OAK ->
                             "self_propeled_oak_boat";
@@ -135,10 +131,7 @@ public class SelfPropellingBoatModel
             SelfPropellingBoatEntity animatable
     ) {
         Identifier animation =
-                animatable.getVariant()
-                        == BoatEntity.Type.BAMBOO
-                        ? BAMBOO_ANIMATIONS
-                        : WOOD_ANIMATIONS;
+                WOOD_ANIMATIONS;
 
         logAnimation(
                 animatable,
@@ -146,222 +139,6 @@ public class SelfPropellingBoatModel
         );
 
         return animation;
-    }
-
-    /*
-     * =====================================================
-     * ВАНИЛЬНАЯ ФАЗА ВЁСЕЛ
-     * =====================================================
-     *
-     * GeckoLib сначала применяет обычное состояние
-     * модели через super.setCustomAnimations().
-     *
-     * После этого мы читаем текущую базовую rotation
-     * каждой кости.
-     *
-     * Затем добавляем ТОЛЬКО delta от ванильной
-     * paddle phase.
-     *
-     * Поэтому delta никогда не накапливается.
-     */
-    @Override
-    public void setCustomAnimations(
-            SelfPropellingBoatEntity animatable,
-            long instanceId,
-            AnimationState<SelfPropellingBoatEntity> animationState
-    ) {
-        super.setCustomAnimations(
-                animatable,
-                instanceId,
-                animationState
-        );
-
-        GeoBone leftPaddle =
-                getAnimationProcessor()
-                        .getBone(
-                                "paddle_left"
-                        );
-
-        GeoBone rightPaddle =
-                getAnimationProcessor()
-                        .getBone(
-                                "paddle_right"
-                        );
-
-        if (leftPaddle == null
-                || rightPaddle == null) {
-            return;
-        }
-
-        float tickDelta =
-                animationState.getPartialTick();
-
-        /*
-         * Очень важно:
-         *
-         * Считываем базовые rotations ПОСЛЕ super().
-         *
-         * Это реальные значения, которые сейчас
-         * установлены GeckoLib из .geo.json.
-         */
-        float leftBaseX =
-                leftPaddle.getRotX();
-
-        float leftBaseY =
-                leftPaddle.getRotY();
-
-        float leftBaseZ =
-                leftPaddle.getRotZ();
-
-        float rightBaseX =
-                rightPaddle.getRotX();
-
-        float rightBaseY =
-                rightPaddle.getRotY();
-
-        float rightBaseZ =
-                rightPaddle.getRotZ();
-
-        /*
-         * =================================================
-         * ЛЕВОЕ ВЕСЛО
-         * =================================================
-         */
-        animateVanillaPaddle(
-                animatable,
-                0,
-                leftPaddle,
-                leftBaseX,
-                leftBaseY,
-                leftBaseZ,
-                tickDelta
-        );
-
-        /*
-         * =================================================
-         * ПРАВОЕ ВЕСЛО
-         * =================================================
-         */
-        animateVanillaPaddle(
-                animatable,
-                1,
-                rightPaddle,
-                rightBaseX,
-                rightBaseY,
-                rightBaseZ,
-                tickDelta
-        );
-    }
-
-    private static void animateVanillaPaddle(
-            SelfPropellingBoatEntity boat,
-            int side,
-            GeoBone paddle,
-            float baseX,
-            float baseY,
-            float baseZ,
-            float tickDelta
-    ) {
-        /*
-         * Если ваниль считает, что это весло сейчас
-         * не движется — полностью возвращаем именно
-         * ту базовую позу, которую GeckoLib дал модели.
-         */
-        if (!boat.isPaddleMoving(side)) {
-
-            paddle.setRotX(
-                    baseX
-            );
-
-            paddle.setRotY(
-                    baseY
-            );
-
-            paddle.setRotZ(
-                    baseZ
-            );
-
-            return;
-        }
-
-        /*
-         * Реальная фаза vanilla BoatEntity.
-         */
-        float paddlePhase =
-                boat.interpolatePaddlePhase(
-                        side,
-                        tickDelta
-                );
-
-        /*
-         * Диапазон движения vanilla BoatModel.
-         */
-        float vanillaX =
-                MathHelper.clampedLerp(
-                        -1.0471976F,
-                        -0.2617994F,
-                        (
-                                MathHelper.sin(
-                                        -paddlePhase
-                                ) + 1.0F
-                        ) / 2.0F
-                );
-
-        float vanillaY =
-                MathHelper.clampedLerp(
-                        -0.7853982F,
-                        0.7853982F,
-                        (
-                                MathHelper.sin(
-                                        -paddlePhase + 1.0F
-                                ) + 1.0F
-                        ) / 2.0F
-                );
-
-        /*
-         * Vanilla resting position:
-         *
-         * X = -45°
-         * Y = 0°
-         */
-        float deltaX =
-                vanillaX + 0.7853982F;
-
-        float deltaY =
-                vanillaY;
-
-        /*
-         * Правое весло зеркалится относительно левого.
-         */
-        if (side == 1) {
-            deltaY = -deltaY;
-        }
-
-        /*
-         * КРИТИЧЕСКОЕ ОТЛИЧИЕ ОТ ПРОШЛОГО ВАРИАНТА:
-         *
-         * НЕ делаем:
-         *
-         * paddle.getRotX() + deltaX
-         *
-         * потому что getRotX() уже мог быть изменён
-         * предыдущим кадром.
-         *
-         * Всегда:
-         *
-         * base rotation + delta.
-         */
-        paddle.setRotX(
-                baseX + deltaX
-        );
-
-        paddle.setRotY(
-                baseY + deltaY
-        );
-
-        paddle.setRotZ(
-                baseZ
-        );
     }
 
     private static void logModel(
