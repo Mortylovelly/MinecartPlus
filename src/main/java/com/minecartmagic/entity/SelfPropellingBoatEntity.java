@@ -4,6 +4,8 @@ import com.minecartmagic.ModEnchantments;
 import com.minecartmagic.ModItems;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityDimensions;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
@@ -59,31 +61,20 @@ public class SelfPropellingBoatEntity
 
     private static final int MAX_PASSENGERS = 1;
 
-    /*
-     * =====================================================
-     * СКОРОСТИ ДВИГАТЕЛЯ
-     * =====================================================
-     *
-     * Без Tailwind = 0.50
-     * Tailwind I   = 0.65
-     * Tailwind II  = 0.75
-     * Tailwind III = 0.88
-     */
     private static final double ENGINE_SPEED_NO_TAILWIND = 0.50D;
     private static final double ENGINE_SPEED_TAILWIND_I = 0.65D;
     private static final double ENGINE_SPEED_TAILWIND_II = 0.75D;
     private static final double ENGINE_SPEED_TAILWIND_III = 0.88D;
 
-    /*
-     * Скорость руления.
-     */
     private static final float STEERING_SPEED = 2.5F;
 
     /*
-     * =====================================================
-     * DEBUG
-     * =====================================================
+     * Сдвиг пассажира вперёд.
+     *
+     * 3 пикселя = 3 / 16 блока.
      */
+    private static final double PASSENGER_FORWARD_OFFSET = 3.0D / 16.0D;
+
     private int debugTickCounter = 0;
 
     private int debugLastEngineLevel = -1;
@@ -93,11 +84,6 @@ public class SelfPropellingBoatEntity
     private final SimpleInventory fuelInventory =
             new SimpleInventory(1);
 
-    /*
-     * =====================================================
-     * GeckoLib
-     * =====================================================
-     */
     private final AnimatableInstanceCache geoCache =
             GeckoLibUtil.createInstanceCache(this);
 
@@ -116,6 +102,54 @@ public class SelfPropellingBoatEntity
     @Override
     protected int getMaxPassengers() {
         return MAX_PASSENGERS;
+    }
+
+    /*
+     * =====================================================
+     * ПОЛОЖЕНИЕ ПАССАЖИРА
+     * =====================================================
+     *
+     * Ванильная BoatEntity сама вычисляет позицию пассажира.
+     *
+     * Мы не телепортируем игрока каждый тик.
+     * Вместо этого берём ванильную позицию и аккуратно
+     * сдвигаем её на 3 пикселя вперёд относительно лодки.
+     */
+    @Override
+    protected Vec3d getPassengerAttachmentPos(
+            Entity passenger,
+            EntityDimensions dimensions,
+            float scaleFactor
+    ) {
+        Vec3d vanillaPosition =
+                super.getPassengerAttachmentPos(
+                        passenger,
+                        dimensions,
+                        scaleFactor
+                );
+
+        Vec3d forward =
+                getRotationVec(1.0F);
+
+        forward =
+                new Vec3d(
+                        forward.x,
+                        0.0D,
+                        forward.z
+                );
+
+        if (forward.lengthSquared() < 1.0E-8D) {
+            return vanillaPosition;
+        }
+
+        forward =
+                forward.normalize();
+
+        return vanillaPosition.add(
+                forward.multiply(
+                        PASSENGER_FORWARD_OFFSET
+                )
+        );
     }
 
     @Override
@@ -358,11 +392,6 @@ public class SelfPropellingBoatEntity
         return finalLevel;
     }
 
-    /*
-     * =====================================================
-     * СКОРОСТЬ ДВИГАТЕЛЯ
-     * =====================================================
-     */
     public double getMaximumSpeed() {
 
         int level =
@@ -404,12 +433,6 @@ public class SelfPropellingBoatEntity
             return;
         }
 
-        /*
-         * При работающем двигателе:
-         *
-         * A/D = руление
-         * W/S = отключены
-         */
         super.setInputs(
                 pressingLeft,
                 pressingRight,
@@ -418,11 +441,6 @@ public class SelfPropellingBoatEntity
         );
     }
 
-    /*
-     * =====================================================
-     * ДВИГАТЕЛЬ
-     * =====================================================
-     */
     public void applySelfPropulsion(
             boolean pressingLeft,
             boolean pressingRight,
@@ -437,17 +455,6 @@ public class SelfPropellingBoatEntity
             return;
         }
 
-        /*
-         * Пустая лодка:
-         *
-         * двигатель меняется только на сервере.
-         *
-         * Лодка с пассажиром:
-         *
-         * двигатель применяется и на клиенте,
-         * чтобы сохраниться нормальное клиентское
-         * предсказание движения.
-         */
         if (clientSide && getPassengerList().isEmpty()) {
             return;
         }
@@ -455,19 +462,9 @@ public class SelfPropellingBoatEntity
         Vec3d velocity =
                 getVelocity();
 
-        /*
-         * Используем реальный rotation vector
-         * BoatEntity.
-         *
-         * Поэтому направление двигателя совпадает
-         * с направлением самой лодки.
-         */
         Vec3d forward =
                 getRotationVec(1.0F);
 
-        /*
-         * Только горизонтальная составляющая.
-         */
         forward =
                 new Vec3d(
                         forward.x,
@@ -488,9 +485,6 @@ public class SelfPropellingBoatEntity
         double targetSpeed =
                 getMaximumSpeed();
 
-        /*
-         * Скорость вдоль текущего направления лодки.
-         */
         double currentForwardSpeed =
                 velocity.x * forward.x
                         + velocity.z * forward.z;
@@ -501,9 +495,6 @@ public class SelfPropellingBoatEntity
                         currentForwardSpeed
                 );
 
-        /*
-         * Не сбрасываем скорость ниже уже набранной.
-         */
         if (currentForwardSpeed > targetSpeed) {
 
             targetSpeed =
@@ -542,10 +533,6 @@ public class SelfPropellingBoatEntity
             );
         }
 
-        /*
-         * Применяем тягу строго вперёд относительно
-         * текущего направления BoatEntity.
-         */
         setVelocity(
                 forward.x * targetSpeed,
                 velocity.y,
@@ -778,12 +765,6 @@ public class SelfPropellingBoatEntity
     ) {
         return getId();
     }
-
-    /*
-     * =====================================================
-     * GeckoLib
-     * =====================================================
-     */
 
     @Override
     public void registerControllers(
