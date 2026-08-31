@@ -5,8 +5,8 @@ import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
+import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
@@ -80,6 +80,9 @@ public class SelfPropellingBoatRenderer
          * =================================================
          * WATER MASK
          * =================================================
+         *
+         * Этот bone НЕ должен получать обычную текстуру
+         * и НЕ должен получать glint.
          */
         if ("bottom_no_water".equals(
                 bone.getName()
@@ -136,25 +139,43 @@ public class SelfPropellingBoatRenderer
 
         /*
          * =================================================
-         * VANILLA ENCHANTMENT GLINT
+         * TAILWIND GLINT
          * =================================================
          *
-         * Если у лодки есть Tailwind:
+         * Уровень берём из уже существующей системы
+         * самоходной лодки.
          *
-         * обычный buffer заменяется на настоящий
-         * vanilla enchanted-item glint consumer.
+         * getEngineTailwindLevel() содержит уровень,
+         * перенесённый на entity.
          *
-         * При этом сам GeckoLib render остаётся тем же.
+         * Дополнительно проверяем attachment, чтобы
+         * enchanted-состояние не потерялось, если
+         * entity ещё не успела скопировать его
+         * в engine level.
          */
-        VertexConsumer actualBuffer =
-                buffer;
+        int engineTailwindLevel =
+                entity.getEngineTailwindLevel();
 
-        int tailwindLevel =
+        int attachmentTailwindLevel =
                 ModEnchantments.getTailwindLevel(
                         entity
                 );
 
-        if (tailwindLevel > 0) {
+        boolean enchanted =
+                engineTailwindLevel > 0
+                        || attachmentTailwindLevel > 0;
+
+        VertexConsumer actualBuffer =
+                buffer;
+
+        /*
+         * Используем настоящий vanilla item glint.
+         *
+         * Никакой собственной текстуры,
+         * никакого второго model.render().
+         */
+        if (enchanted
+                && vertexConsumers != null) {
 
             actualBuffer =
                     ItemRenderer.getItemGlintConsumer(
@@ -165,6 +186,10 @@ public class SelfPropellingBoatRenderer
                     );
         }
 
+        /*
+         * Все обычные bones рендерим через GeckoLib,
+         * только с заменённым buffer для glint.
+         */
         super.renderRecursively(
                 matrices,
                 entity,
