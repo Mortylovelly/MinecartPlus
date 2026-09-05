@@ -63,8 +63,8 @@
 					]
 				},
 				{
-					"name": "paddle_left",
-					"pivot": [10, 8, -4],
+					"name": "paddle_right",
+					"pivot": [-10, 8, -4],
 					"rotation": [-84.91748, -71.41532, 154.00535],
 					"cubes": [
 						{"origin": [10, 7, -15], "size": [2, 2, 18], "uv": [63, 1]},
@@ -80,8 +80,8 @@
 					]
 				},
 				{
-					"name": "paddle_right",
-					"pivot": [-10, 8, -4],
+					"name": "paddle_left",
+					"pivot": [10, 8, -4],
 					"rotation": [-84.91748, 71.41532, -154.00535],
 					"cubes": [
 						{"origin": [-12, 7, -15], "size": [2, 2, 18], "uv": [63, 1], "mirror": true},
