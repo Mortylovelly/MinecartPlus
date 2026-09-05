@@ -5,8 +5,8 @@ import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
+import software.bernie.geckolib.animation.AnimationState;
 import software.bernie.geckolib.cache.object.GeoBone;
-import software.bernie.geckolib.core.animation.AnimationState;
 import software.bernie.geckolib.model.GeoModel;
 
 public class SelfPropellingBoatModel
@@ -140,10 +140,6 @@ public class SelfPropellingBoatModel
                         tickDelta
                 );
 
-        /*
-         * Используем ту же фазу, что и ванильная лодка,
-         * но приводим результат к системе координат GeckoLib.
-         */
         float leftSin =
                 MathHelper.sin(-leftPhase);
 
@@ -157,12 +153,9 @@ public class SelfPropellingBoatModel
                 (rightSin + 1.0F) * 0.5F;
 
         /*
-         * Важный фикс:
-         *
-         * Раньше pitch был отрицательным, из-за чего
-         * весло визуально гребло перевёрнутым движением.
-         *
-         * Теперь направление pitch инвертировано.
+         * Направление pitch инвертировано относительно
+         * предыдущей версии, чтобы движение весла
+         * происходило в правильную сторону.
          */
         float leftPitch =
                 MathHelper.lerp(
@@ -179,8 +172,7 @@ public class SelfPropellingBoatModel
                 );
 
         /*
-         * Левая и правая стороны должны вращаться
-         * зеркально по yaw.
+         * Левая и правая стороны вращаются зеркально.
          */
         float leftYaw =
                 MathHelper.lerp(
