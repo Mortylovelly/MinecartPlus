@@ -2,18 +2,12 @@ package com.minecartmagic.client;
 
 import com.minecartmagic.MinecartMagicMod;
 import com.minecartmagic.entity.SelfPropellingBoatEntity;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.util.Identifier;
-import net.minecraft.resource.ResourceManager;
 import net.minecraft.util.math.MathHelper;
-import software.bernie.geckolib.model.GeoModel;
 import software.bernie.geckolib.cache.object.GeoBone;
-import software.bernie.geckolib.animation.AnimationState;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.model.GeoModel;
 
 public class SelfPropellingBoatModel
         extends GeoModel<SelfPropellingBoatEntity> {
@@ -33,37 +27,14 @@ public class SelfPropellingBoatModel
                     "animations/entity/self_propeled_boat.animation.json"
             );
 
-    private static final Map<Integer, Long> LAST_DEBUG_LOG_TICK =
-            new HashMap<>();
-
-    private static final Map<Integer, String> LAST_MODEL_LOG =
-            new HashMap<>();
-
-    private static final Map<Integer, String> LAST_TEXTURE_LOG =
-            new HashMap<>();
-
-    private static final Map<Integer, String> LAST_ANIMATION_LOG =
-            new HashMap<>();
-
-    private static final long DEBUG_INTERVAL =
-            10L;
-
     @Override
     public Identifier getModelResource(
             SelfPropellingBoatEntity animatable
     ) {
-        Identifier model =
-                animatable.getVariant()
-                        == BoatEntity.Type.BAMBOO
-                        ? BAMBOO_MODEL
-                        : WOOD_MODEL;
-
-        logModel(
-                animatable,
-                model
-        );
-
-        return model;
+        return animatable.getVariant()
+                == BoatEntity.Type.BAMBOO
+                ? BAMBOO_MODEL
+                : WOOD_MODEL;
     }
 
     @Override
@@ -109,35 +80,24 @@ public class SelfPropellingBoatModel
                             "self_propeled_oak_boat";
                 };
 
-        Identifier texture =
-                MinecartMagicMod.id(
-                        "textures/entity/"
-                                + name
-                                + suffix
-                                + ".png"
-                );
-
-        logTexture(
-                animatable,
-                texture
+        return MinecartMagicMod.id(
+                "textures/entity/"
+                        + name
+                        + suffix
+                        + ".png"
         );
-
-        return texture;
     }
 
     @Override
     public Identifier getAnimationResource(
             SelfPropellingBoatEntity animatable
     ) {
-        Identifier animation =
-                WOOD_ANIMATIONS;
-
-        logAnimation(
-                animatable,
-                animation
-        );
-
-        return animation;
+        /*
+         * Вёсла анимируются напрямую через
+         * setCustomAnimations(), поэтому отдельный
+         * animation.json для бамбука здесь не нужен.
+         */
+        return WOOD_ANIMATIONS;
     }
 
     @Override
@@ -154,15 +114,11 @@ public class SelfPropellingBoatModel
 
         GeoBone leftPaddle =
                 getAnimationProcessor()
-                        .getBone(
-                                "paddle_left"
-                        );
+                        .getBone("paddle_left");
 
         GeoBone rightPaddle =
                 getAnimationProcessor()
-                        .getBone(
-                                "paddle_right"
-                        );
+                        .getBone("paddle_right");
 
         if (leftPaddle == null
                 || rightPaddle == null) {
@@ -185,227 +141,65 @@ public class SelfPropellingBoatModel
                 );
 
         /*
-         * Ванильная лодка использует две разные фазы
-         * для левого и правого весла.
-         *
-         * Ниже повторяется принцип ванильной BoatEntityModel:
-         *
-         * yaw  = движение вперед-назад
-         * pitch = движение весла по дуге
-         *
-         * Все значения в радианах.
+         * Используем ту же фазу, что и ванильная лодка,
+         * но приводим результат к системе координат GeckoLib.
          */
-
         float leftSin =
-                MathHelper.sin(
-                        -leftPhase
-                );
+                MathHelper.sin(-leftPhase);
 
         float rightSin =
-                MathHelper.sin(
-                        -rightPhase
-                );
+                MathHelper.sin(-rightPhase);
 
-        float leftYaw =
-                MathHelper.lerp(
-                        (leftSin + 1.0F) * 0.5F,
-                        -0.5235988F,
-                        0.5235988F
-                );
+        float leftT =
+                (leftSin + 1.0F) * 0.5F;
 
-        float rightYaw =
-                MathHelper.lerp(
-                        (rightSin + 1.0F) * 0.5F,
-                        0.5235988F,
-                        -0.5235988F
-                );
+        float rightT =
+                (rightSin + 1.0F) * 0.5F;
 
+        /*
+         * Важный фикс:
+         *
+         * Раньше pitch был отрицательным, из-за чего
+         * весло визуально гребло перевёрнутым движением.
+         *
+         * Теперь направление pitch инвертировано.
+         */
         float leftPitch =
                 MathHelper.lerp(
-                        (
-                                MathHelper.sin(
-                                        -leftPhase + 1.0F
-                                ) + 1.0F
-                        ) * 0.5F,
-                        -1.0471976F,
-                        -0.2617994F
+                        leftT,
+                        1.0471976F,
+                        0.2617994F
                 );
 
         float rightPitch =
                 MathHelper.lerp(
-                        (
-                                MathHelper.sin(
-                                        -rightPhase + 1.0F
-                                ) + 1.0F
-                        ) * 0.5F,
-                        -1.0471976F,
-                        -0.2617994F
+                        rightT,
+                        1.0471976F,
+                        0.2617994F
                 );
 
-        leftPaddle.setRotX(
-                leftPitch
-        );
+        /*
+         * Левая и правая стороны должны вращаться
+         * зеркально по yaw.
+         */
+        float leftYaw =
+                MathHelper.lerp(
+                        leftT,
+                        -0.7853982F,
+                        0.7853982F
+                );
 
-        leftPaddle.setRotY(
-                leftYaw
-        );
+        float rightYaw =
+                MathHelper.lerp(
+                        rightT,
+                        0.7853982F,
+                        -0.7853982F
+                );
 
-        rightPaddle.setRotX(
-                rightPitch
-        );
+        leftPaddle.setRotX(leftPitch);
+        leftPaddle.setRotY(leftYaw);
 
-        rightPaddle.setRotY(
-                rightYaw
-        );
-    }
-
-    private static void logModel(
-            SelfPropellingBoatEntity boat,
-            Identifier model
-    ) {
-        if (!boat.getWorld().isClient()) {
-            return;
-        }
-
-        long tick =
-                boat.getWorld().getTime();
-
-        int id =
-                boat.getId();
-
-        Long lastTick =
-                LAST_DEBUG_LOG_TICK.get(id);
-
-        if (lastTick != null
-                && tick - lastTick < DEBUG_INTERVAL) {
-            return;
-        }
-
-        LAST_DEBUG_LOG_TICK.put(
-                id,
-                tick
-        );
-
-        boolean exists =
-                resourceExists(model);
-
-        String state =
-                model + "|exists=" + exists;
-
-        if (!state.equals(
-                LAST_MODEL_LOG.get(id)
-        )) {
-
-            LAST_MODEL_LOG.put(
-                    id,
-                    state
-            );
-
-            MinecartMagicMod.LOGGER.info(
-                    "[SELF_BOAT_MODEL_DEBUG] " +
-                            "id={} variant={} model={} exists={}",
-                    id,
-                    boat.getVariant(),
-                    model,
-                    exists
-            );
-        }
-    }
-
-    private static void logTexture(
-            SelfPropellingBoatEntity boat,
-            Identifier texture
-    ) {
-        if (!boat.getWorld().isClient()) {
-            return;
-        }
-
-        int id =
-                boat.getId();
-
-        boolean exists =
-                resourceExists(texture);
-
-        String state =
-                texture + "|exists=" + exists;
-
-        if (!state.equals(
-                LAST_TEXTURE_LOG.get(id)
-        )) {
-
-            LAST_TEXTURE_LOG.put(
-                    id,
-                    state
-            );
-
-            MinecartMagicMod.LOGGER.info(
-                    "[SELF_BOAT_TEXTURE_DEBUG] " +
-                            "id={} variant={} fuel={} texture={} exists={}",
-                    id,
-                    boat.getVariant(),
-                    boat.hasFuel(),
-                    texture,
-                    exists
-            );
-        }
-    }
-
-    private static void logAnimation(
-            SelfPropellingBoatEntity boat,
-            Identifier animation
-    ) {
-        if (!boat.getWorld().isClient()) {
-            return;
-        }
-
-        int id =
-                boat.getId();
-
-        boolean exists =
-                resourceExists(animation);
-
-        String state =
-                animation + "|exists=" + exists;
-
-        if (!state.equals(
-                LAST_ANIMATION_LOG.get(id)
-        )) {
-
-            LAST_ANIMATION_LOG.put(
-                    id,
-                    state
-            );
-
-            MinecartMagicMod.LOGGER.info(
-                    "[SELF_BOAT_ANIMATION_DEBUG] " +
-                            "id={} variant={} animation={} exists={} " +
-                            "controllers=NONE_REGISTERED",
-                    id,
-                    boat.getVariant(),
-                    animation,
-                    exists
-            );
-        }
-    }
-
-    private static boolean resourceExists(
-            Identifier identifier
-    ) {
-        try {
-            ResourceManager resourceManager =
-                    MinecraftClient
-                            .getInstance()
-                            .getResourceManager();
-
-            Optional<?> resource =
-                    resourceManager.getResource(
-                            identifier
-                    );
-
-            return resource.isPresent();
-
-        } catch (Exception exception) {
-            return false;
-        }
+        rightPaddle.setRotX(rightPitch);
+        rightPaddle.setRotY(rightYaw);
     }
 }
