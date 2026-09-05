@@ -63,7 +63,7 @@
 					]
 				},
 				{
-					"name": "paddle_right",
+					"name": "paddle_left",
 					"pivot": [10, 8, -4],
 					"rotation": [-84.91748, -71.41532, 154.00535],
 					"cubes": [
@@ -80,7 +80,7 @@
 					]
 				},
 				{
-					"name": "paddle_left",
+					"name": "paddle_right",
 					"pivot": [-10, 8, -4],
 					"rotation": [-84.91748, 71.41532, -154.00535],
 					"cubes": [
