@@ -65,7 +65,7 @@
 				{
 					"name": "paddle_right",
 					"pivot": [10, 8, -4],
-					"rotation": [88, -36, -20],
+					"rotation": [-84.91748, -71.41532, 154.00535],
 					"cubes": [
 						{"origin": [10, 7, -15], "size": [2, 2, 18], "uv": [63, 1]},
 						{"origin": [11, 6, -17], "size": [1, 6, 7], "pivot": [10, 8, -4], "rotation": [0, -1, 0], "uv": [63, 21]}
@@ -82,7 +82,7 @@
 				{
 					"name": "paddle_left",
 					"pivot": [-10, 8, -4],
-					"rotation": [88, 36, 20],
+					"rotation": [-84.91748, 71.41532, -154.00535],
 					"cubes": [
 						{"origin": [-12, 7, -15], "size": [2, 2, 18], "uv": [63, 1], "mirror": true},
 						{"origin": [-12, 6, -17], "size": [1, 6, 7], "pivot": [-10, 8, -4], "rotation": [0, 1, 0], "uv": [63, 21], "mirror": true}
