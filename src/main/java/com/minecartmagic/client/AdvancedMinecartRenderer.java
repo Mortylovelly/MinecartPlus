@@ -2,9 +2,9 @@ package com.minecartmagic.client;
 
 import com.minecartmagic.entity.AdvancedMinecartEntity;
 import net.minecraft.client.render.entity.EntityRendererFactory;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
-import net.minecraft.client.util.math.MatrixStack;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
 
 public class AdvancedMinecartRenderer
@@ -30,9 +30,12 @@ public class AdvancedMinecartRenderer
                 entity.getYaw()
         );
 
+        // The supplied model is authored 90 degrees off the vanilla
+        // minecart forward axis, so compensate here instead of touching
+        // the model geometry.
         matrices.multiply(
                 RotationAxis.POSITIVE_Y.rotationDegrees(
-                        180.0F - yaw
+                        270.0F - yaw
                 )
         );
     }
