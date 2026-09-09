@@ -2,6 +2,8 @@ package com.minecartmagic;
 
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.block.AbstractRailBlock;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.enums.RailShape;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.item.ItemStack;
@@ -12,6 +14,8 @@ import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 public final class MinecartPlacementHandler {
@@ -97,6 +101,17 @@ public final class MinecartPlacementHandler {
             return ActionResult.FAIL;
         }
 
+        BlockState railState = serverWorld.getBlockState(railPos);
+        float placementYaw = getPlacementYaw(
+                railState,
+                player.getYaw()
+        );
+
+        minecart.setYaw(placementYaw);
+        minecart.setHeadYaw(placementYaw);
+        minecart.setBodyYaw(placementYaw);
+        minecart.prevYaw = placementYaw;
+
         ModEnchantments.setTractionLevel(
                 minecart,
                 tractionLevel
@@ -107,6 +122,43 @@ public final class MinecartPlacementHandler {
         stack.decrementUnlessCreative(1, player);
 
         return ActionResult.SUCCESS;
+    }
+
+    private static float getPlacementYaw(
+            BlockState state,
+            float playerYaw
+    ) {
+        RailShape shape = state.get(
+                ((AbstractRailBlock) state.getBlock()).getShapeProperty()
+        );
+
+        double radians = Math.toRadians(playerYaw);
+        Vec3d look = new Vec3d(
+                -Math.sin(radians),
+                0.0D,
+                Math.cos(radians)
+        );
+
+        Vec3d railDirection = switch (shape) {
+            case EAST_WEST,
+                    ASCENDING_EAST,
+                    ASCENDING_WEST -> new Vec3d(1.0D, 0.0D, 0.0D);
+            case NORTH_SOUTH,
+                    ASCENDING_NORTH,
+                    ASCENDING_SOUTH -> new Vec3d(0.0D, 0.0D, 1.0D);
+            case SOUTH_EAST -> new Vec3d(1.0D, 0.0D, 1.0D).normalize();
+            case SOUTH_WEST -> new Vec3d(-1.0D, 0.0D, 1.0D).normalize();
+            case NORTH_EAST -> new Vec3d(1.0D, 0.0D, -1.0D).normalize();
+            case NORTH_WEST -> new Vec3d(-1.0D, 0.0D, -1.0D).normalize();
+        };
+
+        if (look.dotProduct(railDirection) < 0.0D) {
+            railDirection = railDirection.multiply(-1.0D);
+        }
+
+        return MathHelper.wrapDegrees((float) Math.toDegrees(
+                Math.atan2(-railDirection.x, railDirection.z)
+        ));
     }
 
     private static AbstractMinecartEntity.Type getMinecartType(
