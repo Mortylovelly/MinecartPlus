@@ -3,6 +3,7 @@ package com.minecartmagic.item;
 import com.minecartmagic.ModEntities;
 import com.minecartmagic.ModItems;
 import com.minecartmagic.entity.AdvancedMinecartEntity;
+import net.minecraft.block.AbstractRailBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.enums.RailShape;
 import net.minecraft.entity.player.PlayerEntity;
@@ -33,7 +34,6 @@ public class AdvancedMinecartItem extends Item {
         }
 
         AdvancedMinecartEntity minecart = ModEntities.ADVANCED_MINECART.create(world);
-
         if (minecart == null) {
             return ActionResult.FAIL;
         }
@@ -44,10 +44,11 @@ public class AdvancedMinecartItem extends Item {
                 pos.getZ() + 0.5D
         );
 
-        minecart.setYaw(getRailYaw(state));
-        minecart.setBodyYaw(getRailYaw(state));
-        minecart.prevYaw = getRailYaw(state);
-        minecart.prevBodyYaw = getRailYaw(state);
+        float yaw = getRailYaw(state);
+        minecart.setYaw(yaw);
+        minecart.setBodyYaw(yaw);
+        minecart.prevYaw = yaw;
+        minecart.prevYaw = yaw;
 
         world.spawnEntity(minecart);
 
@@ -60,7 +61,7 @@ public class AdvancedMinecartItem extends Item {
     }
 
     private static float getRailYaw(BlockState state) {
-        RailShape shape = state.get(net.minecraft.block.AbstractRailBlock.SHAPE);
+        RailShape shape = state.get(((AbstractRailBlock) state.getBlock()).getShapeProperty());
 
         return switch (shape) {
             case EAST_WEST,
