@@ -2,10 +2,7 @@ package com.minecartmagic.mixin;
 
 import com.minecartmagic.screen.SelfPropellingMinecartAccess;
 import com.minecartmagic.screen.SelfPropellingMinecartScreenHandler;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.fabricmc.api.registry.FuelRegistry;
-import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
@@ -111,9 +108,8 @@ public abstract class FurnaceMinecartGuiMixin
             minecartmagic$maintainEngineDirection(minecart);
         }
 
-        // IMPORTANT: when fuel is empty we do not touch pushX/pushZ or the
-        // velocity. Vanilla minecart physics remain responsible for manual
-        // pushing and rail movement.
+        // When fuel is empty we do not touch pushX/pushZ or velocity.
+        // Vanilla minecart physics remain responsible for manual pushing.
     }
 
     @Unique
@@ -139,9 +135,9 @@ public abstract class FurnaceMinecartGuiMixin
         }
 
         // A player can manually push the cart in the opposite direction.
-        // When the actual motion clearly points against the current engine
-        // vector, transfer the engine vector to that direction instead of
-        // forcing the cart back to its original one-way direction.
+        // When actual motion clearly points against the current engine vector,
+        // transfer the engine vector to that direction instead of forcing the
+        // cart back to the original one-way direction.
         double dot =
                 velocity.x * pushX + velocity.z * pushZ;
 
