@@ -8,6 +8,7 @@ import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
+import net.minecraft.util.math.Vec3d;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
 
 public class AdvancedMinecartRenderer
@@ -32,29 +33,19 @@ public class AdvancedMinecartRenderer
         float yaw = MathHelper.wrapDegrees(
                 entity.getPlacementYaw() + 90.0F
         );
-        float pitch = getRailPitch(entity);
 
-        /*
-         * The 90 degree offset converts the minecart/entity yaw convention
-         * into the local forward axis of the GeckoLib model.
-         *
-         * We intentionally do NOT derive yaw from velocity. Vanilla minecart
-         * physics may reverse the entity's movement yaw while following a
-         * rail, but the model must keep the direction in which the cart was
-         * placed instead of snapping 180 degrees.
-         */
         matrices.multiply(
                 RotationAxis.POSITIVE_Y.rotationDegrees(yaw)
         );
 
         matrices.multiply(
-                RotationAxis.POSITIVE_X.rotationDegrees(pitch)
+                RotationAxis.POSITIVE_X.rotationDegrees(
+                        getRailPitch(entity)
+                )
         );
     }
 
-    private static float getRailPitch(
-            AdvancedMinecartEntity entity
-    ) {
+    private static float getRailPitch(AdvancedMinecartEntity entity) {
         BlockState state = entity.getWorld().getBlockState(
                 entity.getBlockPos()
         );
@@ -67,15 +58,14 @@ public class AdvancedMinecartRenderer
                 railBlock.getShapeProperty()
         );
 
-        double velocityX = entity.getVelocity().x;
-        double velocityZ = entity.getVelocity().z;
+        Vec3d velocity = entity.getVelocity();
         boolean uphill;
 
         switch (shape) {
-            case ASCENDING_EAST -> uphill = velocityX >= 0.0D;
-            case ASCENDING_WEST -> uphill = velocityX <= 0.0D;
-            case ASCENDING_NORTH -> uphill = velocityZ <= 0.0D;
-            case ASCENDING_SOUTH -> uphill = velocityZ >= 0.0D;
+            case ASCENDING_EAST -> uphill = velocity.x >= 0.0D;
+            case ASCENDING_WEST -> uphill = velocity.x <= 0.0D;
+            case ASCENDING_NORTH -> uphill = velocity.z <= 0.0D;
+            case ASCENDING_SOUTH -> uphill = velocity.z >= 0.0D;
             default -> {
                 return 0.0F;
             }
