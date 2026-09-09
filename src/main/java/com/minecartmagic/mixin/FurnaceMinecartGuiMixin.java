@@ -17,7 +17,6 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
-import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -52,6 +51,9 @@ public abstract class FurnaceMinecartGuiMixin
     @Unique
     private boolean minecartmagic$placementYawInitialized;
 
+    @Unique
+    private boolean minecartmagic$engineDirectionInitialized;
+
     @Override
     public SimpleInventory minecartmagic$getFuelInventory() {
         return minecartmagic$fuelInventory;
@@ -80,6 +82,7 @@ public abstract class FurnaceMinecartGuiMixin
             player.openHandledScreen(this);
         }
 
+        // Opening the GUI must never change the cart's direction.
         cir.setReturnValue(
                 ActionResult.success(minecart.getWorld().isClient())
         );
@@ -100,57 +103,20 @@ public abstract class FurnaceMinecartGuiMixin
         }
 
         if (fuel <= 0) {
+            minecartmagic$engineDirectionInitialized = false;
             minecartmagic$startFuelIfAvailable(minecart);
         }
 
-        if (fuel > 0 &&
-                pushX * pushX + pushZ * pushZ < 1.0E-8D) {
-            minecartmagic$startEngineInCurrentDirection(minecart);
-        }
+        // Set the engine's initial direction once per burn cycle.
+        // After this, vanilla FurnaceMinecartEntity controls pushX/pushZ.
+        if (fuel > 0 && !minecartmagic$engineDirectionInitialized) {
+            if (pushX * pushX + pushZ * pushZ < 1.0E-8D) {
+                double radians = Math.toRadians(minecartmagic$placementYaw);
+                pushX = -Math.sin(radians);
+                pushZ = Math.cos(radians);
+            }
 
-        if (fuel > 0) {
-            minecartmagic$followActualMotion(minecart);
-        }
-    }
-
-    @Unique
-    private void minecartmagic$startEngineInCurrentDirection(
-            FurnaceMinecartEntity minecart
-    ) {
-        Vec3d velocity = minecart.getVelocity();
-        double horizontalSpeedSquared =
-                velocity.x * velocity.x + velocity.z * velocity.z;
-
-        if (horizontalSpeedSquared > 1.0E-4D) {
-            double speed = Math.sqrt(horizontalSpeedSquared);
-            pushX = velocity.x / speed;
-            pushZ = velocity.z / speed;
-            return;
-        }
-
-        double radians = Math.toRadians(minecartmagic$placementYaw);
-        pushX = -Math.sin(radians);
-        pushZ = Math.cos(radians);
-    }
-
-    @Unique
-    private void minecartmagic$followActualMotion(
-            FurnaceMinecartEntity minecart
-    ) {
-        Vec3d velocity = minecart.getVelocity();
-        double horizontalSpeedSquared =
-                velocity.x * velocity.x + velocity.z * velocity.z;
-
-        if (horizontalSpeedSquared < 1.0E-4D) {
-            return;
-        }
-
-        double dot = velocity.x * pushX + velocity.z * pushZ;
-
-        if (dot < -1.0E-5D) {
-            double speed = Math.sqrt(horizontalSpeedSquared);
-            pushX = velocity.x / speed;
-            pushZ = velocity.z / speed;
+            minecartmagic$engineDirectionInitialized = true;
         }
     }
 
