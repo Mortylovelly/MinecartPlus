@@ -5,6 +5,8 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.vehicle.MinecartEntity;
 import net.minecraft.item.Item;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
@@ -18,11 +20,23 @@ public class AdvancedMinecartEntity extends MinecartEntity implements GeoEntity 
     private final AnimatableInstanceCache geoCache =
             GeckoLibUtil.createInstanceCache(this);
 
+    private float placementYaw;
+    private boolean placementYawSet;
+
     public AdvancedMinecartEntity(
             EntityType<? extends AdvancedMinecartEntity> type,
             World world
     ) {
         super(type, world);
+    }
+
+    public void setPlacementYaw(float yaw) {
+        placementYaw = yaw;
+        placementYawSet = true;
+    }
+
+    public float getPlacementYaw() {
+        return placementYawSet ? placementYaw : getYaw();
     }
 
     @Override
@@ -51,5 +65,19 @@ public class AdvancedMinecartEntity extends MinecartEntity implements GeoEntity 
     @Override
     public AnimatableInstanceCache getAnimatableInstanceCache() {
         return geoCache;
+    }
+
+    @Override
+    protected void writeCustomDataToNbt(NbtCompound nbt) {
+        super.writeCustomDataToNbt(nbt);
+        nbt.putBoolean("MinecartMagicPlacementYawSet", placementYawSet);
+        nbt.putFloat("MinecartMagicPlacementYaw", placementYaw);
+    }
+
+    @Override
+    protected void readCustomDataFromNbt(NbtCompound nbt) {
+        super.readCustomDataFromNbt(nbt);
+        placementYawSet = nbt.getBoolean("MinecartMagicPlacementYawSet");
+        placementYaw = nbt.getFloat("MinecartMagicPlacementYaw");
     }
 }
