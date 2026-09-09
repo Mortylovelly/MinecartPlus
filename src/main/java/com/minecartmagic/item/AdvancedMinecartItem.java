@@ -46,6 +46,7 @@ public class AdvancedMinecartItem extends Item {
 
         float yaw = getRailYaw(state);
         minecart.setYaw(yaw);
+        minecart.setHeadYaw(yaw);
         minecart.setBodyYaw(yaw);
         minecart.prevYaw = yaw;
 
@@ -69,10 +70,10 @@ public class AdvancedMinecartItem extends Item {
             case NORTH_SOUTH,
                     ASCENDING_NORTH,
                     ASCENDING_SOUTH -> 0.0F;
-            case SOUTH_EAST,
-                    SOUTH_WEST,
-                    NORTH_EAST,
-                    NORTH_WEST -> 45.0F;
+            case SOUTH_EAST -> -45.0F;
+            case SOUTH_WEST -> 45.0F;
+            case NORTH_EAST -> -135.0F;
+            case NORTH_WEST -> 135.0F;
         };
     }
 }
