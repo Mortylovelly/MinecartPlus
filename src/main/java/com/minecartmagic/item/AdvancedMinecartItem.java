@@ -1,10 +1,10 @@
 package com.minecartmagic.item;
 
 import com.minecartmagic.ModEntities;
+import com.minecartmagic.ModItems;
 import com.minecartmagic.entity.AdvancedMinecartEntity;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.Entity;
+import net.minecraft.block.enums.RailShape;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemUsageContext;
@@ -32,9 +32,7 @@ public class AdvancedMinecartItem extends Item {
             return ActionResult.SUCCESS;
         }
 
-        PlayerEntity player = context.getPlayer();
-        AdvancedMinecartEntity minecart =
-                ModEntities.ADVANCED_MINECART.create(world);
+        AdvancedMinecartEntity minecart = ModEntities.ADVANCED_MINECART.create(world);
 
         if (minecart == null) {
             return ActionResult.FAIL;
@@ -45,13 +43,36 @@ public class AdvancedMinecartItem extends Item {
                 pos.getY() + 0.0625D,
                 pos.getZ() + 0.5D
         );
-        minecart.setYaw(player != null ? player.getYaw() : 0.0F);
+
+        minecart.setYaw(getRailYaw(state));
+        minecart.setBodyYaw(getRailYaw(state));
+        minecart.prevYaw = getRailYaw(state);
+        minecart.prevBodyYaw = getRailYaw(state);
+
         world.spawnEntity(minecart);
 
+        PlayerEntity player = context.getPlayer();
         if (player == null || !player.isCreative()) {
             context.getStack().decrement(1);
         }
 
         return ActionResult.SUCCESS;
+    }
+
+    private static float getRailYaw(BlockState state) {
+        RailShape shape = state.get(net.minecraft.block.AbstractRailBlock.SHAPE);
+
+        return switch (shape) {
+            case EAST_WEST,
+                    ASCENDING_EAST,
+                    ASCENDING_WEST -> 90.0F;
+            case NORTH_SOUTH,
+                    ASCENDING_NORTH,
+                    ASCENDING_SOUTH -> 0.0F;
+            case SOUTH_EAST,
+                    SOUTH_WEST,
+                    NORTH_EAST,
+                    NORTH_WEST -> 45.0F;
+        };
     }
 }
