@@ -1,74 +1,82 @@
 package com.minecartmagic.mixin;
 
+import com.minecartmagic.entity.AdvancedMinecartEntity;
 import net.minecraft.block.AbstractRailBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.enums.RailShape;
-import net.minecraft.entity.Entity;
+import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.entity.vehicle.FurnaceMinecartEntity;
 import net.minecraft.item.ItemUsageContext;
 import net.minecraft.util.ActionResult;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(net.minecraft.item.MinecartItem.class)
 public abstract class MinecartItemPlacementMixin {
 
-    @Unique
-    private float minecartmagic$placementYaw;
-
-    @Unique
-    private boolean minecartmagic$placementDirectionAvailable;
-
-    @Inject(method = "useOnBlock", at = @At("HEAD"))
-    private void minecartmagic$capturePlacementDirection(
+    @Inject(method = "useOnBlock", at = @At("RETURN"))
+    private void minecartmagic$applyPlacementDirection(
             ItemUsageContext context,
             CallbackInfoReturnable<ActionResult> cir
     ) {
-        minecartmagic$placementDirectionAvailable = false;
-
-        if (context.getPlayer() == null) {
+        if (context.getWorld().isClient() || !cir.getReturnValue().isAccepted()) {
             return;
         }
 
-        BlockState state = context.getWorld().getBlockState(
-                context.getBlockPos()
-        );
+        World world = context.getWorld();
+        BlockPos railPos = context.getBlockPos();
+        BlockState state = world.getBlockState(railPos);
 
-        if (!(state.getBlock() instanceof AbstractRailBlock)) {
+        if (!(state.getBlock() instanceof AbstractRailBlock railBlock)) {
             return;
         }
 
-        minecartmagic$placementYaw = getPlacementYaw(
-                state,
-                context.getPlayer().getYaw()
-        );
-        minecartmagic$placementDirectionAvailable = true;
-    }
+        PlayerLookup:
+        {
+            if (context.getPlayer() == null) {
+                return;
+            }
 
-    @ModifyArg(
-            method = "useOnBlock",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/world/World;spawnEntity(Lnet/minecraft/entity/Entity;)Z"
-            ),
-            index = 0
-    )
-    private Entity minecartmagic$applyPlacementDirection(Entity entity) {
-        if (minecartmagic$placementDirectionAvailable
-                && entity instanceof FurnaceMinecartEntity minecart) {
-            minecart.setYaw(minecartmagic$placementYaw);
-            minecart.setHeadYaw(minecartmagic$placementYaw);
-            minecart.setBodyYaw(minecartmagic$placementYaw);
-            minecart.prevYaw = minecartmagic$placementYaw;
+            Vec3d center = Vec3d.ofCenter(railPos).add(0.0D, 0.0625D, 0.0D);
+            AbstractMinecartEntity closest = world.getEntitiesByClass(
+                    AbstractMinecartEntity.class,
+                    new net.minecraft.util.math.Box(
+                            center.x - 0.75D, center.y - 0.75D, center.z - 0.75D,
+                            center.x + 0.75D, center.y + 0.75D, center.z + 0.75D
+                    ),
+                    cart -> cart.isAlive()
+            ).stream()
+                    .min((a, b) -> Double.compare(
+                            a.squaredDistanceTo(center),
+                            b.squaredDistanceTo(center)
+                    ))
+                    .orElse(null);
+
+            if (closest == null) {
+                return;
+            }
+
+            float yaw = getPlacementYaw(
+                    state,
+                    context.getPlayer().getYaw()
+            );
+
+            closest.setYaw(yaw);
+            closest.setHeadYaw(yaw);
+            closest.setBodyYaw(yaw);
+            closest.prevYaw = yaw;
+
+            if (closest instanceof AdvancedMinecartEntity advanced) {
+                advanced.setPlacementYaw(yaw);
+            }
         }
-
-        return entity;
     }
 
     @Unique
