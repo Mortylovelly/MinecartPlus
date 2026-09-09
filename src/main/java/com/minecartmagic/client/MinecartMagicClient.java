@@ -26,5 +26,10 @@ public class MinecartMagicClient
                 ModScreenHandlers.SELF_PROPELLING_BOAT,
                 SelfPropellingBoatScreen::new
         );
+
+        HandledScreens.register(
+                ModScreenHandlers.SELF_PROPELLING_MINECART,
+                SelfPropellingMinecartScreen::new
+        );
     }
 }
