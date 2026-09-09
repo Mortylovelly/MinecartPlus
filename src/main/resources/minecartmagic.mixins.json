@@ -7,6 +7,7 @@
     "MinecartMaxSpeedMixin",
     "FurnaceMinecartMaxSpeedMixin",
     "FurnaceMinecartGuiMixin",
+    "MinecartItemPlacementMixin",
     "MinecartDropItemMixin",
     "BoatTailwindPlacementMixin",
     "BoatTailwindSpeedMixin",
