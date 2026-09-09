@@ -48,7 +48,6 @@ public class AdvancedMinecartItem extends Item {
         minecart.setYaw(yaw);
         minecart.setBodyYaw(yaw);
         minecart.prevYaw = yaw;
-        minecart.prevYaw = yaw;
 
         world.spawnEntity(minecart);
 
