@@ -2,6 +2,8 @@ package com.minecartmagic.mixin;
 
 import com.minecartmagic.screen.SelfPropellingMinecartAccess;
 import com.minecartmagic.screen.SelfPropellingMinecartScreenHandler;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.entity.player.PlayerEntity;
@@ -17,6 +19,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
+import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -45,6 +48,12 @@ public abstract class FurnaceMinecartGuiMixin
     private final SimpleInventory minecartmagic$fuelInventory =
             new SimpleInventory(1);
 
+    @Unique
+    private float minecartmagic$placementYaw;
+
+    @Unique
+    private boolean minecartmagic$placementYawInitialized;
+
     @Override
     public SimpleInventory minecartmagic$getFuelInventory() {
         return minecartmagic$fuelInventory;
@@ -70,12 +79,10 @@ public abstract class FurnaceMinecartGuiMixin
                 (FurnaceMinecartEntity) (Object) this;
 
         if (!minecart.getWorld().isClient()) {
-            // The GUI is only an interface for fuel storage/control.
-            // Opening it must never rewrite pushX/pushZ, otherwise simply
-            // approaching the cart from the opposite side reverses it.
             player.openHandledScreen(this);
         }
 
+        // Opening the GUI must never change the cart's direction.
         cir.setReturnValue(
                 ActionResult.success(minecart.getWorld().isClient())
         );
@@ -90,21 +97,25 @@ public abstract class FurnaceMinecartGuiMixin
             return;
         }
 
+        if (!minecartmagic$placementYawInitialized) {
+            minecartmagic$placementYaw = minecart.getYaw();
+            minecartmagic$placementYawInitialized = true;
+        }
+
         if (fuel <= 0) {
             minecartmagic$startFuelIfAvailable(minecart);
         }
 
-        /*
-         * Do not zero the entity velocity here. A vanilla-style minecart can
-         * be manually pushed even while its engine is empty.
-         *
-         * The vanilla minecart entity itself is responsible for its rail
-         * movement. We only load fuel into the real furnace fuel field.
-         */
-        if (fuel <= 0) {
-            pushX = 0.0D;
-            pushZ = 0.0D;
+        if (fuel > 0
+                && pushX * pushX + pushZ * pushZ < 1.0E-8D) {
+            double radians = Math.toRadians(minecartmagic$placementYaw);
+            pushX = -Math.sin(radians);
+            pushZ = Math.cos(radians);
         }
+
+        // IMPORTANT: when fuel is empty we do not touch pushX/pushZ or the
+        // velocity. Vanilla minecart physics must remain responsible for
+        // manual pushing and rail movement.
     }
 
     @Unique
@@ -120,9 +131,7 @@ public abstract class FurnaceMinecartGuiMixin
         }
 
         Integer fuelValue =
-                FuelRegistry.INSTANCE.get(
-                        fuelStack.getItem()
-                );
+                FuelRegistry.INSTANCE.get(fuelStack.getItem());
 
         if (fuelValue == null || fuelValue <= 0) {
             minecartmagic$fuelTime = 0;
