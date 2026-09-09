@@ -31,7 +31,7 @@ public class AdvancedMinecartRenderer
             float nativeScale
     ) {
         float yaw = MathHelper.wrapDegrees(
-                entity.getPlacementYaw() + 90.0F
+                entity.getPlacementYaw()
         );
 
         matrices.multiply(
