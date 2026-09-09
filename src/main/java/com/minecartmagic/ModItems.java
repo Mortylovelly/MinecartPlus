@@ -1,5 +1,6 @@
 package com.minecartmagic;
 
+import com.minecartmagic.item.AdvancedMinecartItem;
 import com.minecartmagic.item.SelfPropellingBoatItem;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.enchantment.Enchantment;
@@ -26,6 +27,18 @@ public final class ModItems {
                             new Item.Settings()
                                     .maxCount(1),
                             BoatEntity.Type.OAK
+                    )
+            );
+
+    public static final Item ADVANCED_MINECART =
+            Registry.register(
+                    Registries.ITEM,
+                    MinecartMagicMod.id(
+                            "advanced_minecart"
+                    ),
+                    new AdvancedMinecartItem(
+                            new Item.Settings()
+                                    .maxCount(1)
                     )
             );
 
@@ -116,6 +129,7 @@ public final class ModItems {
         ItemGroupEvents.modifyEntriesEvent(
                 ItemGroups.TOOLS
         ).register(entries -> {
+            entries.add(ADVANCED_MINECART);
             entries.add(SELF_PROPELLING_BOAT);
             entries.add(SELF_PROPELLING_SPRUCE_BOAT);
             entries.add(SELF_PROPELLING_BIRCH_BOAT);
