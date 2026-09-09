@@ -4,6 +4,7 @@ import com.minecartmagic.screen.SelfPropellingMinecartAccess;
 import com.minecartmagic.screen.SelfPropellingMinecartScreenHandler;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.fabricmc.api.registry.FuelRegistry;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.entity.player.PlayerEntity;
@@ -106,16 +107,49 @@ public abstract class FurnaceMinecartGuiMixin
             minecartmagic$startFuelIfAvailable(minecart);
         }
 
-        if (fuel > 0
-                && pushX * pushX + pushZ * pushZ < 1.0E-8D) {
-            double radians = Math.toRadians(minecartmagic$placementYaw);
-            pushX = -Math.sin(radians);
-            pushZ = Math.cos(radians);
+        if (fuel > 0) {
+            minecartmagic$maintainEngineDirection(minecart);
         }
 
         // IMPORTANT: when fuel is empty we do not touch pushX/pushZ or the
-        // velocity. Vanilla minecart physics must remain responsible for
-        // manual pushing and rail movement.
+        // velocity. Vanilla minecart physics remain responsible for manual
+        // pushing and rail movement.
+    }
+
+    @Unique
+    private void minecartmagic$maintainEngineDirection(
+            FurnaceMinecartEntity minecart
+    ) {
+        double pushLengthSquared =
+                pushX * pushX + pushZ * pushZ;
+
+        if (pushLengthSquared < 1.0E-8D) {
+            double radians = Math.toRadians(minecartmagic$placementYaw);
+            pushX = -Math.sin(radians);
+            pushZ = Math.cos(radians);
+            return;
+        }
+
+        Vec3d velocity = minecart.getVelocity();
+        double horizontalSpeedSquared =
+                velocity.x * velocity.x + velocity.z * velocity.z;
+
+        if (horizontalSpeedSquared < 1.0E-4D) {
+            return;
+        }
+
+        // A player can manually push the cart in the opposite direction.
+        // When the actual motion clearly points against the current engine
+        // vector, transfer the engine vector to that direction instead of
+        // forcing the cart back to its original one-way direction.
+        double dot =
+                velocity.x * pushX + velocity.z * pushZ;
+
+        if (dot < -1.0E-5D) {
+            double speed = Math.sqrt(horizontalSpeedSquared);
+            pushX = velocity.x / speed;
+            pushZ = velocity.z / speed;
+        }
     }
 
     @Unique
