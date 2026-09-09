@@ -1,5 +1,6 @@
 package com.minecartmagic.mixin;
 
+import com.minecartmagic.screen.SelfPropellingMinecartAccess;
 import com.minecartmagic.screen.SelfPropellingMinecartScreenHandler;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
@@ -53,11 +54,7 @@ public abstract class FurnaceMinecartGuiMixin
         return Math.max(0, minecartmagic$fuelTime);
     }
 
-    @Inject(
-            method = "interact",
-            at = @At("HEAD"),
-            cancellable = true
-    )
+    @Inject(method = "interact", at = @At("HEAD"), cancellable = true)
     private void minecartmagic$openEngineGui(
             PlayerEntity player,
             Hand hand,
@@ -75,33 +72,22 @@ public abstract class FurnaceMinecartGuiMixin
         );
     }
 
-    @Inject(
-            method = "tick",
-            at = @At("HEAD")
-    )
-    private void minecartmagic$feedFuelFromGui(
-            CallbackInfo ci
-    ) {
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void minecartmagic$feedFuelFromGui(CallbackInfo ci) {
         FurnaceMinecartEntity minecart =
                 (FurnaceMinecartEntity) (Object) this;
 
-        if (minecart.getWorld().isClient()) {
+        if (minecart.getWorld().isClient() || fuel > 0) {
             return;
         }
 
-        if (fuel > 0) {
-            return;
-        }
-
-        ItemStack fuelStack =
-                minecartmagic$fuelInventory.getStack(0);
+        ItemStack fuelStack = minecartmagic$fuelInventory.getStack(0);
 
         if (fuelStack.isEmpty()) {
             return;
         }
 
-        Integer fuelValue =
-                FuelRegistry.INSTANCE.get(fuelStack.getItem());
+        Integer fuelValue = FuelRegistry.INSTANCE.get(fuelStack.getItem());
 
         if (fuelValue == null || fuelValue <= 0) {
             return;
@@ -115,70 +101,44 @@ public abstract class FurnaceMinecartGuiMixin
 
         if (fuelStack.isEmpty() && fuelItem.hasRecipeRemainder()) {
             Item remainder = fuelItem.getRecipeRemainder();
-
             if (remainder != null) {
-                minecartmagic$fuelInventory.setStack(
-                        0,
-                        new ItemStack(remainder)
-                );
+                minecartmagic$fuelInventory.setStack(0, new ItemStack(remainder));
             }
         }
 
         minecartmagic$fuelInventory.markDirty();
     }
 
-    @Inject(
-            method = "writeCustomDataToNbt",
-            at = @At("TAIL")
-    )
-    private void minecartmagic$writeGuiFuel(
-            NbtCompound nbt,
-            CallbackInfo ci
-    ) {
-        nbt.putInt(
-                "MinecartMagicFuelTime",
-                minecartmagic$fuelTime
-        );
+    @Inject(method = "writeCustomDataToNbt", at = @At("TAIL"))
+    private void minecartmagic$writeGuiFuel(NbtCompound nbt, CallbackInfo ci) {
+        FurnaceMinecartEntity minecart =
+                (FurnaceMinecartEntity) (Object) this;
 
+        nbt.putInt("MinecartMagicFuelTime", minecartmagic$fuelTime);
         nbt.put(
                 "MinecartMagicFuelInventory",
-                minecartmagic$fuelInventory.toNbtList(
-                        ((FurnaceMinecartEntity) (Object) this).getRegistryManager()
-                )
+                minecartmagic$fuelInventory.toNbtList(minecart.getRegistryManager())
         );
     }
 
-    @Inject(
-            method = "readCustomDataFromNbt",
-            at = @At("TAIL")
-    )
-    private void minecartmagic$readGuiFuel(
-            NbtCompound nbt,
-            CallbackInfo ci
-    ) {
-        minecartmagic$fuelTime = nbt.getInt(
-                "MinecartMagicFuelTime"
-        );
+    @Inject(method = "readCustomDataFromNbt", at = @At("TAIL"))
+    private void minecartmagic$readGuiFuel(NbtCompound nbt, CallbackInfo ci) {
+        FurnaceMinecartEntity minecart =
+                (FurnaceMinecartEntity) (Object) this;
 
-        if (nbt.contains(
-                "MinecartMagicFuelInventory",
-                NbtElement.LIST_TYPE
-        )) {
+        minecartmagic$fuelTime = nbt.getInt("MinecartMagicFuelTime");
+
+        if (nbt.contains("MinecartMagicFuelInventory", NbtElement.LIST_TYPE)) {
             minecartmagic$fuelInventory.readNbtList(
-                    nbt.getList(
-                            "MinecartMagicFuelInventory",
-                            NbtElement.COMPOUND_TYPE
-                    ),
-                    ((FurnaceMinecartEntity) (Object) this).getRegistryManager()
+                    nbt.getList("MinecartMagicFuelInventory", NbtElement.COMPOUND_TYPE),
+                    minecart.getRegistryManager()
             );
         }
     }
 
     @Override
     public Text getDisplayName() {
-        return Text.translatable(
-                "container.minecartmagic.self_propelling_minecart"
-        );
+        return Text.translatable("container.minecartmagic.self_propelling_minecart");
     }
 
     @Override
@@ -195,9 +155,7 @@ public abstract class FurnaceMinecartGuiMixin
     }
 
     @Override
-    public Integer getScreenOpeningData(
-            ServerPlayerEntity player
-    ) {
+    public Integer getScreenOpeningData(ServerPlayerEntity player) {
         return ((FurnaceMinecartEntity) (Object) this).getId();
     }
 }
