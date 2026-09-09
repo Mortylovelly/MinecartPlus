@@ -2,7 +2,7 @@ package com.minecartmagic.mixin;
 
 import com.minecartmagic.screen.SelfPropellingMinecartAccess;
 import com.minecartmagic.screen.SelfPropellingMinecartScreenHandler;
-import net.fabricmc.api.registry.FuelRegistry;
+import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
@@ -80,7 +80,6 @@ public abstract class FurnaceMinecartGuiMixin
             player.openHandledScreen(this);
         }
 
-        // Opening the GUI must never change the cart's direction.
         cir.setReturnValue(
                 ActionResult.success(minecart.getWorld().isClient())
         );
@@ -104,28 +103,40 @@ public abstract class FurnaceMinecartGuiMixin
             minecartmagic$startFuelIfAvailable(minecart);
         }
 
-        if (fuel > 0) {
-            minecartmagic$maintainEngineDirection(minecart);
+        if (fuel > 0 &&
+                pushX * pushX + pushZ * pushZ < 1.0E-8D) {
+            minecartmagic$startEngineInCurrentDirection(minecart);
         }
 
-        // When fuel is empty we do not touch pushX/pushZ or velocity.
-        // Vanilla minecart physics remain responsible for manual pushing.
+        if (fuel > 0) {
+            minecartmagic$followActualMotion(minecart);
+        }
     }
 
     @Unique
-    private void minecartmagic$maintainEngineDirection(
+    private void minecartmagic$startEngineInCurrentDirection(
             FurnaceMinecartEntity minecart
     ) {
-        double pushLengthSquared =
-                pushX * pushX + pushZ * pushZ;
+        Vec3d velocity = minecart.getVelocity();
+        double horizontalSpeedSquared =
+                velocity.x * velocity.x + velocity.z * velocity.z;
 
-        if (pushLengthSquared < 1.0E-8D) {
-            double radians = Math.toRadians(minecartmagic$placementYaw);
-            pushX = -Math.sin(radians);
-            pushZ = Math.cos(radians);
+        if (horizontalSpeedSquared > 1.0E-4D) {
+            double speed = Math.sqrt(horizontalSpeedSquared);
+            pushX = velocity.x / speed;
+            pushZ = velocity.z / speed;
             return;
         }
 
+        double radians = Math.toRadians(minecartmagic$placementYaw);
+        pushX = -Math.sin(radians);
+        pushZ = Math.cos(radians);
+    }
+
+    @Unique
+    private void minecartmagic$followActualMotion(
+            FurnaceMinecartEntity minecart
+    ) {
         Vec3d velocity = minecart.getVelocity();
         double horizontalSpeedSquared =
                 velocity.x * velocity.x + velocity.z * velocity.z;
@@ -134,12 +145,7 @@ public abstract class FurnaceMinecartGuiMixin
             return;
         }
 
-        // A player can manually push the cart in the opposite direction.
-        // When actual motion clearly points against the current engine vector,
-        // transfer the engine vector to that direction instead of forcing the
-        // cart back to the original one-way direction.
-        double dot =
-                velocity.x * pushX + velocity.z * pushZ;
+        double dot = velocity.x * pushX + velocity.z * pushZ;
 
         if (dot < -1.0E-5D) {
             double speed = Math.sqrt(horizontalSpeedSquared);
