@@ -71,6 +71,18 @@ public abstract class FurnaceMinecartGuiMixin
                 (FurnaceMinecartEntity) (Object) this;
 
         if (!minecart.getWorld().isClient()) {
+            // Preserve the important part of vanilla furnace-minecart
+            // interaction: the fuel determines the direction away from
+            // the player who activates the engine.
+            double directionX = minecart.getX() - player.getX();
+            double directionZ = minecart.getZ() - player.getZ();
+            double length = Math.sqrt(directionX * directionX + directionZ * directionZ);
+
+            if (length > 1.0E-6D) {
+                pushX = directionX / length;
+                pushZ = directionZ / length;
+            }
+
             player.openHandledScreen(this);
         }
 
@@ -95,14 +107,20 @@ public abstract class FurnaceMinecartGuiMixin
         if (fuel <= 0) {
             pushX = 0.0D;
             pushZ = 0.0D;
+
             Vec3d velocity = minecart.getVelocity();
             if (velocity.x != 0.0D || velocity.z != 0.0D) {
                 minecart.setVelocity(0.0D, velocity.y, 0.0D);
+                minecart.velocityDirty = true;
             }
-            return;
+        } else if (pushX * pushX + pushZ * pushZ < 1.0E-8D) {
+            // Fallback for a cart that was fueled through another path and
+            // therefore has no stored furnace direction yet.
+            float yaw = minecart.getYaw();
+            double radians = Math.toRadians(yaw);
+            pushX = -Math.sin(radians);
+            pushZ = Math.cos(radians);
         }
-
-        minecartmagic$updatePushDirection(minecart);
     }
 
     @Inject(method = "tick", at = @At("TAIL"))
@@ -122,8 +140,10 @@ public abstract class FurnaceMinecartGuiMixin
         if (reserveValue == null || reserveValue <= 0) {
             pushX = 0.0D;
             pushZ = 0.0D;
+
             Vec3d velocity = minecart.getVelocity();
             minecart.setVelocity(0.0D, velocity.y, 0.0D);
+            minecart.velocityDirty = true;
         }
     }
 
@@ -156,24 +176,6 @@ public abstract class FurnaceMinecartGuiMixin
         }
 
         minecartmagic$fuelInventory.markDirty();
-    }
-
-    @Unique
-    private void minecartmagic$updatePushDirection(FurnaceMinecartEntity minecart) {
-        Vec3d velocity = minecart.getVelocity();
-        double horizontalLengthSquared = velocity.x * velocity.x + velocity.z * velocity.z;
-
-        if (horizontalLengthSquared > 1.0E-8D) {
-            double length = Math.sqrt(horizontalLengthSquared);
-            pushX = velocity.x / length;
-            pushZ = velocity.z / length;
-            return;
-        }
-
-        float yaw = minecart.getYaw();
-        double radians = Math.toRadians(yaw);
-        pushX = -Math.sin(radians);
-        pushZ = Math.cos(radians);
     }
 
     @Override
