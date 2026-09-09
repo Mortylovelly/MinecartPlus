@@ -17,6 +17,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
+import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -31,6 +32,12 @@ public abstract class FurnaceMinecartGuiMixin
 
     @Shadow
     private int fuel;
+
+    @Shadow
+    public double pushX;
+
+    @Shadow
+    public double pushZ;
 
     @Unique
     private int minecartmagic$fuelTime;
@@ -73,7 +80,33 @@ public abstract class FurnaceMinecartGuiMixin
     }
 
     @Inject(method = "tick", at = @At("HEAD"))
-    private void minecartmagic$feedFuelFromGui(CallbackInfo ci) {
+    private void minecartmagic$prepareEngine(CallbackInfo ci) {
+        FurnaceMinecartEntity minecart =
+                (FurnaceMinecartEntity) (Object) this;
+
+        if (minecart.getWorld().isClient()) {
+            return;
+        }
+
+        if (fuel <= 0) {
+            minecartmagic$startFuelIfAvailable(minecart);
+        }
+
+        if (fuel <= 0) {
+            pushX = 0.0D;
+            pushZ = 0.0D;
+            Vec3d velocity = minecart.getVelocity();
+            if (velocity.x != 0.0D || velocity.z != 0.0D) {
+                minecart.setVelocity(0.0D, velocity.y, 0.0D);
+            }
+            return;
+        }
+
+        minecartmagic$updatePushDirection(minecart);
+    }
+
+    @Inject(method = "tick", at = @At("TAIL"))
+    private void minecartmagic$stopWhenFuelAndReserveAreEmpty(CallbackInfo ci) {
         FurnaceMinecartEntity minecart =
                 (FurnaceMinecartEntity) (Object) this;
 
@@ -81,15 +114,31 @@ public abstract class FurnaceMinecartGuiMixin
             return;
         }
 
+        ItemStack reserve = minecartmagic$fuelInventory.getStack(0);
+        Integer reserveValue = reserve.isEmpty()
+                ? null
+                : FuelRegistry.INSTANCE.get(reserve.getItem());
+
+        if (reserveValue == null || reserveValue <= 0) {
+            pushX = 0.0D;
+            pushZ = 0.0D;
+            Vec3d velocity = minecart.getVelocity();
+            minecart.setVelocity(0.0D, velocity.y, 0.0D);
+        }
+    }
+
+    @Unique
+    private void minecartmagic$startFuelIfAvailable(FurnaceMinecartEntity minecart) {
         ItemStack fuelStack = minecartmagic$fuelInventory.getStack(0);
 
         if (fuelStack.isEmpty()) {
+            minecartmagic$fuelTime = 0;
             return;
         }
 
         Integer fuelValue = FuelRegistry.INSTANCE.get(fuelStack.getItem());
-
         if (fuelValue == null || fuelValue <= 0) {
+            minecartmagic$fuelTime = 0;
             return;
         }
 
@@ -107,6 +156,47 @@ public abstract class FurnaceMinecartGuiMixin
         }
 
         minecartmagic$fuelInventory.markDirty();
+    }
+
+    @Unique
+    private void minecartmagic$updatePushDirection(FurnaceMinecartEntity minecart) {
+        Vec3d velocity = minecart.getVelocity();
+        double horizontalLengthSquared = velocity.x * velocity.x + velocity.z * velocity.z;
+
+        if (horizontalLengthSquared > 1.0E-8D) {
+            double length = Math.sqrt(horizontalLengthSquared);
+            pushX = velocity.x / length;
+            pushZ = velocity.z / length;
+            return;
+        }
+
+        float yaw = minecart.getYaw();
+        double radians = Math.toRadians(yaw);
+        pushX = -Math.sin(radians);
+        pushZ = Math.cos(radians);
+    }
+
+    @Override
+    public Text getDisplayName() {
+        return Text.translatable("container.minecartmagic.self_propelling_minecart");
+    }
+
+    @Override
+    public ScreenHandler createMenu(
+            int syncId,
+            PlayerInventory playerInventory,
+            PlayerEntity player
+    ) {
+        return new SelfPropellingMinecartScreenHandler(
+                syncId,
+                playerInventory,
+                (FurnaceMinecartEntity) (Object) this
+        );
+    }
+
+    @Override
+    public Integer getScreenOpeningData(ServerPlayerEntity player) {
+        return ((FurnaceMinecartEntity) (Object) this).getId();
     }
 
     @Inject(method = "writeCustomDataToNbt", at = @At("TAIL"))
@@ -134,28 +224,5 @@ public abstract class FurnaceMinecartGuiMixin
                     minecart.getRegistryManager()
             );
         }
-    }
-
-    @Override
-    public Text getDisplayName() {
-        return Text.translatable("container.minecartmagic.self_propelling_minecart");
-    }
-
-    @Override
-    public ScreenHandler createMenu(
-            int syncId,
-            PlayerInventory playerInventory,
-            PlayerEntity player
-    ) {
-        return new SelfPropellingMinecartScreenHandler(
-                syncId,
-                playerInventory,
-                (FurnaceMinecartEntity) (Object) this
-        );
-    }
-
-    @Override
-    public Integer getScreenOpeningData(ServerPlayerEntity player) {
-        return ((FurnaceMinecartEntity) (Object) this).getId();
     }
 }
