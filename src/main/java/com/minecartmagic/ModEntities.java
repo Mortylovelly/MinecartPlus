@@ -1,5 +1,6 @@
 package com.minecartmagic;
 
+import com.minecartmagic.entity.AdvancedMinecartEntity;
 import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.minecraft.entity.EntityDimensions;
 import net.minecraft.entity.EntityType;
@@ -30,6 +31,31 @@ public final class ModEntities {
                             .build(
                                     MinecartMagicMod.id(
                                             "self_propelling_boat"
+                                    ).toString()
+                            )
+            );
+
+    public static final EntityType<AdvancedMinecartEntity>
+            ADVANCED_MINECART =
+            Registry.register(
+                    Registries.ENTITY_TYPE,
+                    MinecartMagicMod.id(
+                            "advanced_minecart"
+                    ),
+                    EntityType.Builder
+                            .create(
+                                    AdvancedMinecartEntity::new,
+                                    SpawnGroup.MISC
+                            )
+                            .dimensions(
+                                    1.0F,
+                                    0.7F
+                            )
+                            .maxTrackingRange(10)
+                            .trackingTickInterval(3)
+                            .build(
+                                    MinecartMagicMod.id(
+                                            "advanced_minecart"
                                     ).toString()
                             )
             );
