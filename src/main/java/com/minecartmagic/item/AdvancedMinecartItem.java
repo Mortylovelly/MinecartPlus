@@ -11,6 +11,8 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemUsageContext;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 public class AdvancedMinecartItem extends Item {
@@ -44,15 +46,18 @@ public class AdvancedMinecartItem extends Item {
                 pos.getZ() + 0.5D
         );
 
-        float yaw = getRailYaw(state) - 90.0F;
+        PlayerEntity player = context.getPlayer();
+        float playerYaw = player == null ? 0.0F : player.getYaw();
+        float yaw = getPlacementYaw(state, playerYaw);
+
         minecart.setYaw(yaw);
         minecart.setHeadYaw(yaw);
         minecart.setBodyYaw(yaw);
         minecart.prevYaw = yaw;
+        minecart.setPlacementYaw(yaw);
 
         world.spawnEntity(minecart);
 
-        PlayerEntity player = context.getPlayer();
         if (player == null || !player.isCreative()) {
             context.getStack().decrement(1);
         }
@@ -60,20 +65,37 @@ public class AdvancedMinecartItem extends Item {
         return ActionResult.SUCCESS;
     }
 
-    private static float getRailYaw(BlockState state) {
-        RailShape shape = state.get(((AbstractRailBlock) state.getBlock()).getShapeProperty());
+    private static float getPlacementYaw(BlockState state, float playerYaw) {
+        RailShape shape = state.get(
+                ((AbstractRailBlock) state.getBlock()).getShapeProperty()
+        );
 
-        return switch (shape) {
+        double radians = Math.toRadians(playerYaw);
+        Vec3d look = new Vec3d(
+                -Math.sin(radians),
+                0.0D,
+                Math.cos(radians)
+        );
+
+        Vec3d railDirection = switch (shape) {
             case EAST_WEST,
                     ASCENDING_EAST,
-                    ASCENDING_WEST -> 90.0F;
+                    ASCENDING_WEST -> new Vec3d(1.0D, 0.0D, 0.0D);
             case NORTH_SOUTH,
                     ASCENDING_NORTH,
-                    ASCENDING_SOUTH -> 0.0F;
-            case SOUTH_EAST -> -45.0F;
-            case SOUTH_WEST -> 45.0F;
-            case NORTH_EAST -> -135.0F;
-            case NORTH_WEST -> 135.0F;
+                    ASCENDING_SOUTH -> new Vec3d(0.0D, 0.0D, 1.0D);
+            case SOUTH_EAST -> new Vec3d(1.0D, 0.0D, 1.0D).normalize();
+            case SOUTH_WEST -> new Vec3d(-1.0D, 0.0D, 1.0D).normalize();
+            case NORTH_EAST -> new Vec3d(1.0D, 0.0D, -1.0D).normalize();
+            case NORTH_WEST -> new Vec3d(-1.0D, 0.0D, -1.0D).normalize();
         };
+
+        if (look.dotProduct(railDirection) < 0.0D) {
+            railDirection = railDirection.multiply(-1.0D);
+        }
+
+        return MathHelper.wrapDegrees((float) Math.toDegrees(
+                Math.atan2(-railDirection.x, railDirection.z)
+        ));
     }
 }
