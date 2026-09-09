@@ -17,6 +17,11 @@ public class MinecartMagicClient
                 SelfPropellingBoatRenderer::new
         );
 
+        EntityRendererRegistry.register(
+                ModEntities.ADVANCED_MINECART,
+                AdvancedMinecartRenderer::new
+        );
+
         HandledScreens.register(
                 ModScreenHandlers.SELF_PROPELLING_BOAT,
                 SelfPropellingBoatScreen::new
