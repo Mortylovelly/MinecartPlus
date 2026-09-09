@@ -6,6 +6,7 @@ import net.minecraft.block.enums.RailShape;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.vehicle.FurnaceMinecartEntity;
 import net.minecraft.item.ItemUsageContext;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,7 +14,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(net.minecraft.item.MinecartItem.class)
 public abstract class MinecartItemPlacementMixin {
@@ -27,7 +28,7 @@ public abstract class MinecartItemPlacementMixin {
     @Inject(method = "useOnBlock", at = @At("HEAD"))
     private void minecartmagic$capturePlacementDirection(
             ItemUsageContext context,
-            CallbackInfo ci
+            CallbackInfoReturnable<ActionResult> cir
     ) {
         minecartmagic$placementDirectionAvailable = false;
 
@@ -64,6 +65,7 @@ public abstract class MinecartItemPlacementMixin {
             minecart.setYaw(minecartmagic$placementYaw);
             minecart.setHeadYaw(minecartmagic$placementYaw);
             minecart.setBodyYaw(minecartmagic$placementYaw);
+            minecart.prevYaw = minecartmagic$placementYaw;
         }
 
         return entity;
