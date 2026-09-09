@@ -15,6 +15,7 @@
   "item.minecartmagic.advanced_minecart": "Продвинутая вагонетка",
 
   "container.minecartmagic.self_propelling_boat": "Самоходная лодка",
+  "container.minecartmagic.self_propelling_minecart": "Самоходная вагонетка",
   "container.minecartmagic.fuel": "Топливо",
   "container.minecartmagic.fuel_count": "Запас: %s",
   "container.minecartmagic.burn_time": "Горение: %s с"
