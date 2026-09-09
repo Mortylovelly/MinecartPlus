@@ -2,8 +2,11 @@ package com.minecartmagic.entity;
 
 import com.minecartmagic.ModItems;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.vehicle.MinecartEntity;
 import net.minecraft.item.Item;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
 import net.minecraft.world.World;
 import software.bernie.geckolib.animatable.GeoEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
@@ -25,6 +28,17 @@ public class AdvancedMinecartEntity extends MinecartEntity implements GeoEntity 
     @Override
     public Item asItem() {
         return ModItems.ADVANCED_MINECART;
+    }
+
+    @Override
+    public ActionResult interact(
+            PlayerEntity player,
+            Hand hand
+    ) {
+        // This cart is a controller/engine unit, not a rideable cart.
+        // Do not call MinecartEntity.super.interact(), because that would
+        // mount the player as a passenger.
+        return ActionResult.success(getWorld().isClient());
     }
 
     @Override
