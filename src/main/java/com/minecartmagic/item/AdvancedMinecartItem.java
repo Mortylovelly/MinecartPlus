@@ -44,7 +44,7 @@ public class AdvancedMinecartItem extends Item {
                 pos.getZ() + 0.5D
         );
 
-        float yaw = getRailYaw(state);
+        float yaw = getRailYaw(state) - 90.0F;
         minecart.setYaw(yaw);
         minecart.setHeadYaw(yaw);
         minecart.setBodyYaw(yaw);
