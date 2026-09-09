@@ -15,6 +15,7 @@
   "item.minecartmagic.advanced_minecart": "Advanced Minecart",
 
   "container.minecartmagic.self_propelling_boat": "Self-Propelling Boat",
+  "container.minecartmagic.self_propelling_minecart": "Self-Propelling Minecart",
   "container.minecartmagic.fuel": "Fuel",
   "container.minecartmagic.fuel_count": "Reserve: %s",
   "container.minecartmagic.burn_time": "Burning: %s s"
