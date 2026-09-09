@@ -27,16 +27,13 @@ public class AdvancedMinecartRenderer extends GeoEntityRenderer<AdvancedMinecart
             float partialTick,
             float nativeScale
     ) {
-        float yaw = MathHelper.lerpAngleDegrees(
-                partialTick,
-                entity.prevYaw,
-                entity.getYaw()
-        );
+        float yaw = getRailAlignedYaw(entity, partialTick);
+        float pitch = getRailPitch(entity);
 
-        float pitch = getRailPitch(entity, yaw);
-
-        // The GeckoLib model is authored with its long axis along Z,
-        // so the entity yaw can be applied directly without the old 270° offset.
+        // The model's long axis is aligned with the rail line. Using the
+        // horizontal travel vector (rather than the minecart body's yaw)
+        // prevents the model from snapping sideways when vanilla minecart
+        // rotation changes during movement and turns.
         matrices.multiply(
                 RotationAxis.POSITIVE_Y.rotationDegrees(yaw)
         );
@@ -46,10 +43,50 @@ public class AdvancedMinecartRenderer extends GeoEntityRenderer<AdvancedMinecart
         );
     }
 
-    private static float getRailPitch(
+    private static float getRailAlignedYaw(
             AdvancedMinecartEntity entity,
-            float yaw
+            float partialTick
     ) {
+        Vec3d velocity = entity.getVelocity();
+        double horizontalSpeedSquared =
+                velocity.x * velocity.x + velocity.z * velocity.z;
+
+        if (horizontalSpeedSquared > 1.0E-8D) {
+            float travelYaw = (float) Math.toDegrees(
+                    Math.atan2(-velocity.x, velocity.z)
+            );
+
+            // Current model orientation is one quarter-turn behind the
+            // vanilla entity yaw convention. Subtracting 90° converts the
+            // travel direction into the model's rail-axis orientation.
+            return travelYaw - 90.0F;
+        }
+
+        BlockState state = entity.getWorld().getBlockState(entity.getBlockPos());
+        if (state.getBlock() instanceof AbstractRailBlock railBlock) {
+            RailShape shape = state.get(railBlock.getShapeProperty());
+            return switch (shape) {
+                case EAST_WEST,
+                        ASCENDING_EAST,
+                        ASCENDING_WEST -> 0.0F;
+                case NORTH_SOUTH,
+                        ASCENDING_NORTH,
+                        ASCENDING_SOUTH -> -90.0F;
+                case SOUTH_EAST -> -135.0F;
+                case SOUTH_WEST -> -45.0F;
+                case NORTH_EAST -> 135.0F;
+                case NORTH_WEST -> 45.0F;
+            };
+        }
+
+        return MathHelper.lerpAngleDegrees(
+                partialTick,
+                entity.prevYaw,
+                entity.getYaw()
+        );
+    }
+
+    private static float getRailPitch(AdvancedMinecartEntity entity) {
         BlockState state = entity.getWorld().getBlockState(entity.getBlockPos());
 
         if (!(state.getBlock() instanceof AbstractRailBlock railBlock)) {
@@ -57,44 +94,20 @@ public class AdvancedMinecartRenderer extends GeoEntityRenderer<AdvancedMinecart
         }
 
         RailShape shape = state.get(railBlock.getShapeProperty());
+        Vec3d velocity = entity.getVelocity();
 
-        double uphillX;
-        double uphillZ;
+        boolean uphill;
 
         switch (shape) {
-            case ASCENDING_EAST -> {
-                uphillX = 1.0D;
-                uphillZ = 0.0D;
-            }
-            case ASCENDING_WEST -> {
-                uphillX = -1.0D;
-                uphillZ = 0.0D;
-            }
-            case ASCENDING_NORTH -> {
-                uphillX = 0.0D;
-                uphillZ = -1.0D;
-            }
-            case ASCENDING_SOUTH -> {
-                uphillX = 0.0D;
-                uphillZ = 1.0D;
-            }
+            case ASCENDING_EAST -> uphill = velocity.x >= 0.0D;
+            case ASCENDING_WEST -> uphill = velocity.x <= 0.0D;
+            case ASCENDING_NORTH -> uphill = velocity.z <= 0.0D;
+            case ASCENDING_SOUTH -> uphill = velocity.z >= 0.0D;
             default -> {
                 return 0.0F;
             }
         }
 
-        Vec3d forward = new Vec3d(
-                -Math.sin(Math.toRadians(yaw)),
-                0.0D,
-                Math.cos(Math.toRadians(yaw))
-        );
-
-        double direction =
-                forward.x * uphillX
-                        + forward.z * uphillZ;
-
-        // Positive X rotation tilts the front downward, so facing uphill
-        // uses -45°, while facing downhill uses +45°.
-        return direction >= 0.0D ? -45.0F : 45.0F;
+        return uphill ? -45.0F : 45.0F;
     }
 }
