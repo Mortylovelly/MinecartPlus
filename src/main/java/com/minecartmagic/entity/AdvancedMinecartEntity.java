@@ -6,7 +6,6 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.vehicle.MinecartEntity;
 import net.minecraft.item.Item;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
@@ -37,6 +36,23 @@ public class AdvancedMinecartEntity extends MinecartEntity implements GeoEntity 
 
     public float getPlacementYaw() {
         return placementYawSet ? placementYaw : getYaw();
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+
+        // AbstractMinecartEntity updates its normal entity yaw from movement.
+        // This cart has a dedicated visual orientation chosen when it is placed,
+        // so keep the entity yaw locked to that direction as well. Otherwise
+        // vanilla minecart rotation can smoothly turn the GeckoLib model sideways.
+        if (placementYawSet) {
+            float yaw = placementYaw;
+            setYaw(yaw);
+            setHeadYaw(yaw);
+            setBodyYaw(yaw);
+            prevYaw = yaw;
+        }
     }
 
     @Override
