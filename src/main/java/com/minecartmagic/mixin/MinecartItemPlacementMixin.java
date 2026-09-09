@@ -5,10 +5,10 @@ import net.minecraft.block.AbstractRailBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.enums.RailShape;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.entity.vehicle.FurnaceMinecartEntity;
 import net.minecraft.item.ItemUsageContext;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -30,6 +30,10 @@ public abstract class MinecartItemPlacementMixin {
             return;
         }
 
+        if (context.getPlayer() == null) {
+            return;
+        }
+
         World world = context.getWorld();
         BlockPos railPos = context.getBlockPos();
         BlockState state = world.getBlockState(railPos);
@@ -38,44 +42,37 @@ public abstract class MinecartItemPlacementMixin {
             return;
         }
 
-        PlayerLookup:
-        {
-            if (context.getPlayer() == null) {
-                return;
-            }
+        Vec3d center = Vec3d.ofCenter(railPos).add(0.0D, 0.0625D, 0.0D);
+        AbstractMinecartEntity closest = world.getEntitiesByClass(
+                AbstractMinecartEntity.class,
+                new Box(
+                        center.x - 0.75D, center.y - 0.75D, center.z - 0.75D,
+                        center.x + 0.75D, center.y + 0.75D, center.z + 0.75D
+                ),
+                AbstractMinecartEntity::isAlive
+        ).stream()
+                .min((a, b) -> Double.compare(
+                        a.squaredDistanceTo(center),
+                        b.squaredDistanceTo(center)
+                ))
+                .orElse(null);
 
-            Vec3d center = Vec3d.ofCenter(railPos).add(0.0D, 0.0625D, 0.0D);
-            AbstractMinecartEntity closest = world.getEntitiesByClass(
-                    AbstractMinecartEntity.class,
-                    new net.minecraft.util.math.Box(
-                            center.x - 0.75D, center.y - 0.75D, center.z - 0.75D,
-                            center.x + 0.75D, center.y + 0.75D, center.z + 0.75D
-                    ),
-                    cart -> cart.isAlive()
-            ).stream()
-                    .min((a, b) -> Double.compare(
-                            a.squaredDistanceTo(center),
-                            b.squaredDistanceTo(center)
-                    ))
-                    .orElse(null);
+        if (closest == null) {
+            return;
+        }
 
-            if (closest == null) {
-                return;
-            }
+        float yaw = getPlacementYaw(
+                state,
+                context.getPlayer().getYaw()
+        );
 
-            float yaw = getPlacementYaw(
-                    state,
-                    context.getPlayer().getYaw()
-            );
+        closest.setYaw(yaw);
+        closest.setHeadYaw(yaw);
+        closest.setBodyYaw(yaw);
+        closest.prevYaw = yaw;
 
-            closest.setYaw(yaw);
-            closest.setHeadYaw(yaw);
-            closest.setBodyYaw(yaw);
-            closest.prevYaw = yaw;
-
-            if (closest instanceof AdvancedMinecartEntity advanced) {
-                advanced.setPlacementYaw(yaw);
-            }
+        if (closest instanceof AdvancedMinecartEntity advanced) {
+            advanced.setPlacementYaw(yaw);
         }
     }
 
