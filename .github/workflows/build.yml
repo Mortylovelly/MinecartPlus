@@ -2,7 +2,7 @@ name: Build Mod
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, minecraft-1.20.1-fabric ]
   workflow_dispatch:
 
 jobs:
@@ -13,10 +13,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: '17'
           distribution: 'temurin'
 
       - name: Make gradlew executable
@@ -28,5 +28,5 @@ jobs:
       - name: Upload mod artifact
         uses: actions/upload-artifact@v4
         with:
-          name: minecartmagic
+          name: minecartmagic-1.20.1
           path: build/libs/*.jar
