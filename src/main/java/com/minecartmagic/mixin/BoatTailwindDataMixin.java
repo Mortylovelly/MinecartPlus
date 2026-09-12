@@ -47,7 +47,7 @@ public abstract class BoatTailwindDataMixin
     ) {
         ((BoatEntity) (Object) this).getDataTracker().set(
                 MINECART_MAGIC$TAILWIND_LEVEL,
-                Math.max(0, Math.min(3, level))
+                Math.max(0, level)
         );
     }
 }
