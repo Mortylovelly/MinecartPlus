@@ -2,7 +2,6 @@ package com.minecartmagic.network;
 
 import com.minecartmagic.entity.SelfPropellingBoatEntity;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.entity.player.PlayerEntity;
 
 public final class ModNetworking {
 
@@ -11,7 +10,7 @@ public final class ModNetworking {
 
     public static void init() {
         ServerPlayNetworking.registerGlobalReceiver(
-                BoatScreenPayload.ID,
+                BoatScreenPayload.TYPE,
                 (server, player, handler, buf, responseSender) ->
                         server.execute(() -> {
                             if (!(player.getVehicle() instanceof SelfPropellingBoatEntity boat)) {

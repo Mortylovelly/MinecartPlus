@@ -182,10 +182,11 @@ public abstract class FurnaceMinecartGuiMixin
     }
 
     @Override
-    public Integer getScreenOpeningData(
-            ServerPlayerEntity player
+    public void writeScreenOpeningData(
+            ServerPlayerEntity player,
+            net.minecraft.network.PacketByteBuf buf
     ) {
-        return ((FurnaceMinecartEntity) (Object) this).getId();
+        buf.writeInt(((FurnaceMinecartEntity) (Object) this).getId());
     }
 
     @Inject(
@@ -207,7 +208,7 @@ public abstract class FurnaceMinecartGuiMixin
         nbt.put(
                 "MinecartMagicFuelInventory",
                 minecartmagic$fuelInventory.toNbtList(
-                        minecart.getWorld().getWorld().getWorld().getRegistryManager()
+                        minecart.getWorld().getRegistryManager()
                 )
         );
     }
@@ -235,7 +236,7 @@ public abstract class FurnaceMinecartGuiMixin
                             "MinecartMagicFuelInventory",
                             NbtElement.COMPOUND_TYPE
                     ),
-                    minecart.getWorld().getWorld().getWorld().getRegistryManager()
+                    minecart.getWorld().getRegistryManager()
             );
         }
     }

@@ -217,7 +217,7 @@ public final class ModItems {
                 );
 
         stack.addEnchantment(
-                enchantment,
+                enchantment.value(),
                 level
         );
 

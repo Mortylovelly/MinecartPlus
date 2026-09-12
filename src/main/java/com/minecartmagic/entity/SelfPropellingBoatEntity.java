@@ -130,39 +130,47 @@ public class SelfPropellingBoatEntity
      * =====================================================
      */
     @Override
-    protected Vec3d getPassengerAttachmentPos(
+    protected void updatePassengerPosition(
             Entity passenger,
-            EntityDimensions dimensions,
-            float scaleFactor
+            Entity.PositionUpdater positionUpdater
     ) {
-        Vec3d vanillaPosition =
-                super.getPassengerAttachmentPos(
-                        passenger,
-                        dimensions,
-                        scaleFactor
-                );
+        super.updatePassengerPosition(
+                passenger,
+                (entity, x, y, z) -> {
+                    Vec3d forward =
+                            getRotationVec(1.0F);
 
-        Vec3d forward =
-                getRotationVec(1.0F);
+                    forward =
+                            new Vec3d(
+                                    forward.x,
+                                    0.0D,
+                                    forward.z
+                            );
 
-        forward =
-                new Vec3d(
-                        forward.x,
-                        0.0D,
-                        forward.z
-                );
+                    if (forward.lengthSquared() < 1.0E-8D) {
+                        positionUpdater.accept(
+                                entity,
+                                x,
+                                y,
+                                z
+                        );
+                        return;
+                    }
 
-        if (forward.lengthSquared() < 1.0E-8D) {
-            return vanillaPosition;
-        }
+                    forward = forward.normalize();
 
-        forward =
-                forward.normalize();
+                    Vec3d offset =
+                            forward.multiply(
+                                    PASSENGER_FORWARD_OFFSET
+                            );
 
-        return vanillaPosition.add(
-                forward.multiply(
-                        PASSENGER_FORWARD_OFFSET
-                )
+                    positionUpdater.accept(
+                            entity,
+                            x + offset.x,
+                            y + offset.y,
+                            z + offset.z
+                    );
+                }
         );
     }
 
@@ -637,7 +645,7 @@ public class SelfPropellingBoatEntity
         if (tailwindLevel > 0) {
 
             var enchantmentRegistry =
-                    getWorld().getWorld().getWorld().getRegistryManager()
+                    getWorld().getRegistryManager()
                             .get(
                                     RegistryKeys.ENCHANTMENT
                             );
@@ -689,7 +697,7 @@ public class SelfPropellingBoatEntity
         nbt.put(
                 "FuelInventory",
                 fuelInventory.toNbtList(
-                        getWorld().getWorld().getWorld().getRegistryManager()
+                        getWorld().getRegistryManager()
                 )
         );
     }
@@ -746,7 +754,7 @@ public class SelfPropellingBoatEntity
                             "FuelInventory",
                             NbtElement.COMPOUND_TYPE
                     ),
-                    getWorld().getWorld().getWorld().getRegistryManager()
+                    getWorld().getRegistryManager()
             );
         }
     }

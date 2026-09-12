@@ -38,7 +38,7 @@ public abstract class BoatTailwindDropMixin {
         }
 
         Registry<Enchantment> enchantmentRegistry =
-                boat.getWorld().getWorld().getWorld().getRegistryManager()
+                boat.getWorld().getRegistryManager()
                         .get(RegistryKeys.ENCHANTMENT);
 
         RegistryEntry<Enchantment> tailwind =
@@ -56,7 +56,7 @@ public abstract class BoatTailwindDropMixin {
                 new ItemStack(selfAsItem);
 
         stack.addEnchantment(
-                tailwind,
+                tailwind.value(),
                 level
         );
 

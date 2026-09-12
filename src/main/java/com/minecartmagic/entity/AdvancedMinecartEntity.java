@@ -38,7 +38,6 @@ public class AdvancedMinecartEntity extends MinecartEntity implements GeoEntity 
         return placementYawSet ? placementYaw : getYaw();
     }
 
-    @Override
     public Item asItem() {
         return ModItems.ADVANCED_MINECART;
     }

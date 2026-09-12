@@ -34,7 +34,6 @@ public class SelfPropellingBoatRenderer
      * ОРИЕНТАЦИЯ ЛОДКИ
      * =====================================================
      */
-    @Override
     protected void applyRotations(
             SelfPropellingBoatEntity entity,
             MatrixStack matrices,
@@ -74,7 +73,10 @@ public class SelfPropellingBoatRenderer
             float partialTick,
             int packedLight,
             int packedOverlay,
-            int colour
+            float red,
+            float green,
+            float blue,
+            float alpha
     ) {
         /*
          * =================================================
@@ -227,7 +229,10 @@ public class SelfPropellingBoatRenderer
             float partialTick,
             int packedLight,
             int packedOverlay,
-            int colour
+            float red,
+            float green,
+            float blue,
+            float alpha
     ) {
         super.preRender(
                 matrices,
