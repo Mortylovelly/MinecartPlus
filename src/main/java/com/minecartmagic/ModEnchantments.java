@@ -1,6 +1,5 @@
 package com.minecartmagic;
 
-import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
@@ -17,7 +16,7 @@ public final class ModEnchantments {
     public static final RegistryKey<Enchantment> TRACTION_KEY =
             RegistryKey.of(
                     RegistryKeys.ENCHANTMENT,
-                    Identifier.of(
+                    new Identifier(
                             MinecartMagicMod.MOD_ID,
                             "traction"
                     )
@@ -26,7 +25,7 @@ public final class ModEnchantments {
     public static final RegistryKey<Enchantment> TAILWIND_KEY =
             RegistryKey.of(
                     RegistryKeys.ENCHANTMENT,
-                    Identifier.of(
+                    new Identifier(
                             MinecartMagicMod.MOD_ID,
                             "tailwind"
                     )
@@ -93,15 +92,6 @@ public final class ModEnchantments {
     public static int getTractionLevel(
             AbstractMinecartEntity minecart
     ) {
-        Integer level =
-                ((AttachmentTarget) minecart).getAttached(
-                        MinecartMagicAttachments.TRACTION_LEVEL
-                );
-
-        if (level != null && level > 0) {
-            return level;
-        }
-
         for (String tag : minecart.getCommandTags()) {
 
             if (!tag.startsWith(
@@ -139,11 +129,6 @@ public final class ModEnchantments {
         int safeLevel =
                 Math.max(0, level);
 
-        ((AttachmentTarget) minecart).setAttached(
-                MinecartMagicAttachments.TRACTION_LEVEL,
-                safeLevel
-        );
-
         minecart.getCommandTags().removeIf(
                 tag -> tag.startsWith(
                         TRACTION_TAG_PREFIX
@@ -170,15 +155,6 @@ public final class ModEnchantments {
     public static int getTailwindLevel(
             BoatEntity boat
     ) {
-        Integer level =
-                ((AttachmentTarget) boat).getAttached(
-                        MinecartMagicAttachments.TAILWIND_LEVEL
-                );
-
-        if (level != null && level > 0) {
-            return level;
-        }
-
         for (String tag : boat.getCommandTags()) {
 
             if (!tag.startsWith(
@@ -213,11 +189,6 @@ public final class ModEnchantments {
     ) {
         int safeLevel =
                 Math.max(0, level);
-
-        ((AttachmentTarget) boat).setAttached(
-                MinecartMagicAttachments.TAILWIND_LEVEL,
-                safeLevel
-        );
 
         boat.getCommandTags().removeIf(
                 tag -> tag.startsWith(
