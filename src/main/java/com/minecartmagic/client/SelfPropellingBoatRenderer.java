@@ -92,27 +92,27 @@ public class SelfPropellingBoatRenderer
 
                 matrices.push();
 
-                software.bernie.geckolib.util.RenderUtil.translateMatrixToBone(
+                software.bernie.geckolib.util.RenderUtils.translateMatrixToBone(
                         matrices,
                         bone
                 );
 
-                software.bernie.geckolib.util.RenderUtil.translateToPivotPoint(
+                software.bernie.geckolib.util.RenderUtils.translateToPivotPoint(
                         matrices,
                         bone
                 );
 
-                software.bernie.geckolib.util.RenderUtil.rotateMatrixAroundBone(
+                software.bernie.geckolib.util.RenderUtils.rotateMatrixAroundBone(
                         matrices,
                         bone
                 );
 
-                software.bernie.geckolib.util.RenderUtil.scaleMatrixForBone(
+                software.bernie.geckolib.util.RenderUtils.scaleMatrixForBone(
                         matrices,
                         bone
                 );
 
-                software.bernie.geckolib.util.RenderUtil.translateAwayFromPivotPoint(
+                software.bernie.geckolib.util.RenderUtils.translateAwayFromPivotPoint(
                         matrices,
                         bone
                 );
@@ -128,7 +128,10 @@ public class SelfPropellingBoatRenderer
                         waterMaskBuffer,
                         packedLight,
                         packedOverlay,
-                        colour
+                        1.0F,
+                        1.0F,
+                        1.0F,
+                        1.0F
                 );
 
                 matrices.pop();
@@ -201,7 +204,10 @@ public class SelfPropellingBoatRenderer
                 partialTick,
                 packedLight,
                 packedOverlay,
-                colour
+                1.0F,
+                1.0F,
+                1.0F,
+                1.0F
         );
     }
 
@@ -233,7 +239,10 @@ public class SelfPropellingBoatRenderer
                 partialTick,
                 packedLight,
                 packedOverlay,
-                colour
+                1.0F,
+                1.0F,
+                1.0F,
+                1.0F
         );
     }
 }

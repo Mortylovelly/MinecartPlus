@@ -3,7 +3,7 @@ package com.minecartmagic.mixin;
 import com.minecartmagic.ModEnchantments;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.vehicle.BoatEntity;
-import net.minecraft.entity.vehicle.VehicleEntity;
+import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registry;
@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(VehicleEntity.class)
+@Mixin(BoatEntity.class)
 public abstract class BoatTailwindDropMixin {
 
     @Inject(
@@ -38,7 +38,7 @@ public abstract class BoatTailwindDropMixin {
         }
 
         Registry<Enchantment> enchantmentRegistry =
-                boat.getRegistryManager()
+                boat.getWorld().getRegistryManager()
                         .get(RegistryKeys.ENCHANTMENT);
 
         RegistryEntry<Enchantment> tailwind =

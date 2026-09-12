@@ -30,17 +30,17 @@ import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
-import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 public class SelfPropellingBoatEntity
         extends BoatEntity
-        implements ExtendedScreenHandlerFactory<Integer>, GeoEntity {
+        implements ExtendedScreenHandlerFactory, GeoEntity {
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger("MinecartMagic");
@@ -167,25 +167,14 @@ public class SelfPropellingBoatEntity
     }
 
     @Override
-    protected void initDataTracker(
-            DataTracker.Builder builder
-    ) {
-        super.initDataTracker(builder);
+    protected void initDataTracker() {
+        super.initDataTracker();
 
-        builder.add(
-                BURN_TIME,
-                0
-        );
+        getDataTracker().startTracking(BURN_TIME, 0);
 
-        builder.add(
-                FUEL_TIME,
-                0
-        );
+        getDataTracker().startTracking(FUEL_TIME, 0);
 
-        builder.add(
-                ENGINE_TAILWIND_LEVEL,
-                0
-        );
+        getDataTracker().startTracking(ENGINE_TAILWIND_LEVEL, 0);
     }
 
     public SimpleInventory getFuelInventory() {
@@ -648,7 +637,7 @@ public class SelfPropellingBoatEntity
         if (tailwindLevel > 0) {
 
             var enchantmentRegistry =
-                    getRegistryManager()
+                    getWorld().getRegistryManager()
                             .get(
                                     RegistryKeys.ENCHANTMENT
                             );
@@ -700,7 +689,7 @@ public class SelfPropellingBoatEntity
         nbt.put(
                 "FuelInventory",
                 fuelInventory.toNbtList(
-                        getRegistryManager()
+                        getWorld().getRegistryManager()
                 )
         );
     }
@@ -757,7 +746,7 @@ public class SelfPropellingBoatEntity
                             "FuelInventory",
                             NbtElement.COMPOUND_TYPE
                     ),
-                    getRegistryManager()
+                    getWorld().getRegistryManager()
             );
         }
     }
@@ -784,10 +773,11 @@ public class SelfPropellingBoatEntity
     }
 
     @Override
-    public Integer getScreenOpeningData(
-            ServerPlayerEntity player
+    public void writeScreenOpeningData(
+            ServerPlayerEntity player,
+            net.minecraft.network.PacketByteBuf buf
     ) {
-        return getId();
+        buf.writeInt(getId());
     }
 
     /*

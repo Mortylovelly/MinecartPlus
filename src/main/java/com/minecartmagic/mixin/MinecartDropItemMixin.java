@@ -3,7 +3,7 @@ package com.minecartmagic.mixin;
 import com.minecartmagic.ModEnchantments;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.entity.vehicle.VehicleEntity;
+import net.minecraft.entity.vehicle.AbstractMinecartEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registry;
@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(VehicleEntity.class)
+@Mixin(AbstractMinecartEntity.class)
 public abstract class MinecartDropItemMixin {
 
     @Inject(
@@ -38,7 +38,7 @@ public abstract class MinecartDropItemMixin {
         }
 
         Registry<Enchantment> enchantmentRegistry =
-                minecart.getRegistryManager()
+                minecart.getWorld().getRegistryManager()
                         .get(RegistryKeys.ENCHANTMENT);
 
         RegistryEntry<Enchantment> traction =

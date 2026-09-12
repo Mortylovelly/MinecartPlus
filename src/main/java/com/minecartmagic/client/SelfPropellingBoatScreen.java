@@ -21,7 +21,7 @@ public class SelfPropellingBoatScreen
      * hotbar.
      */
     private static final Identifier DISPENSER_TEXTURE =
-            Identifier.ofVanilla(
+            new Identifier("minecraft", 
                     "textures/gui/container/dispenser.png"
             );
 
@@ -31,7 +31,7 @@ public class SelfPropellingBoatScreen
      * Используем только слот топлива и пламя.
      */
     private static final Identifier FURNACE_TEXTURE =
-            Identifier.ofVanilla(
+            new Identifier("minecraft", 
                     "textures/gui/container/furnace.png"
             );
 

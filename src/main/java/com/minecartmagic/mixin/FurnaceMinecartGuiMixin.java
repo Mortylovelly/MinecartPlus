@@ -27,7 +27,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(FurnaceMinecartEntity.class)
 public abstract class FurnaceMinecartGuiMixin
-        implements ExtendedScreenHandlerFactory<Integer>, SelfPropellingMinecartAccess {
+        implements ExtendedScreenHandlerFactory, SelfPropellingMinecartAccess {
 
     @Shadow
     private int fuel;
@@ -207,7 +207,7 @@ public abstract class FurnaceMinecartGuiMixin
         nbt.put(
                 "MinecartMagicFuelInventory",
                 minecartmagic$fuelInventory.toNbtList(
-                        minecart.getRegistryManager()
+                        minecart.getWorld().getRegistryManager()
                 )
         );
     }
@@ -235,7 +235,7 @@ public abstract class FurnaceMinecartGuiMixin
                             "MinecartMagicFuelInventory",
                             NbtElement.COMPOUND_TYPE
                     ),
-                    minecart.getRegistryManager()
+                    minecart.getWorld().getRegistryManager()
             );
         }
     }
