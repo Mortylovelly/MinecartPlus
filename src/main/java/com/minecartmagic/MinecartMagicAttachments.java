@@ -1,41 +1,18 @@
 package com.minecartmagic;
 
-import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
-import net.minecraft.network.codec.PacketCodecs;
-
+/**
+ * Compatibility holder for the 1.20.1 port.
+ *
+ * The Fabric Attachment API used by the 1.21.1 branch does not exist in the
+ * 1.20.1 Fabric API version used here. Minecart/boat enchantment state is
+ * stored through the existing entity command-tag fallback in ModEnchantments.
+ */
 public final class MinecartMagicAttachments {
-
-    public static final AttachmentType<Integer> TRACTION_LEVEL =
-            AttachmentRegistry.create(
-                    MinecartMagicMod.id("traction_level"),
-                    builder -> builder
-                            .initializer(() -> 0)
-                            .persistent(com.mojang.serialization.Codec.INT)
-                            .syncWith(
-                                    PacketCodecs.VAR_INT,
-                                    AttachmentSyncPredicate.all()
-                            )
-            );
-
-    public static final AttachmentType<Integer> TAILWIND_LEVEL =
-            AttachmentRegistry.create(
-                    MinecartMagicMod.id("tailwind_level"),
-                    builder -> builder
-                            .initializer(() -> 0)
-                            .persistent(com.mojang.serialization.Codec.INT)
-                            .syncWith(
-                                    PacketCodecs.VAR_INT,
-                                    AttachmentSyncPredicate.all()
-                            )
-            );
 
     private MinecartMagicAttachments() {
     }
 
     public static void init() {
-        TRACTION_LEVEL.toString();
-        TAILWIND_LEVEL.toString();
+        // No registration is required on Minecraft 1.20.1.
     }
 }
