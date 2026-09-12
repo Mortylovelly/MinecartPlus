@@ -31,6 +31,59 @@ jobs:
         if: github.event_name == 'push' && github.ref_name == 'minecraft-1.20.1-fabric'
         run: |
           python3 scripts/port_1201_compat.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          def edit(path, transform):
+              file = Path(path)
+              text = file.read_text(encoding='utf-8')
+              new = transform(text)
+              if new != text:
+                  file.write_text(new, encoding='utf-8')
+                  print(f'finalized {path}')
+
+          edit(
+              'src/main/java/com/minecartmagic/entity/SelfPropellingBoatEntity.java',
+              lambda t: t
+              .replace(
+                  'boatStack.addEnchantment(\n                    tailwind,\n                    tailwindLevel\n            );',
+                  'boatStack.addEnchantment(\n                    tailwind.value(),\n                    tailwindLevel\n            );'
+              )
+              .replace(
+                  'fuelInventory.toNbtList(\n                        getWorld().getRegistryManager()\n                )',
+                  'fuelInventory.toNbtList()'
+              )
+          )
+
+          edit(
+              'src/main/java/com/minecartmagic/mixin/FurnaceMinecartGuiMixin.java',
+              lambda t: re.sub(
+                  r'minecartmagic\$fuelInventory\.toNbtList\(\s*minecart\.getWorld\(\)\.getRegistryManager\(\)\s*\)',
+                  'minecartmagic$fuelInventory.toNbtList()',
+                  t,
+              ).replace(
+                  'minecartmagic$fuelInventory.readNbtList(\n                    nbt.getList(\n                            "MinecartMagicFuelInventory",\n                            NbtElement.COMPOUND_TYPE\n                    ),\n                    minecart.getWorld().getRegistryManager()\n            );',
+                  'minecartmagic$fuelInventory.readNbtList(\n                    nbt.getList(\n                            "MinecartMagicFuelInventory",\n                            NbtElement.COMPOUND_TYPE\n                    )\n            );'
+              )
+          )
+
+          edit(
+              'src/main/java/com/minecartmagic/entity/SelfPropellingBoatEntity.java',
+              lambda t: t.replace(
+                  'fuelInventory.readNbtList(\n                    nbt.getList(\n                            "FuelInventory",\n                            NbtElement.COMPOUND_TYPE\n                    ),\n                    getWorld().getRegistryManager()\n            );',
+                  'fuelInventory.readNbtList(\n                    nbt.getList(\n                            "FuelInventory",\n                            NbtElement.COMPOUND_TYPE\n                    )\n            );'
+              )
+          )
+
+          edit(
+              'src/main/java/com/minecartmagic/network/ModNetworking.java',
+              lambda t: t.replace(
+                  'BoatScreenPayload.TYPE,',
+                  'BoatScreenPayload.ID,'
+              )
+          )
+
           if git diff --quiet; then
             echo '1.20.1 compatibility pass made no changes.'
             exit 0
