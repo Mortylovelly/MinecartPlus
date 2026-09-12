@@ -1,5 +1,7 @@
 package com.minecartmagic;
 
+import com.minecartmagic.mixin.BoatTailwindDataAccess;
+import com.minecartmagic.mixin.MinecartTractionDataAccess;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
@@ -86,6 +88,15 @@ public final class ModEnchantments {
     public static int getTractionLevel(
             AbstractMinecartEntity minecart
     ) {
+        if (minecart instanceof MinecartTractionDataAccess dataAccess) {
+            int syncedLevel =
+                    dataAccess.minecartmagic$getTractionDataLevel();
+
+            if (syncedLevel > 0) {
+                return syncedLevel;
+            }
+        }
+
         for (String tag : minecart.getCommandTags()) {
 
             if (!tag.startsWith(
@@ -95,11 +106,18 @@ public final class ModEnchantments {
             }
 
             try {
-                return Integer.parseInt(
+                int level = Integer.parseInt(
                         tag.substring(
                                 TRACTION_TAG_PREFIX.length()
                         )
                 );
+
+                if (level > 0
+                        && minecart instanceof MinecartTractionDataAccess dataAccess) {
+                    dataAccess.minecartmagic$setTractionDataLevel(level);
+                }
+
+                return level;
             } catch (NumberFormatException ignored) {
                 return 0;
             }
@@ -122,6 +140,10 @@ public final class ModEnchantments {
     ) {
         int safeLevel =
                 Math.max(0, level);
+
+        if (minecart instanceof MinecartTractionDataAccess dataAccess) {
+            dataAccess.minecartmagic$setTractionDataLevel(safeLevel);
+        }
 
         minecart.getCommandTags().removeIf(
                 tag -> tag.startsWith(
@@ -149,6 +171,15 @@ public final class ModEnchantments {
     public static int getTailwindLevel(
             BoatEntity boat
     ) {
+        if (boat instanceof BoatTailwindDataAccess dataAccess) {
+            int syncedLevel =
+                    dataAccess.minecartmagic$getTailwindDataLevel();
+
+            if (syncedLevel > 0) {
+                return syncedLevel;
+            }
+        }
+
         for (String tag : boat.getCommandTags()) {
 
             if (!tag.startsWith(
@@ -166,6 +197,10 @@ public final class ModEnchantments {
                         );
 
                 if (tagLevel > 0) {
+                    if (boat instanceof BoatTailwindDataAccess dataAccess) {
+                        dataAccess.minecartmagic$setTailwindDataLevel(tagLevel);
+                    }
+
                     return tagLevel;
                 }
 
@@ -183,6 +218,10 @@ public final class ModEnchantments {
     ) {
         int safeLevel =
                 Math.max(0, level);
+
+        if (boat instanceof BoatTailwindDataAccess dataAccess) {
+            dataAccess.minecartmagic$setTailwindDataLevel(safeLevel);
+        }
 
         boat.getCommandTags().removeIf(
                 tag -> tag.startsWith(
