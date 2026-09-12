@@ -8,7 +8,6 @@ import net.minecraft.entity.vehicle.MinecartEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.Identifier;
 
 public final class ModEnchantments {
@@ -51,20 +50,15 @@ public final class ModEnchantments {
             return 0;
         }
 
-        for (var entry :
-                EnchantmentHelper.getEnchantments(stack)
-                        .getEnchantmentEntries()) {
+        Identifier targetId = key.getValue();
 
-            RegistryEntry<Enchantment> enchantment =
-                    entry.getKey();
+        for (var entry : EnchantmentHelper.get(stack).entrySet()) {
+            Enchantment enchantment = entry.getKey();
+            Identifier enchantmentId =
+                    EnchantmentHelper.getEnchantmentId(enchantment);
 
-            if (enchantment.getKey().isPresent()
-                    && enchantment.getKey().get().equals(key)) {
-
-                return EnchantmentHelper.getLevel(
-                        enchantment,
-                        stack
-                );
+            if (targetId.equals(enchantmentId)) {
+                return entry.getValue();
             }
         }
 
