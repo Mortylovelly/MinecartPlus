@@ -112,11 +112,11 @@ public class SelfPropellingBoatModel
                 animationState
         );
 
-        CoreGeoBone leftPaddle =
+        CoreCoreGeoBone leftPaddle =
                 getAnimationProcessor()
                         .getBone("paddle_left");
 
-        CoreGeoBone rightPaddle =
+        CoreCoreGeoBone rightPaddle =
                 getAnimationProcessor()
                         .getBone("paddle_right");
 

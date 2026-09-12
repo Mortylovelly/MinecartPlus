@@ -38,7 +38,7 @@ public abstract class BoatTailwindDropMixin {
         }
 
         Registry<Enchantment> enchantmentRegistry =
-                boat.getWorld().getRegistryManager()
+                boat.getWorld().getWorld().getRegistryManager()
                         .get(RegistryKeys.ENCHANTMENT);
 
         RegistryEntry<Enchantment> tailwind =

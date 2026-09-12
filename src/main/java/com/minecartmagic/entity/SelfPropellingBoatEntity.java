@@ -637,7 +637,7 @@ public class SelfPropellingBoatEntity
         if (tailwindLevel > 0) {
 
             var enchantmentRegistry =
-                    getWorld().getRegistryManager()
+                    getWorld().getWorld().getRegistryManager()
                             .get(
                                     RegistryKeys.ENCHANTMENT
                             );
@@ -689,7 +689,7 @@ public class SelfPropellingBoatEntity
         nbt.put(
                 "FuelInventory",
                 fuelInventory.toNbtList(
-                        getWorld().getRegistryManager()
+                        getWorld().getWorld().getRegistryManager()
                 )
         );
     }
@@ -746,7 +746,7 @@ public class SelfPropellingBoatEntity
                             "FuelInventory",
                             NbtElement.COMPOUND_TYPE
                     ),
-                    getWorld().getRegistryManager()
+                    getWorld().getWorld().getRegistryManager()
             );
         }
     }
