@@ -9,8 +9,10 @@
     "FurnaceMinecartGuiMixin",
     "MinecartItemPlacementMixin",
     "MinecartDropItemMixin",
+    "MinecartTractionDataMixin",
     "BoatTailwindPlacementMixin",
     "BoatTailwindSpeedMixin",
+    "BoatTailwindDataMixin",
     "SelfPropellingBoatVelocityMixin",
     "BoatTailwindDropMixin"
   ],
