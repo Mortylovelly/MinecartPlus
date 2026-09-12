@@ -656,7 +656,7 @@ public class SelfPropellingBoatEntity
                     );
 
             boatStack.addEnchantment(
-                    tailwind,
+                    tailwind.value(),
                     tailwindLevel
             );
         }
@@ -696,9 +696,7 @@ public class SelfPropellingBoatEntity
 
         nbt.put(
                 "FuelInventory",
-                fuelInventory.toNbtList(
-                        getWorld().getRegistryManager()
-                )
+                fuelInventory.toNbtList()
         );
     }
 
@@ -753,8 +751,7 @@ public class SelfPropellingBoatEntity
                     nbt.getList(
                             "FuelInventory",
                             NbtElement.COMPOUND_TYPE
-                    ),
-                    getWorld().getRegistryManager()
+                    )
             );
         }
     }

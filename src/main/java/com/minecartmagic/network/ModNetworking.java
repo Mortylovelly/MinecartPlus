@@ -10,7 +10,7 @@ public final class ModNetworking {
 
     public static void init() {
         ServerPlayNetworking.registerGlobalReceiver(
-                BoatScreenPayload.TYPE,
+                BoatScreenPayload.ID,
                 (server, player, handler, buf, responseSender) ->
                         server.execute(() -> {
                             if (!(player.getVehicle() instanceof SelfPropellingBoatEntity boat)) {
