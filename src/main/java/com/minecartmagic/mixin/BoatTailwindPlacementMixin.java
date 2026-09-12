@@ -1,47 +1,50 @@
 package com.minecartmagic.mixin;
 
 import com.minecartmagic.ModEnchantments;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.item.BoatItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(BoatItem.class)
 public abstract class BoatTailwindPlacementMixin {
 
-    @Inject(
-            method = "createEntity",
-            at = @At("RETURN")
+    @Shadow
+    private abstract BoatEntity createEntity(
+            World world,
+            HitResult hitResult
+    );
+
+    @Redirect(
+            method = "use",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/item/BoatItem;createEntity(Lnet/minecraft/world/World;Lnet/minecraft/util/hit/HitResult;)Lnet/minecraft/entity/vehicle/BoatEntity;"
+            )
     )
-    private void minecartmagic$applyTailwind(
+    private BoatEntity minecartmagic$createTailwindBoat(
+            BoatItem self,
             World world,
             HitResult hitResult,
-            ItemStack stack,
-            PlayerEntity player,
-            CallbackInfoReturnable<BoatEntity> cir
+            ItemStack stack
     ) {
-        BoatEntity boat = cir.getReturnValue();
+        BoatEntity boat = this.createEntity(world, hitResult);
 
         if (boat == null) {
-            return;
+            return null;
         }
 
-        int level =
-                ModEnchantments.getTailwindLevel(stack);
+        int level = ModEnchantments.getTailwindLevel(stack);
 
-        if (level <= 0) {
-            return;
+        if (level > 0) {
+            ModEnchantments.setTailwindLevel(boat, level);
         }
 
-        ModEnchantments.setTailwindLevel(
-                boat,
-                level
-        );
+        return boat;
     }
 }
