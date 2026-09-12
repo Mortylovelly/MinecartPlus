@@ -32,6 +32,7 @@ jobs:
         run: |
           python3 scripts/port_1201_compat.py
           python3 scripts/port_1201_final.py
+          git restore --worktree --staged gradlew
           if git diff --quiet; then
             echo '1.20.1 compatibility pass made no changes.'
             exit 0
