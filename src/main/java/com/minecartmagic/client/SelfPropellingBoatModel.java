@@ -6,7 +6,7 @@ import net.minecraft.entity.vehicle.BoatEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import software.bernie.geckolib.core.animation.AnimationState;
-import software.bernie.geckolib.core.model.CoreGeoBone;
+import software.bernie.geckolib.core.animatable.model.CoreGeoBone;
 import software.bernie.geckolib.model.GeoModel;
 
 public class SelfPropellingBoatModel
@@ -112,11 +112,11 @@ public class SelfPropellingBoatModel
                 animationState
         );
 
-        CoreCoreGeoBone leftPaddle =
+        CoreGeoBone leftPaddle =
                 getAnimationProcessor()
                         .getBone("paddle_left");
 
-        CoreCoreGeoBone rightPaddle =
+        CoreGeoBone rightPaddle =
                 getAnimationProcessor()
                         .getBone("paddle_right");
 
