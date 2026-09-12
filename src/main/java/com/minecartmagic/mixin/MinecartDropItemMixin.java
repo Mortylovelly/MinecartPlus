@@ -38,7 +38,7 @@ public abstract class MinecartDropItemMixin {
         }
 
         Registry<Enchantment> enchantmentRegistry =
-                minecart.getWorld().getWorld().getRegistryManager()
+                minecart.getWorld().getWorld().getWorld().getRegistryManager()
                         .get(RegistryKeys.ENCHANTMENT);
 
         RegistryEntry<Enchantment> traction =

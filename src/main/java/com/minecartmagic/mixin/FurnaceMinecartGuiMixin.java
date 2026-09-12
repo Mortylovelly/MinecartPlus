@@ -207,7 +207,7 @@ public abstract class FurnaceMinecartGuiMixin
         nbt.put(
                 "MinecartMagicFuelInventory",
                 minecartmagic$fuelInventory.toNbtList(
-                        minecart.getWorld().getWorld().getRegistryManager()
+                        minecart.getWorld().getWorld().getWorld().getRegistryManager()
                 )
         );
     }
@@ -235,7 +235,7 @@ public abstract class FurnaceMinecartGuiMixin
                             "MinecartMagicFuelInventory",
                             NbtElement.COMPOUND_TYPE
                     ),
-                    minecart.getWorld().getWorld().getRegistryManager()
+                    minecart.getWorld().getWorld().getWorld().getRegistryManager()
             );
         }
     }
