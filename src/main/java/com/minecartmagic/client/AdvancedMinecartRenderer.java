@@ -6,8 +6,8 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.enums.RailShape;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
-import net.minecraft.util.math.Vec3d;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
 
 public class AdvancedMinecartRenderer
@@ -20,6 +20,7 @@ public class AdvancedMinecartRenderer
         shadowRadius = 0.6F;
     }
 
+    @Override
     protected void applyRotations(
             AdvancedMinecartEntity entity,
             MatrixStack matrices,
@@ -28,22 +29,32 @@ public class AdvancedMinecartRenderer
             float partialTick,
             float nativeScale
     ) {
-        // Use the entity's normal interpolated yaw, exactly like a vanilla
-        // minecart renderer. The entity itself remains responsible for
-        // turning with the rails and changing direction when pushed.
+        float yaw = MathHelper.wrapDegrees(
+                entity.getPlacementYaw() + 90.0F
+        );
+        float pitch = getRailPitch(entity);
+
+        /*
+         * The 90 degree offset converts the minecart/entity yaw convention
+         * into the local forward axis of the GeckoLib model.
+         *
+         * We intentionally do NOT derive yaw from velocity. Vanilla minecart
+         * physics may reverse the entity's movement yaw while following a
+         * rail, but the model must keep the direction in which the cart was
+         * placed instead of snapping 180 degrees.
+         */
         matrices.multiply(
-                RotationAxis.POSITIVE_Y.rotationDegrees(rotationYaw)
+                RotationAxis.POSITIVE_Y.rotationDegrees(yaw)
         );
 
-        // Keep the existing rail pitch behaviour for ascending rails.
         matrices.multiply(
-                RotationAxis.POSITIVE_X.rotationDegrees(
-                        getRailPitch(entity)
-                )
+                RotationAxis.POSITIVE_X.rotationDegrees(pitch)
         );
     }
 
-    private static float getRailPitch(AdvancedMinecartEntity entity) {
+    private static float getRailPitch(
+            AdvancedMinecartEntity entity
+    ) {
         BlockState state = entity.getWorld().getBlockState(
                 entity.getBlockPos()
         );
@@ -56,14 +67,15 @@ public class AdvancedMinecartRenderer
                 railBlock.getShapeProperty()
         );
 
-        Vec3d velocity = entity.getVelocity();
+        double velocityX = entity.getVelocity().x;
+        double velocityZ = entity.getVelocity().z;
         boolean uphill;
 
         switch (shape) {
-            case ASCENDING_EAST -> uphill = velocity.x >= 0.0D;
-            case ASCENDING_WEST -> uphill = velocity.x <= 0.0D;
-            case ASCENDING_NORTH -> uphill = velocity.z <= 0.0D;
-            case ASCENDING_SOUTH -> uphill = velocity.z >= 0.0D;
+            case ASCENDING_EAST -> uphill = velocityX >= 0.0D;
+            case ASCENDING_WEST -> uphill = velocityX <= 0.0D;
+            case ASCENDING_NORTH -> uphill = velocityZ <= 0.0D;
+            case ASCENDING_SOUTH -> uphill = velocityZ >= 0.0D;
             default -> {
                 return 0.0F;
             }
