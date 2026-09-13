@@ -4,7 +4,6 @@ import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentTarget;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.BoatItem;
-import net.minecraft.item.ChestBoatItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -72,7 +71,15 @@ public final class LegacyEnchantments {
                 }
 
                 return item instanceof BoatItem
-                        || item instanceof ChestBoatItem
+                        || item == Items.OAK_CHEST_BOAT
+                        || item == Items.SPRUCE_CHEST_BOAT
+                        || item == Items.BIRCH_CHEST_BOAT
+                        || item == Items.JUNGLE_CHEST_BOAT
+                        || item == Items.ACACIA_CHEST_BOAT
+                        || item == Items.DARK_OAK_CHEST_BOAT
+                        || item == Items.MANGROVE_CHEST_BOAT
+                        || item == Items.CHERRY_CHEST_BOAT
+                        || item == Items.BAMBOO_CHEST_RAFT
                         || item == ModItems.SELF_PROPELLING_BOAT;
             }
         };
