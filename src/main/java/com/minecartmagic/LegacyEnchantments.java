@@ -1,6 +1,5 @@
 package com.minecartmagic;
 
-import com.minecartmagic.item.SelfPropellingBoatItem;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentTarget;
 import net.minecraft.entity.EquipmentSlot;
@@ -81,7 +80,7 @@ public final class LegacyEnchantments {
                         || item == Items.MANGROVE_CHEST_BOAT
                         || item == Items.CHERRY_CHEST_BOAT
                         || item == Items.BAMBOO_CHEST_RAFT
-                        || item instanceof SelfPropellingBoatItem;
+                        || item == ModItems.SELF_PROPELLING_BOAT;
             }
         };
     }
