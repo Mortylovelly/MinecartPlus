@@ -44,8 +44,14 @@ public class AdvancedMinecartRenderer
                 entity.getPlacementYaw()
         );
 
+        // GeckoLib 4.8.4's 1.20.1 renderer uses a different model-facing
+        // convention than the 1.21.1 renderer. The runtime model is rotated
+        // 90 degrees around Y relative to the minecart/entity yaw, so this
+        // offset aligns the model's longitudinal axis with the rails.
         matrices.multiply(
-                RotationAxis.POSITIVE_Y.rotationDegrees(yaw)
+                RotationAxis.POSITIVE_Y.rotationDegrees(
+                        yaw + 90.0F
+                )
         );
 
         matrices.multiply(
