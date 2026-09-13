@@ -32,10 +32,11 @@ jobs:
         run: |
           set -e
           ./gradlew dependencies --no-daemon >/tmp/gradle-dependencies.txt
-          find "$HOME/.gradle/caches" -type f -iname '*geckolib*1.20.1*4.8.4*.jar' -print
           while IFS= read -r jarfile; do
             echo "=== GeckoLib JAR: $jarfile ==="
             jar tf "$jarfile" | grep -E 'software/bernie/geckolib/(animatable|animation|core|util)' | head -120 || true
+            echo "=== GeoEntityRenderer methods ==="
+            javap -classpath "$jarfile" -protected software.bernie.geckolib.renderer.GeoEntityRenderer | grep -E 'applyRotations|preRender|renderRecursively|adjustRenderPose' || true
           done < <(find "$HOME/.gradle/caches" -type f -iname '*geckolib*1.20.1*4.8.4*.jar')
 
       - name: Build mod
