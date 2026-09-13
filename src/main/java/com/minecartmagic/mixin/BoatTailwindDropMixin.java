@@ -17,10 +17,10 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 public abstract class BoatTailwindDropMixin {
 
     @Redirect(
-            method = "dropItems",
+            method = "dropItems(Lnet/minecraft/entity/damage/DamageSource;)V",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/entity/Entity;dropItem(Lnet/minecraft/item/ItemConvertible;)Lnet/minecraft/entity/ItemEntity;"
+                    target = "Lnet/minecraft/entity/vehicle/BoatEntity;dropItem(Lnet/minecraft/item/ItemConvertible;)Lnet/minecraft/entity/ItemEntity;"
             )
     )
     private ItemEntity minecartmagic$enchantDroppedBoat(
