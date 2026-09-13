@@ -1,14 +1,13 @@
 package com.minecartmagic;
 
-import com.minecartmagic.item.AdvancedMinecartItem;
-import com.minecartmagic.item.SelfPropellingBoatItem;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentTarget;
 import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.item.BoatItem;
+import net.minecraft.item.ChestBoatItem;
+import net.minecraft.item.EnchantmentHelper;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.MinecartItem;
+import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
@@ -68,13 +67,13 @@ public final class LegacyEnchantments {
             public boolean isAcceptableItem(ItemStack stack) {
                 Item item = stack.getItem();
 
-                if (tailwind) {
-                    return item instanceof BoatItem
-                            || item instanceof SelfPropellingBoatItem;
+                if (!tailwind) {
+                    return item == Items.MINECART;
                 }
 
-                return item instanceof MinecartItem
-                        || item instanceof AdvancedMinecartItem;
+                return item instanceof net.minecraft.item.BoatItem
+                        || item instanceof ChestBoatItem
+                        || item == ModItems.SELF_PROPELLING_BOAT;
             }
         };
     }
