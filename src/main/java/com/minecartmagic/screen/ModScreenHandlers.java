@@ -14,7 +14,7 @@ public final class ModScreenHandlers {
                             new SelfPropellingBoatScreenHandler(
                                     syncId,
                                     playerInventory,
-                                    buf.readInt()
+                                    buf.readVarInt()
                             )
             );
 
@@ -25,7 +25,7 @@ public final class ModScreenHandlers {
                             new SelfPropellingMinecartScreenHandler(
                                     syncId,
                                     playerInventory,
-                                    buf.readInt()
+                                    buf.readVarInt()
                             )
             );
 
