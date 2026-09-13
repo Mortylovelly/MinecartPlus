@@ -11,10 +11,10 @@ public class SelfPropellingMinecartScreen
         extends HandledScreen<SelfPropellingMinecartScreenHandler> {
 
     private static final Identifier DISPENSER_TEXTURE =
-            Identifier.ofVanilla("textures/gui/container/dispenser.png");
+            new Identifier("minecraft", "textures/gui/container/dispenser.png");
 
     private static final Identifier FURNACE_TEXTURE =
-            Identifier.ofVanilla("textures/gui/container/furnace.png");
+            new Identifier("minecraft", "textures/gui/container/furnace.png");
 
     private static final int WIDTH = 176;
     private static final int HEIGHT = 166;

@@ -30,17 +30,17 @@ import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimationController;
-import software.bernie.geckolib.animation.AnimationState;
-import software.bernie.geckolib.animation.PlayState;
-import software.bernie.geckolib.animation.RawAnimation;
-import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimationController;
+import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.object.PlayState;
+import software.bernie.geckolib.core.animation.RawAnimation;
+import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 public class SelfPropellingBoatEntity
         extends BoatEntity
-        implements ExtendedScreenHandlerFactory<Integer>, GeoEntity {
+        implements ExtendedScreenHandlerFactory, GeoEntity {
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger("MinecartMagic");
@@ -130,62 +130,59 @@ public class SelfPropellingBoatEntity
      * =====================================================
      */
     @Override
-    protected Vec3d getPassengerAttachmentPos(
+    protected void updatePassengerPosition(
             Entity passenger,
-            EntityDimensions dimensions,
-            float scaleFactor
+            Entity.PositionUpdater positionUpdater
     ) {
-        Vec3d vanillaPosition =
-                super.getPassengerAttachmentPos(
-                        passenger,
-                        dimensions,
-                        scaleFactor
-                );
+        super.updatePassengerPosition(
+                passenger,
+                (entity, x, y, z) -> {
+                    Vec3d forward =
+                            getRotationVec(1.0F);
 
-        Vec3d forward =
-                getRotationVec(1.0F);
+                    forward =
+                            new Vec3d(
+                                    forward.x,
+                                    0.0D,
+                                    forward.z
+                            );
 
-        forward =
-                new Vec3d(
-                        forward.x,
-                        0.0D,
-                        forward.z
-                );
+                    if (forward.lengthSquared() < 1.0E-8D) {
+                        positionUpdater.accept(
+                                entity,
+                                x,
+                                y,
+                                z
+                        );
+                        return;
+                    }
 
-        if (forward.lengthSquared() < 1.0E-8D) {
-            return vanillaPosition;
-        }
+                    forward = forward.normalize();
 
-        forward =
-                forward.normalize();
+                    Vec3d offset =
+                            forward.multiply(
+                                    PASSENGER_FORWARD_OFFSET
+                            );
 
-        return vanillaPosition.add(
-                forward.multiply(
-                        PASSENGER_FORWARD_OFFSET
-                )
+                    positionUpdater.accept(
+                            entity,
+                            x + offset.x,
+                            y + offset.y,
+                            z + offset.z
+                    );
+                }
         );
     }
 
     @Override
-    protected void initDataTracker(
-            DataTracker.Builder builder
-    ) {
-        super.initDataTracker(builder);
+    protected void initDataTracker() {
+        super.initDataTracker();
 
-        builder.add(
-                BURN_TIME,
-                0
-        );
+        getDataTracker().startTracking(BURN_TIME, 0);
 
-        builder.add(
-                FUEL_TIME,
-                0
-        );
+        getDataTracker().startTracking(FUEL_TIME, 0);
 
-        builder.add(
-                ENGINE_TAILWIND_LEVEL,
-                0
-        );
+        getDataTracker().startTracking(ENGINE_TAILWIND_LEVEL, 0);
     }
 
     public SimpleInventory getFuelInventory() {
@@ -648,7 +645,7 @@ public class SelfPropellingBoatEntity
         if (tailwindLevel > 0) {
 
             var enchantmentRegistry =
-                    getRegistryManager()
+                    getWorld().getRegistryManager()
                             .get(
                                     RegistryKeys.ENCHANTMENT
                             );
@@ -659,7 +656,7 @@ public class SelfPropellingBoatEntity
                     );
 
             boatStack.addEnchantment(
-                    tailwind,
+                    tailwind.value(),
                     tailwindLevel
             );
         }
@@ -699,9 +696,7 @@ public class SelfPropellingBoatEntity
 
         nbt.put(
                 "FuelInventory",
-                fuelInventory.toNbtList(
-                        getRegistryManager()
-                )
+                fuelInventory.toNbtList()
         );
     }
 
@@ -756,8 +751,7 @@ public class SelfPropellingBoatEntity
                     nbt.getList(
                             "FuelInventory",
                             NbtElement.COMPOUND_TYPE
-                    ),
-                    getRegistryManager()
+                    )
             );
         }
     }
@@ -784,10 +778,11 @@ public class SelfPropellingBoatEntity
     }
 
     @Override
-    public Integer getScreenOpeningData(
-            ServerPlayerEntity player
+    public void writeScreenOpeningData(
+            ServerPlayerEntity player,
+            net.minecraft.network.PacketByteBuf buf
     ) {
-        return getId();
+        buf.writeInt(getId());
     }
 
     /*

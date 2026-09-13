@@ -6,6 +6,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.enums.RailShape;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
 import net.minecraft.util.math.Vec3d;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
@@ -20,23 +21,21 @@ public class AdvancedMinecartRenderer
         shadowRadius = 0.6F;
     }
 
-    @Override
     protected void applyRotations(
             AdvancedMinecartEntity entity,
             MatrixStack matrices,
             float ageInTicks,
             float rotationYaw,
-            float partialTick,
-            float nativeScale
+            float partialTick
     ) {
-        // Use the entity's normal interpolated yaw, exactly like a vanilla
-        // minecart renderer. The entity itself remains responsible for
-        // turning with the rails and changing direction when pushed.
-        matrices.multiply(
-                RotationAxis.POSITIVE_Y.rotationDegrees(rotationYaw)
+        float yaw = MathHelper.wrapDegrees(
+                entity.getPlacementYaw() + 90.0F
         );
 
-        // Keep the existing rail pitch behaviour for ascending rails.
+        matrices.multiply(
+                RotationAxis.POSITIVE_Y.rotationDegrees(yaw)
+        );
+
         matrices.multiply(
                 RotationAxis.POSITIVE_X.rotationDegrees(
                         getRailPitch(entity)

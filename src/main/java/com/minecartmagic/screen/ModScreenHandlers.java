@@ -1,47 +1,32 @@
 package com.minecartmagic.screen;
 
 import com.minecartmagic.MinecartMagicMod;
+import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
-import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
-import net.minecraft.network.codec.PacketCodecs;
 
 public final class ModScreenHandlers {
 
-    public static final ExtendedScreenHandlerType<
-            SelfPropellingBoatScreenHandler,
-            Integer
-            > SELF_PROPELLING_BOAT =
+    public static final ExtendedScreenHandlerType<SelfPropellingBoatScreenHandler>
+            SELF_PROPELLING_BOAT =
             new ExtendedScreenHandlerType<>(
-                    (
-                            syncId,
-                            playerInventory,
-                            entityId
-                    ) ->
+                    (syncId, playerInventory, buf) ->
                             new SelfPropellingBoatScreenHandler(
                                     syncId,
                                     playerInventory,
-                                    entityId
-                            ),
-                    PacketCodecs.VAR_INT
+                                    buf.readVarInt()
+                            )
             );
 
-    public static final ExtendedScreenHandlerType<
-            SelfPropellingMinecartScreenHandler,
-            Integer
-            > SELF_PROPELLING_MINECART =
+    public static final ExtendedScreenHandlerType<SelfPropellingMinecartScreenHandler>
+            SELF_PROPELLING_MINECART =
             new ExtendedScreenHandlerType<>(
-                    (
-                            syncId,
-                            playerInventory,
-                            entityId
-                    ) ->
+                    (syncId, playerInventory, buf) ->
                             new SelfPropellingMinecartScreenHandler(
                                     syncId,
                                     playerInventory,
-                                    entityId
-                            ),
-                    PacketCodecs.VAR_INT
+                                    buf.readVarInt()
+                            )
             );
 
     static {

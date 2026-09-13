@@ -33,6 +33,9 @@ public class SelfPropellingBoatRenderer
      * =====================================================
      * ОРИЕНТАЦИЯ ЛОДКИ
      * =====================================================
+     *
+     * Это исходная логика main. В 1.20.1 меняется только
+     * сигнатура GeckoLib-хука под GeckoLib 4.8.4.
      */
     @Override
     protected void applyRotations(
@@ -40,8 +43,7 @@ public class SelfPropellingBoatRenderer
             MatrixStack matrices,
             float ageInTicks,
             float rotationYaw,
-            float partialTick,
-            float nativeScale
+            float partialTick
     ) {
         float interpolatedYaw =
                 MathHelper.lerpAngleDegrees(
@@ -57,11 +59,6 @@ public class SelfPropellingBoatRenderer
         );
     }
 
-    /*
-     * =====================================================
-     * BOTTOM_NO_WATER -> VANILLA WATER MASK
-     * =====================================================
-     */
     @Override
     public void renderRecursively(
             MatrixStack matrices,
@@ -74,45 +71,38 @@ public class SelfPropellingBoatRenderer
             float partialTick,
             int packedLight,
             int packedOverlay,
-            int colour
+            float red,
+            float green,
+            float blue,
+            float alpha
     ) {
-        /*
-         * =================================================
-         * WATER MASK
-         * =================================================
-         *
-         * Этот bone НЕ должен получать обычную текстуру
-         * и НЕ должен получать glint.
-         */
         if ("bottom_no_water".equals(
                 bone.getName()
         )) {
-
             if (!isReRender) {
-
                 matrices.push();
 
-                software.bernie.geckolib.util.RenderUtil.translateMatrixToBone(
+                software.bernie.geckolib.util.RenderUtils.translateMatrixToBone(
                         matrices,
                         bone
                 );
 
-                software.bernie.geckolib.util.RenderUtil.translateToPivotPoint(
+                software.bernie.geckolib.util.RenderUtils.translateToPivotPoint(
                         matrices,
                         bone
                 );
 
-                software.bernie.geckolib.util.RenderUtil.rotateMatrixAroundBone(
+                software.bernie.geckolib.util.RenderUtils.rotateMatrixAroundBone(
                         matrices,
                         bone
                 );
 
-                software.bernie.geckolib.util.RenderUtil.scaleMatrixForBone(
+                software.bernie.geckolib.util.RenderUtils.scaleMatrixForBone(
                         matrices,
                         bone
                 );
 
-                software.bernie.geckolib.util.RenderUtil.translateAwayFromPivotPoint(
+                software.bernie.geckolib.util.RenderUtils.translateAwayFromPivotPoint(
                         matrices,
                         bone
                 );
@@ -128,7 +118,10 @@ public class SelfPropellingBoatRenderer
                         waterMaskBuffer,
                         packedLight,
                         packedOverlay,
-                        colour
+                        1.0F,
+                        1.0F,
+                        1.0F,
+                        1.0F
                 );
 
                 matrices.pop();
@@ -137,22 +130,6 @@ public class SelfPropellingBoatRenderer
             return;
         }
 
-        /*
-         * =================================================
-         * TAILWIND GLINT
-         * =================================================
-         *
-         * Уровень берём из уже существующей системы
-         * самоходной лодки.
-         *
-         * getEngineTailwindLevel() содержит уровень,
-         * перенесённый на entity.
-         *
-         * Дополнительно проверяем attachment, чтобы
-         * enchanted-состояние не потерялось, если
-         * entity ещё не успела скопировать его
-         * в engine level.
-         */
         int engineTailwindLevel =
                 entity.getEngineTailwindLevel();
 
@@ -168,15 +145,8 @@ public class SelfPropellingBoatRenderer
         VertexConsumer actualBuffer =
                 buffer;
 
-        /*
-         * Используем настоящий vanilla item glint.
-         *
-         * Никакой собственной текстуры,
-         * никакого второго model.render().
-         */
         if (enchanted
                 && vertexConsumers != null) {
-
             actualBuffer =
                     ItemRenderer.getItemGlintConsumer(
                             vertexConsumers,
@@ -186,10 +156,6 @@ public class SelfPropellingBoatRenderer
                     );
         }
 
-        /*
-         * Все обычные bones рендерим через GeckoLib,
-         * только с заменённым buffer для glint.
-         */
         super.renderRecursively(
                 matrices,
                 entity,
@@ -201,15 +167,13 @@ public class SelfPropellingBoatRenderer
                 partialTick,
                 packedLight,
                 packedOverlay,
-                colour
+                red,
+                green,
+                blue,
+                alpha
         );
     }
 
-    /*
-     * =====================================================
-     * PRE-RENDER
-     * =====================================================
-     */
     @Override
     public void preRender(
             MatrixStack matrices,
@@ -221,7 +185,10 @@ public class SelfPropellingBoatRenderer
             float partialTick,
             int packedLight,
             int packedOverlay,
-            int colour
+            float red,
+            float green,
+            float blue,
+            float alpha
     ) {
         super.preRender(
                 matrices,
@@ -233,7 +200,10 @@ public class SelfPropellingBoatRenderer
                 partialTick,
                 packedLight,
                 packedOverlay,
-                colour
+                1.0F,
+                1.0F,
+                1.0F,
+                1.0F
         );
     }
 }

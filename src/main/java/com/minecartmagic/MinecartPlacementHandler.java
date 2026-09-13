@@ -92,9 +92,7 @@ public final class MinecartPlacementHandler {
                         x,
                         y,
                         z,
-                        minecartType,
-                        stack,
-                        player
+                        minecartType
                 );
 
         if (minecart == null) {
@@ -119,7 +117,9 @@ public final class MinecartPlacementHandler {
 
         serverWorld.spawnEntity(minecart);
 
-        stack.decrementUnlessCreative(1, player);
+        if (!player.getAbilities().creativeMode) {
+            stack.decrement(1);
+        }
 
         return ActionResult.SUCCESS;
     }

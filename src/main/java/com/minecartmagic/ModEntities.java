@@ -2,7 +2,6 @@ package com.minecartmagic;
 
 import com.minecartmagic.entity.AdvancedMinecartEntity;
 import com.minecartmagic.entity.SelfPropellingBoatEntity;
-import net.minecraft.entity.EntityDimensions;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
 import net.minecraft.registry.Registries;
@@ -22,7 +21,7 @@ public final class ModEntities {
                                     SelfPropellingBoatEntity::new,
                                     SpawnGroup.MISC
                             )
-                            .dimensions(
+                            .setDimensions(
                                     1.375F,
                                     0.5625F
                             )
@@ -47,7 +46,7 @@ public final class ModEntities {
                                     AdvancedMinecartEntity::new,
                                     SpawnGroup.MISC
                             )
-                            .dimensions(
+                            .setDimensions(
                                     1.0F,
                                     0.7F
                             )

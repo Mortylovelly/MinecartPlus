@@ -21,13 +21,12 @@ public class MinecartMagicMod implements ModInitializer {
 
         ModEntities.init();
 
+        LegacyEnchantments.init();
+
         ModItems.init();
 
         ModEnchantments.init();
 
-        /*
-         * Не удалять.
-         */
         MinecartPlacementHandler.init();
 
         ModScreenHandlers.init();
@@ -42,7 +41,7 @@ public class MinecartMagicMod implements ModInitializer {
     public static Identifier id(
             String path
     ) {
-        return Identifier.of(
+        return new Identifier(
                 MOD_ID,
                 path
         );

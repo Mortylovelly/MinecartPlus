@@ -10,8 +10,8 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.world.World;
 import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
-import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 public class AdvancedMinecartEntity extends MinecartEntity implements GeoEntity {
@@ -38,7 +38,6 @@ public class AdvancedMinecartEntity extends MinecartEntity implements GeoEntity 
         return placementYawSet ? placementYaw : getYaw();
     }
 
-    @Override
     public Item asItem() {
         return ModItems.ADVANCED_MINECART;
     }

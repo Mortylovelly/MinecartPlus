@@ -27,7 +27,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(FurnaceMinecartEntity.class)
 public abstract class FurnaceMinecartGuiMixin
-        implements ExtendedScreenHandlerFactory<Integer>, SelfPropellingMinecartAccess {
+        implements ExtendedScreenHandlerFactory, SelfPropellingMinecartAccess {
 
     @Shadow
     private int fuel;
@@ -182,10 +182,11 @@ public abstract class FurnaceMinecartGuiMixin
     }
 
     @Override
-    public Integer getScreenOpeningData(
-            ServerPlayerEntity player
+    public void writeScreenOpeningData(
+            ServerPlayerEntity player,
+            net.minecraft.network.PacketByteBuf buf
     ) {
-        return ((FurnaceMinecartEntity) (Object) this).getId();
+        buf.writeVarInt(((FurnaceMinecartEntity) (Object) this).getId());
     }
 
     @Inject(
@@ -206,9 +207,7 @@ public abstract class FurnaceMinecartGuiMixin
 
         nbt.put(
                 "MinecartMagicFuelInventory",
-                minecartmagic$fuelInventory.toNbtList(
-                        minecart.getRegistryManager()
-                )
+                minecartmagic$fuelInventory.toNbtList()
         );
     }
 
@@ -234,8 +233,7 @@ public abstract class FurnaceMinecartGuiMixin
                     nbt.getList(
                             "MinecartMagicFuelInventory",
                             NbtElement.COMPOUND_TYPE
-                    ),
-                    minecart.getRegistryManager()
+                    )
             );
         }
     }
