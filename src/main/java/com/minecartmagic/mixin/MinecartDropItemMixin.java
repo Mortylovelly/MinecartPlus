@@ -4,8 +4,6 @@ import com.minecartmagic.ModEnchantments;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.entity.vehicle.StorageMinecartEntity;
-import net.minecraft.entity.vehicle.TntMinecartEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
@@ -14,7 +12,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin({AbstractMinecartEntity.class, StorageMinecartEntity.class, TntMinecartEntity.class})
+@Mixin(AbstractMinecartEntity.class)
 public abstract class MinecartDropItemMixin {
 
     @Redirect(
