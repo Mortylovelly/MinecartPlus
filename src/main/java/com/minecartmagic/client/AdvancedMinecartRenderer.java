@@ -40,16 +40,12 @@ public class AdvancedMinecartRenderer
             float blue,
             float alpha
     ) {
-        float yaw = MathHelper.lerpAngleDegrees(
-                partialTick,
-                entity.prevYaw,
-                entity.getYaw()
+        float yaw = MathHelper.wrapDegrees(
+                entity.getPlacementYaw()
         );
 
         matrices.multiply(
-                RotationAxis.POSITIVE_Y.rotationDegrees(
-                        270.0F - yaw
-                )
+                RotationAxis.POSITIVE_Y.rotationDegrees(yaw)
         );
 
         matrices.multiply(
