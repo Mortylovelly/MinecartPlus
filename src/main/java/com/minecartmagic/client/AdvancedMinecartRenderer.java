@@ -8,7 +8,6 @@ import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
 import net.minecraft.util.math.Vec3d;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
@@ -40,17 +39,9 @@ public class AdvancedMinecartRenderer
             float blue,
             float alpha
     ) {
-        float yaw = MathHelper.wrapDegrees(
-                entity.getPlacementYaw()
-        );
-
-        // GeckoLib 4.8.4's 1.20.1 renderer uses a different model-facing
-        // convention than the 1.21.1 renderer. The runtime model is rotated
-        // 90 degrees around Y relative to the minecart/entity yaw, so this
-        // offset aligns the model's longitudinal axis with the rails.
         matrices.multiply(
                 RotationAxis.POSITIVE_Y.rotationDegrees(
-                        yaw + 90.0F
+                        entity.getYaw()
                 )
         );
 
