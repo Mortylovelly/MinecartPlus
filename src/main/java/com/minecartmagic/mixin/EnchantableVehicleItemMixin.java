@@ -1,6 +1,6 @@
 package com.minecartmagic.mixin;
 
-import com.minecartmagic.item.SelfPropellingBoatItem;
+import com.minecartmagic.ModItems;
 import net.minecraft.item.BoatItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -50,6 +50,6 @@ public abstract class EnchantableVehicleItemMixin {
                 || item == Items.MANGROVE_CHEST_BOAT
                 || item == Items.CHERRY_CHEST_BOAT
                 || item == Items.BAMBOO_CHEST_RAFT
-                || item instanceof SelfPropellingBoatItem;
+                || item == ModItems.SELF_PROPELLING_BOAT;
     }
 }
