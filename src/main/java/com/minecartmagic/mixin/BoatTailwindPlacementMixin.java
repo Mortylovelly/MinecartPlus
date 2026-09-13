@@ -24,7 +24,7 @@ public abstract class BoatTailwindPlacementMixin {
             new ThreadLocal<>();
 
     @Shadow
-    private abstract BoatEntity createEntity(
+    abstract BoatEntity createEntity(
             World world,
             HitResult hitResult
     );
