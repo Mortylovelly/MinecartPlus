@@ -3,7 +3,7 @@ package com.minecartmagic.mixin;
 import com.minecartmagic.ModEnchantments;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.entity.vehicle.AbstractMinecartEntity;
+import net.minecraft.entity.vehicle.VehicleEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registry;
@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(AbstractMinecartEntity.class)
+@Mixin(VehicleEntity.class)
 public abstract class MinecartDropItemMixin {
 
     @Inject(
@@ -50,17 +50,6 @@ public abstract class MinecartDropItemMixin {
             return;
         }
 
-        /*
-         * selfAsItem — именно тот предмет,
-         * который соответствует типу этой вагонетки.
-         *
-         * Поэтому:
-         * Chest Minecart -> Chest Minecart
-         * Hopper Minecart -> Hopper Minecart
-         * Furnace Minecart -> Furnace Minecart
-         * TNT Minecart -> TNT Minecart
-         * и т.д.
-         */
         ItemStack stack =
                 new ItemStack(selfAsItem);
 
