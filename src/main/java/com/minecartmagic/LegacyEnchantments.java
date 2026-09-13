@@ -64,6 +64,25 @@ public final class LegacyEnchantments {
 
             @Override
             public boolean isAcceptableItem(ItemStack stack) {
+                return isVehicleTarget(stack);
+            }
+
+            @Override
+            public boolean canEnchant(ItemStack stack) {
+                return isVehicleTarget(stack);
+            }
+
+            @Override
+            public boolean isAvailableForRandomSelection() {
+                return true;
+            }
+
+            @Override
+            public boolean isAvailableForEnchantedBookOffer() {
+                return true;
+            }
+
+            private boolean isVehicleTarget(ItemStack stack) {
                 Item item = stack.getItem();
 
                 if (!tailwind) {
@@ -81,16 +100,6 @@ public final class LegacyEnchantments {
                         || item == Items.CHERRY_CHEST_BOAT
                         || item == Items.BAMBOO_CHEST_RAFT
                         || item == ModItems.SELF_PROPELLING_BOAT;
-            }
-
-            @Override
-            public boolean isAvailableForRandomSelection() {
-                return true;
-            }
-
-            @Override
-            public boolean isAvailableForEnchantedBookOffer() {
-                return true;
             }
         };
     }
