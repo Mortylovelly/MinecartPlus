@@ -2,77 +2,92 @@ package com.minecartmagic.mixin;
 
 import com.minecartmagic.ModEnchantments;
 import net.minecraft.enchantment.Enchantment;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.entity.vehicle.VehicleEntity;
-import net.minecraft.item.Item;
+import net.minecraft.entity.vehicle.StorageMinecartEntity;
+import net.minecraft.entity.vehicle.TntMinecartEntity;
+import net.minecraft.item.ItemConvertible;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin(VehicleEntity.class)
+@Mixin({
+        AbstractMinecartEntity.class,
+        StorageMinecartEntity.class,
+        TntMinecartEntity.class
+})
 public abstract class MinecartDropItemMixin {
 
-    @Inject(
-            method = "killAndDropItem(Lnet/minecraft/item/Item;)V",
-            at = @At("HEAD"),
-            cancellable = true
+    @Redirect(
+            method = "dropItems(Lnet/minecraft/entity/damage/DamageSource;)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/entity/vehicle/AbstractMinecartEntity;dropItem(Lnet/minecraft/item/ItemConvertible;)Lnet/minecraft/entity/ItemEntity;"
+            ),
+            require = 0
     )
-    private void minecartmagic$dropEnchantedMinecart(
-            Item selfAsItem,
-            CallbackInfo ci
+    private ItemEntity minecartmagic$enchantDroppedMinecartFromAbstract(
+            AbstractMinecartEntity minecart,
+            ItemConvertible item
     ) {
-        if (!((Object) this instanceof AbstractMinecartEntity minecart)) {
-            return;
+        return minecartmagic$dropEnchanted(minecart, item);
+    }
+
+    @Redirect(
+            method = "dropItems(Lnet/minecraft/entity/damage/DamageSource;)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/entity/vehicle/StorageMinecartEntity;dropItem(Lnet/minecraft/item/ItemConvertible;)Lnet/minecraft/entity/ItemEntity;"
+            ),
+            require = 0
+    )
+    private ItemEntity minecartmagic$enchantDroppedMinecartFromStorage(
+            StorageMinecartEntity minecart,
+            ItemConvertible item
+    ) {
+        return minecartmagic$dropEnchanted(minecart, item);
+    }
+
+    @Redirect(
+            method = "dropItems(Lnet/minecraft/entity/damage/DamageSource;)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/entity/vehicle/TntMinecartEntity;dropItem(Lnet/minecraft/item/ItemConvertible;)Lnet/minecraft/entity/ItemEntity;"
+            ),
+            require = 0
+    )
+    private ItemEntity minecartmagic$enchantDroppedMinecartFromTnt(
+            TntMinecartEntity minecart,
+            ItemConvertible item
+    ) {
+        return minecartmagic$dropEnchanted(minecart, item);
+    }
+
+    private static ItemEntity minecartmagic$dropEnchanted(
+            AbstractMinecartEntity minecart,
+            ItemConvertible item
+    ) {
+        ItemStack stack = new ItemStack(item.asItem());
+        int level = ModEnchantments.getTractionLevel(minecart);
+
+        if (level > 0) {
+            Registry<Enchantment> enchantmentRegistry =
+                    minecart.getWorld().getRegistryManager()
+                            .get(RegistryKeys.ENCHANTMENT);
+            RegistryEntry<Enchantment> traction =
+                    enchantmentRegistry
+                            .getEntry(ModEnchantments.TRACTION_KEY)
+                            .orElse(null);
+
+            if (traction != null) {
+                stack.addEnchantment(traction.value(), level);
+            }
         }
 
-        int level =
-                ModEnchantments.getTractionLevel(minecart);
-
-        if (level <= 0) {
-            return;
-        }
-
-        Registry<Enchantment> enchantmentRegistry =
-                minecart.getRegistryManager()
-                        .get(RegistryKeys.ENCHANTMENT);
-
-        RegistryEntry<Enchantment> traction =
-                enchantmentRegistry
-                        .getEntry(ModEnchantments.TRACTION_KEY)
-                        .orElse(null);
-
-        if (traction == null) {
-            return;
-        }
-
-        /*
-         * selfAsItem — именно тот предмет,
-         * который соответствует типу этой вагонетки.
-         *
-         * Поэтому:
-         * Chest Minecart -> Chest Minecart
-         * Hopper Minecart -> Hopper Minecart
-         * Furnace Minecart -> Furnace Minecart
-         * TNT Minecart -> TNT Minecart
-         * и т.д.
-         */
-        ItemStack stack =
-                new ItemStack(selfAsItem);
-
-        stack.addEnchantment(
-                traction,
-                level
-        );
-
-        minecart.dropStack(stack);
-
-        minecart.discard();
-
-        ci.cancel();
+        return minecart.dropStack(stack);
     }
 }

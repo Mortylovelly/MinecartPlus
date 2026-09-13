@@ -34,7 +34,6 @@ public class SelfPropellingBoatRenderer
      * ОРИЕНТАЦИЯ ЛОДКИ
      * =====================================================
      */
-    @Override
     protected void applyRotations(
             SelfPropellingBoatEntity entity,
             MatrixStack matrices,
@@ -74,7 +73,10 @@ public class SelfPropellingBoatRenderer
             float partialTick,
             int packedLight,
             int packedOverlay,
-            int colour
+            float red,
+            float green,
+            float blue,
+            float alpha
     ) {
         /*
          * =================================================
@@ -92,27 +94,27 @@ public class SelfPropellingBoatRenderer
 
                 matrices.push();
 
-                software.bernie.geckolib.util.RenderUtil.translateMatrixToBone(
+                software.bernie.geckolib.util.RenderUtils.translateMatrixToBone(
                         matrices,
                         bone
                 );
 
-                software.bernie.geckolib.util.RenderUtil.translateToPivotPoint(
+                software.bernie.geckolib.util.RenderUtils.translateToPivotPoint(
                         matrices,
                         bone
                 );
 
-                software.bernie.geckolib.util.RenderUtil.rotateMatrixAroundBone(
+                software.bernie.geckolib.util.RenderUtils.rotateMatrixAroundBone(
                         matrices,
                         bone
                 );
 
-                software.bernie.geckolib.util.RenderUtil.scaleMatrixForBone(
+                software.bernie.geckolib.util.RenderUtils.scaleMatrixForBone(
                         matrices,
                         bone
                 );
 
-                software.bernie.geckolib.util.RenderUtil.translateAwayFromPivotPoint(
+                software.bernie.geckolib.util.RenderUtils.translateAwayFromPivotPoint(
                         matrices,
                         bone
                 );
@@ -128,7 +130,10 @@ public class SelfPropellingBoatRenderer
                         waterMaskBuffer,
                         packedLight,
                         packedOverlay,
-                        colour
+                        1.0F,
+                        1.0F,
+                        1.0F,
+                        1.0F
                 );
 
                 matrices.pop();
@@ -201,7 +206,10 @@ public class SelfPropellingBoatRenderer
                 partialTick,
                 packedLight,
                 packedOverlay,
-                colour
+                1.0F,
+                1.0F,
+                1.0F,
+                1.0F
         );
     }
 
@@ -221,7 +229,10 @@ public class SelfPropellingBoatRenderer
             float partialTick,
             int packedLight,
             int packedOverlay,
-            int colour
+            float red,
+            float green,
+            float blue,
+            float alpha
     ) {
         super.preRender(
                 matrices,
@@ -233,7 +244,10 @@ public class SelfPropellingBoatRenderer
                 partialTick,
                 packedLight,
                 packedOverlay,
-                colour
+                1.0F,
+                1.0F,
+                1.0F,
+                1.0F
         );
     }
 }

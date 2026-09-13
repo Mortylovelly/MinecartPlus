@@ -2,8 +2,13 @@ name: Build Mod
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, minecraft-1.20.1-fabric ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -13,14 +18,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
         with:
-          java-version: '21'
+          java-version: '17'
           distribution: 'temurin'
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
+
+      - name: Resolve dependencies and inspect GeckoLib
+        shell: bash
+        run: |
+          set -e
+          ./gradlew dependencies --no-daemon >/tmp/gradle-dependencies.txt
+          find "$HOME/.gradle/caches" -type f -iname '*geckolib*1.20.1*4.8.4*.jar' -print
+          while IFS= read -r jarfile; do
+            echo "=== GeckoLib JAR: $jarfile ==="
+            jar tf "$jarfile" | grep -E 'software/bernie/geckolib/(animatable|animation|core|util)' | head -120 || true
+          done < <(find "$HOME/.gradle/caches" -type f -iname '*geckolib*1.20.1*4.8.4*.jar')
 
       - name: Build mod
         run: ./gradlew build --no-daemon
@@ -28,5 +44,5 @@ jobs:
       - name: Upload mod artifact
         uses: actions/upload-artifact@v4
         with:
-          name: minecartmagic
+          name: minecartmagic-1.20.1
           path: build/libs/*.jar

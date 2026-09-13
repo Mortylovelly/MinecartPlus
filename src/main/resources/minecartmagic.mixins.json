@@ -2,17 +2,22 @@
   "required": true,
   "minVersion": "0.8",
   "package": "com.minecartmagic.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_17",
   "mixins": [
     "MinecartMaxSpeedMixin",
     "FurnaceMinecartMaxSpeedMixin",
     "FurnaceMinecartGuiMixin",
     "MinecartItemPlacementMixin",
     "MinecartDropItemMixin",
+    "MinecartTractionDataMixin",
     "BoatTailwindPlacementMixin",
     "BoatTailwindSpeedMixin",
+    "BoatTailwindDataMixin",
     "SelfPropellingBoatVelocityMixin",
-    "BoatTailwindDropMixin"
+    "BoatTailwindDropMixin",
+    "EnchantableVehicleItemMixin",
+    "DisableSelfPropellingBoatPaddleAnimationsMixin",
+    "SelfPropellingBoatSteeringMixin"
   ],
   "client": [
     "MinecartGlintMixin",

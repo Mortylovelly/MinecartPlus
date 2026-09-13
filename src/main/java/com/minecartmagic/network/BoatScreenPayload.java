@@ -1,36 +1,37 @@
 package com.minecartmagic.network;
 
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
+import net.fabricmc.fabric.api.networking.v1.FabricPacket;
+import net.fabricmc.fabric.api.networking.v1.PacketType;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.Identifier;
 
-public record BoatScreenPayload()
-        implements CustomPayload {
+public record BoatScreenPayload() implements FabricPacket {
+
+    public static final Identifier ID =
+            new Identifier(
+                    "minecartmagic",
+                    "open_self_propelling_boat"
+            );
+
+    public static final PacketType<BoatScreenPayload> TYPE =
+            PacketType.create(
+                    ID,
+                    BoatScreenPayload::new
+            );
 
     public static final BoatScreenPayload INSTANCE =
             new BoatScreenPayload();
 
-    public static final CustomPayload.Id<
-            BoatScreenPayload
-            > ID =
-            new CustomPayload.Id<>(
-                    Identifier.of(
-                            "minecartmagic",
-                            "open_self_propelling_boat"
-                    )
-            );
-
-    public static final PacketCodec<
-            RegistryByteBuf,
-            BoatScreenPayload
-            > CODEC =
-            PacketCodec.unit(
-                    INSTANCE
-            );
+    public BoatScreenPayload(PacketByteBuf buf) {
+        this();
+    }
 
     @Override
-    public Id<? extends CustomPayload> getId() {
-        return ID;
+    public PacketType<?> getType() {
+        return TYPE;
+    }
+
+    @Override
+    public void write(PacketByteBuf buf) {
     }
 }
