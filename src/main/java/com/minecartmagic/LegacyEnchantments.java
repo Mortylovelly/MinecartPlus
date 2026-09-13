@@ -3,8 +3,8 @@ package com.minecartmagic;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentTarget;
 import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.item.BoatItem;
 import net.minecraft.item.ChestBoatItem;
-import net.minecraft.item.EnchantmentHelper;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -71,7 +71,7 @@ public final class LegacyEnchantments {
                     return item == Items.MINECART;
                 }
 
-                return item instanceof net.minecraft.item.BoatItem
+                return item instanceof BoatItem
                         || item instanceof ChestBoatItem
                         || item == ModItems.SELF_PROPELLING_BOAT;
             }
