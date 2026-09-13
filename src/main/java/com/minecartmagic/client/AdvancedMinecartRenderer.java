@@ -4,10 +4,13 @@ import com.minecartmagic.entity.AdvancedMinecartEntity;
 import net.minecraft.block.AbstractRailBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.enums.RailShape;
+import net.minecraft.client.render.VertexConsumer;
+import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.RotationAxis;
 import net.minecraft.util.math.Vec3d;
+import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
 
 public class AdvancedMinecartRenderer
@@ -20,22 +23,46 @@ public class AdvancedMinecartRenderer
         shadowRadius = 0.6F;
     }
 
-    protected void applyRotations(
-            AdvancedMinecartEntity entity,
+    @Override
+    public void preRender(
             MatrixStack matrices,
-            float ageInTicks,
-            float rotationYaw,
+            AdvancedMinecartEntity entity,
+            BakedGeoModel model,
+            VertexConsumerProvider vertexConsumers,
+            VertexConsumer buffer,
+            boolean isReRender,
             float partialTick,
-            float nativeScale
+            int packedLight,
+            int packedOverlay,
+            float red,
+            float green,
+            float blue,
+            float alpha
     ) {
         matrices.multiply(
-                RotationAxis.POSITIVE_Y.rotationDegrees(rotationYaw)
+                RotationAxis.POSITIVE_Y.rotationDegrees(90.0F)
         );
 
         matrices.multiply(
                 RotationAxis.POSITIVE_X.rotationDegrees(
                         getRailPitch(entity)
                 )
+        );
+
+        super.preRender(
+                matrices,
+                entity,
+                model,
+                vertexConsumers,
+                buffer,
+                isReRender,
+                partialTick,
+                packedLight,
+                packedOverlay,
+                red,
+                green,
+                blue,
+                alpha
         );
     }
 
