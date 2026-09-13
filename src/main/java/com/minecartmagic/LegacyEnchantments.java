@@ -67,16 +67,6 @@ public final class LegacyEnchantments {
                 return isVehicleTarget(stack);
             }
 
-            @Override
-            public boolean isAvailableForRandomSelection() {
-                return true;
-            }
-
-            @Override
-            public boolean isAvailableForEnchantedBookOffer() {
-                return true;
-            }
-
             private boolean isVehicleTarget(ItemStack stack) {
                 Item item = stack.getItem();
 
