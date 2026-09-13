@@ -8,6 +8,7 @@ import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
 import net.minecraft.util.math.Vec3d;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
@@ -39,8 +40,16 @@ public class AdvancedMinecartRenderer
             float blue,
             float alpha
     ) {
+        float yaw = MathHelper.lerpAngleDegrees(
+                partialTick,
+                entity.prevYaw,
+                entity.getYaw()
+        );
+
         matrices.multiply(
-                RotationAxis.POSITIVE_Y.rotationDegrees(90.0F)
+                RotationAxis.POSITIVE_Y.rotationDegrees(
+                        270.0F - yaw
+                )
         );
 
         matrices.multiply(
