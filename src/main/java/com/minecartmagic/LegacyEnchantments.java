@@ -68,11 +68,6 @@ public final class LegacyEnchantments {
             }
 
             @Override
-            public boolean canEnchant(ItemStack stack) {
-                return isVehicleTarget(stack);
-            }
-
-            @Override
             public boolean isAvailableForRandomSelection() {
                 return true;
             }
