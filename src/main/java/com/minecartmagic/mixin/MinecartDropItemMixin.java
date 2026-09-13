@@ -28,9 +28,15 @@ public abstract class MinecartDropItemMixin {
             AbstractMinecartEntity minecart,
             ItemStack stack
     ) {
+        ItemStack pickStack = minecart.getPickBlockStack();
+
+        if (pickStack == null || pickStack.isEmpty()) {
+            return minecart.dropStack(stack);
+        }
+
         int level = ModEnchantments.getTractionLevel(minecart);
 
-        if (level <= 0 || stack.isEmpty() || stack.getItem() != minecart.getItem()) {
+        if (level <= 0 || stack.isEmpty() || stack.getItem() != pickStack.getItem()) {
             return minecart.dropStack(stack);
         }
 
