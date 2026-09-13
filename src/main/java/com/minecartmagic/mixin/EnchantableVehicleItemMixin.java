@@ -2,7 +2,6 @@ package com.minecartmagic.mixin;
 
 import com.minecartmagic.ModItems;
 import net.minecraft.item.BoatItem;
-import net.minecraft.item.ChestBoatItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -32,7 +31,15 @@ public abstract class EnchantableVehicleItemMixin {
 
         if (item == Items.MINECART
                 || item instanceof BoatItem
-                || item instanceof ChestBoatItem
+                || item == Items.OAK_CHEST_BOAT
+                || item == Items.SPRUCE_CHEST_BOAT
+                || item == Items.BIRCH_CHEST_BOAT
+                || item == Items.JUNGLE_CHEST_BOAT
+                || item == Items.ACACIA_CHEST_BOAT
+                || item == Items.DARK_OAK_CHEST_BOAT
+                || item == Items.MANGROVE_CHEST_BOAT
+                || item == Items.CHERRY_CHEST_BOAT
+                || item == Items.BAMBOO_CHEST_RAFT
                 || item == ModItems.SELF_PROPELLING_BOAT) {
             cir.setReturnValue(15);
         }
@@ -43,7 +50,15 @@ public abstract class EnchantableVehicleItemMixin {
 
         return item == Items.MINECART
                 || item instanceof BoatItem
-                || item instanceof ChestBoatItem
+                || item == Items.OAK_CHEST_BOAT
+                || item == Items.SPRUCE_CHEST_BOAT
+                || item == Items.BIRCH_CHEST_BOAT
+                || item == Items.JUNGLE_CHEST_BOAT
+                || item == Items.ACACIA_CHEST_BOAT
+                || item == Items.DARK_OAK_CHEST_BOAT
+                || item == Items.MANGROVE_CHEST_BOAT
+                || item == Items.CHERRY_CHEST_BOAT
+                || item == Items.BAMBOO_CHEST_RAFT
                 || item == ModItems.SELF_PROPELLING_BOAT;
     }
 }
