@@ -27,24 +27,7 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Apply 1.20.1 compatibility pass
-        if: github.event_name == 'push' && github.ref_name == 'minecraft-1.20.1-fabric'
-        run: |
-          python3 scripts/port_1201_compat.py
-          python3 scripts/port_1201_final.py
-          git restore --worktree --staged gradlew
-          if git diff --quiet; then
-            echo '1.20.1 compatibility pass made no changes.'
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src scripts .github/workflows/build.yml
-          git commit -m 'Apply Minecraft 1.20.1 API compatibility [skip ci]'
-          git push origin HEAD:minecraft-1.20.1-fabric
-
       - name: Resolve dependencies and inspect GeckoLib
-        if: github.event_name != 'push' || github.ref_name != 'minecraft-1.20.1-fabric'
         shell: bash
         run: |
           set -e
