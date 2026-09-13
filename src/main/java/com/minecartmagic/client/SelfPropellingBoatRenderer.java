@@ -30,17 +30,27 @@ public class SelfPropellingBoatRenderer
     }
 
     /*
-     * =====================================================
-     * ОРИЕНТАЦИЯ ЛОДКИ
-     * =====================================================
+     * GeckoLib 4.9.x в оригинале позволяет переопределить
+     * applyRotations(). В GeckoLib 4.8.4 этого override с
+     * нашей сигнатурой нет, поэтому сохраняем ТО ЖЕ самое
+     * преобразование через гарантированно вызываемый
+     * preRender().
      */
-    protected void applyRotations(
-            SelfPropellingBoatEntity entity,
+    @Override
+    public void preRender(
             MatrixStack matrices,
-            float ageInTicks,
-            float rotationYaw,
+            SelfPropellingBoatEntity entity,
+            BakedGeoModel model,
+            @Nullable VertexConsumerProvider vertexConsumers,
+            @Nullable VertexConsumer buffer,
+            boolean isReRender,
             float partialTick,
-            float nativeScale
+            int packedLight,
+            int packedOverlay,
+            float red,
+            float green,
+            float blue,
+            float alpha
     ) {
         float interpolatedYaw =
                 MathHelper.lerpAngleDegrees(
@@ -54,13 +64,24 @@ public class SelfPropellingBoatRenderer
                         180.0F - interpolatedYaw
                 )
         );
+
+        super.preRender(
+                matrices,
+                entity,
+                model,
+                vertexConsumers,
+                buffer,
+                isReRender,
+                partialTick,
+                packedLight,
+                packedOverlay,
+                red,
+                green,
+                blue,
+                alpha
+        );
     }
 
-    /*
-     * =====================================================
-     * BOTTOM_NO_WATER -> VANILLA WATER MASK
-     * =====================================================
-     */
     @Override
     public void renderRecursively(
             MatrixStack matrices,
@@ -78,20 +99,10 @@ public class SelfPropellingBoatRenderer
             float blue,
             float alpha
     ) {
-        /*
-         * =================================================
-         * WATER MASK
-         * =================================================
-         *
-         * Этот bone НЕ должен получать обычную текстуру
-         * и НЕ должен получать glint.
-         */
         if ("bottom_no_water".equals(
                 bone.getName()
         )) {
-
             if (!isReRender) {
-
                 matrices.push();
 
                 software.bernie.geckolib.util.RenderUtils.translateMatrixToBone(
@@ -142,22 +153,6 @@ public class SelfPropellingBoatRenderer
             return;
         }
 
-        /*
-         * =================================================
-         * TAILWIND GLINT
-         * =================================================
-         *
-         * Уровень берём из уже существующей системы
-         * самоходной лодки.
-         *
-         * getEngineTailwindLevel() содержит уровень,
-         * перенесённый на entity.
-         *
-         * Дополнительно проверяем attachment, чтобы
-         * enchanted-состояние не потерялось, если
-         * entity ещё не успела скопировать его
-         * в engine level.
-         */
         int engineTailwindLevel =
                 entity.getEngineTailwindLevel();
 
@@ -173,15 +168,8 @@ public class SelfPropellingBoatRenderer
         VertexConsumer actualBuffer =
                 buffer;
 
-        /*
-         * Используем настоящий vanilla item glint.
-         *
-         * Никакой собственной текстуры,
-         * никакого второго model.render().
-         */
         if (enchanted
                 && vertexConsumers != null) {
-
             actualBuffer =
                     ItemRenderer.getItemGlintConsumer(
                             vertexConsumers,
@@ -191,10 +179,6 @@ public class SelfPropellingBoatRenderer
                     );
         }
 
-        /*
-         * Все обычные bones рендерим через GeckoLib,
-         * только с заменённым buffer для glint.
-         */
         super.renderRecursively(
                 matrices,
                 entity,
@@ -206,48 +190,10 @@ public class SelfPropellingBoatRenderer
                 partialTick,
                 packedLight,
                 packedOverlay,
-                1.0F,
-                1.0F,
-                1.0F,
-                1.0F
-        );
-    }
-
-    /*
-     * =====================================================
-     * PRE-RENDER
-     * =====================================================
-     */
-    @Override
-    public void preRender(
-            MatrixStack matrices,
-            SelfPropellingBoatEntity entity,
-            BakedGeoModel model,
-            @Nullable VertexConsumerProvider vertexConsumers,
-            @Nullable VertexConsumer buffer,
-            boolean isReRender,
-            float partialTick,
-            int packedLight,
-            int packedOverlay,
-            float red,
-            float green,
-            float blue,
-            float alpha
-    ) {
-        super.preRender(
-                matrices,
-                entity,
-                model,
-                vertexConsumers,
-                buffer,
-                isReRender,
-                partialTick,
-                packedLight,
-                packedOverlay,
-                1.0F,
-                1.0F,
-                1.0F,
-                1.0F
+                red,
+                green,
+                blue,
+                alpha
         );
     }
 }
