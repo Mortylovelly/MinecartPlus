@@ -4,13 +4,10 @@ import com.minecartmagic.entity.AdvancedMinecartEntity;
 import net.minecraft.block.AbstractRailBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.enums.RailShape;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.RotationAxis;
 import net.minecraft.util.math.Vec3d;
-import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
 
 public class AdvancedMinecartRenderer
@@ -23,48 +20,21 @@ public class AdvancedMinecartRenderer
         shadowRadius = 0.6F;
     }
 
-    @Override
-    public void preRender(
-            MatrixStack matrices,
+    protected void applyRotations(
             AdvancedMinecartEntity entity,
-            BakedGeoModel model,
-            VertexConsumerProvider vertexConsumers,
-            VertexConsumer buffer,
-            boolean isReRender,
-            float partialTick,
-            int packedLight,
-            int packedOverlay,
-            float red,
-            float green,
-            float blue,
-            float alpha
+            MatrixStack matrices,
+            float ageInTicks,
+            float rotationYaw,
+            float partialTick
     ) {
         matrices.multiply(
-                RotationAxis.POSITIVE_Y.rotationDegrees(
-                        entity.getYaw()
-                )
+                RotationAxis.POSITIVE_Y.rotationDegrees(rotationYaw)
         );
 
         matrices.multiply(
                 RotationAxis.POSITIVE_X.rotationDegrees(
                         getRailPitch(entity)
                 )
-        );
-
-        super.preRender(
-                matrices,
-                entity,
-                model,
-                vertexConsumers,
-                buffer,
-                isReRender,
-                partialTick,
-                packedLight,
-                packedOverlay,
-                red,
-                green,
-                blue,
-                alpha
         );
     }
 
