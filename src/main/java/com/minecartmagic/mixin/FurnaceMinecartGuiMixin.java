@@ -186,7 +186,7 @@ public abstract class FurnaceMinecartGuiMixin
             ServerPlayerEntity player,
             net.minecraft.network.PacketByteBuf buf
     ) {
-        buf.writeInt(((FurnaceMinecartEntity) (Object) this).getId());
+        buf.writeVarInt(((FurnaceMinecartEntity) (Object) this).getId());
     }
 
     @Inject(
