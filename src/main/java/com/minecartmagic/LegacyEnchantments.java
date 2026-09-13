@@ -82,6 +82,16 @@ public final class LegacyEnchantments {
                         || item == Items.BAMBOO_CHEST_RAFT
                         || item == ModItems.SELF_PROPELLING_BOAT;
             }
+
+            @Override
+            public boolean isAvailableForRandomSelection() {
+                return true;
+            }
+
+            @Override
+            public boolean isAvailableForEnchantedBookOffer() {
+                return true;
+            }
         };
     }
 }
