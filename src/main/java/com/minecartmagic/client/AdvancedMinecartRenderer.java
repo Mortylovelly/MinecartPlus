@@ -20,7 +20,6 @@ public class AdvancedMinecartRenderer
         shadowRadius = 0.6F;
     }
 
-    @Override
     protected void applyRotations(
             AdvancedMinecartEntity entity,
             MatrixStack matrices,
