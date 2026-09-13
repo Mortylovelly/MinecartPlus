@@ -4,7 +4,6 @@ import com.minecartmagic.ModEnchantments;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.vehicle.BoatEntity;
-import net.minecraft.entity.vehicle.ChestBoatEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
@@ -13,7 +12,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin({BoatEntity.class, ChestBoatEntity.class})
+@Mixin(BoatEntity.class)
 public abstract class BoatTailwindDropMixin {
 
     @Redirect(
