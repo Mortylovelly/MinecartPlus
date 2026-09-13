@@ -6,6 +6,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.enums.RailShape;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.RotationAxis;
 import net.minecraft.util.math.Vec3d;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
@@ -27,8 +28,12 @@ public class AdvancedMinecartRenderer
             float rotationYaw,
             float partialTick
     ) {
+        float yaw = MathHelper.wrapDegrees(
+                entity.getPlacementYaw()
+        );
+
         matrices.multiply(
-                RotationAxis.POSITIVE_Y.rotationDegrees(rotationYaw)
+                RotationAxis.POSITIVE_Y.rotationDegrees(yaw)
         );
 
         matrices.multiply(
