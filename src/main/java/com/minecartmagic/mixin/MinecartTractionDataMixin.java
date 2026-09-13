@@ -1,5 +1,6 @@
 package com.minecartmagic.mixin;
 
+import com.minecartmagic.access.MinecartTractionDataAccess;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
@@ -11,8 +12,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(AbstractMinecartEntity.class)
-public abstract class MinecartTractionDataMixin
-        implements MinecartTractionDataAccess {
+public abstract class MinecartTractionDataMixin implements MinecartTractionDataAccess {
 
     @Unique
     private static final TrackedData<Integer> MINECART_MAGIC$TRACTION_LEVEL =
@@ -21,13 +21,8 @@ public abstract class MinecartTractionDataMixin
                     TrackedDataHandlerRegistry.INTEGER
             );
 
-    @Inject(
-            method = "initDataTracker",
-            at = @At("TAIL")
-    )
-    private void minecartmagic$initTractionDataTracker(
-            CallbackInfo ci
-    ) {
+    @Inject(method = "initDataTracker", at = @At("TAIL"))
+    private void minecartmagic$initTractionDataTracker(CallbackInfo ci) {
         ((AbstractMinecartEntity) (Object) this).getDataTracker().startTracking(
                 MINECART_MAGIC$TRACTION_LEVEL,
                 0
@@ -42,9 +37,7 @@ public abstract class MinecartTractionDataMixin
     }
 
     @Override
-    public void minecartmagic$setTractionDataLevel(
-            int level
-    ) {
+    public void minecartmagic$setTractionDataLevel(int level) {
         ((AbstractMinecartEntity) (Object) this).getDataTracker().set(
                 MINECART_MAGIC$TRACTION_LEVEL,
                 Math.max(0, level)
