@@ -34,8 +34,8 @@ public class SelfPropellingBoatRenderer
      * ОРИЕНТАЦИЯ ЛОДКИ
      * =====================================================
      *
-     * Это исходная логика main. Не переносим вращение
-     * в preRender и не меняем саму механику поворота.
+     * Это исходная логика main. В 1.20.1 меняется только
+     * сигнатура GeckoLib-хука под GeckoLib 4.8.4.
      */
     @Override
     protected void applyRotations(
@@ -43,8 +43,7 @@ public class SelfPropellingBoatRenderer
             MatrixStack matrices,
             float ageInTicks,
             float rotationYaw,
-            float partialTick,
-            float nativeScale
+            float partialTick
     ) {
         float interpolatedYaw =
                 MathHelper.lerpAngleDegrees(
