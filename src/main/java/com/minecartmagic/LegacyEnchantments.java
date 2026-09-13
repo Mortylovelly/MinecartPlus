@@ -44,7 +44,7 @@ public final class LegacyEnchantments {
 
     private static Enchantment createEnchantment(boolean tailwind) {
         return new Enchantment(
-                Enchantment.Rarity.RARE,
+                Enchantment.Rarity.COMMON,
                 EnchantmentTarget.VANISHABLE,
                 new EquipmentSlot[]{EquipmentSlot.MAINHAND}
         ) {
