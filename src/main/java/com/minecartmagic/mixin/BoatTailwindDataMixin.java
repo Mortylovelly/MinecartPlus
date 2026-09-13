@@ -1,5 +1,6 @@
 package com.minecartmagic.mixin;
 
+import com.minecartmagic.access.BoatTailwindDataAccess;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
@@ -11,8 +12,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(BoatEntity.class)
-public abstract class BoatTailwindDataMixin
-        implements BoatTailwindDataAccess {
+public abstract class BoatTailwindDataMixin implements BoatTailwindDataAccess {
 
     @Unique
     private static final TrackedData<Integer> MINECART_MAGIC$TAILWIND_LEVEL =
@@ -21,13 +21,8 @@ public abstract class BoatTailwindDataMixin
                     TrackedDataHandlerRegistry.INTEGER
             );
 
-    @Inject(
-            method = "initDataTracker",
-            at = @At("TAIL")
-    )
-    private void minecartmagic$initTailwindDataTracker(
-            CallbackInfo ci
-    ) {
+    @Inject(method = "initDataTracker", at = @At("TAIL"))
+    private void minecartmagic$initTailwindDataTracker(CallbackInfo ci) {
         ((BoatEntity) (Object) this).getDataTracker().startTracking(
                 MINECART_MAGIC$TAILWIND_LEVEL,
                 0
@@ -42,9 +37,7 @@ public abstract class BoatTailwindDataMixin
     }
 
     @Override
-    public void minecartmagic$setTailwindDataLevel(
-            int level
-    ) {
+    public void minecartmagic$setTailwindDataLevel(int level) {
         ((BoatEntity) (Object) this).getDataTracker().set(
                 MINECART_MAGIC$TAILWIND_LEVEL,
                 Math.max(0, level)
