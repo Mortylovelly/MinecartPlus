@@ -30,27 +30,21 @@ public class SelfPropellingBoatRenderer
     }
 
     /*
-     * GeckoLib 4.9.x в оригинале позволяет переопределить
-     * applyRotations(). В GeckoLib 4.8.4 этого override с
-     * нашей сигнатурой нет, поэтому сохраняем ТО ЖЕ самое
-     * преобразование через гарантированно вызываемый
-     * preRender().
+     * =====================================================
+     * ОРИЕНТАЦИЯ ЛОДКИ
+     * =====================================================
+     *
+     * Это исходная логика main. Не переносим вращение
+     * в preRender и не меняем саму механику поворота.
      */
     @Override
-    public void preRender(
-            MatrixStack matrices,
+    protected void applyRotations(
             SelfPropellingBoatEntity entity,
-            BakedGeoModel model,
-            @Nullable VertexConsumerProvider vertexConsumers,
-            @Nullable VertexConsumer buffer,
-            boolean isReRender,
+            MatrixStack matrices,
+            float ageInTicks,
+            float rotationYaw,
             float partialTick,
-            int packedLight,
-            int packedOverlay,
-            float red,
-            float green,
-            float blue,
-            float alpha
+            float nativeScale
     ) {
         float interpolatedYaw =
                 MathHelper.lerpAngleDegrees(
@@ -63,22 +57,6 @@ public class SelfPropellingBoatRenderer
                 RotationAxis.POSITIVE_Y.rotationDegrees(
                         180.0F - interpolatedYaw
                 )
-        );
-
-        super.preRender(
-                matrices,
-                entity,
-                model,
-                vertexConsumers,
-                buffer,
-                isReRender,
-                partialTick,
-                packedLight,
-                packedOverlay,
-                red,
-                green,
-                blue,
-                alpha
         );
     }
 
@@ -194,6 +172,39 @@ public class SelfPropellingBoatRenderer
                 green,
                 blue,
                 alpha
+        );
+    }
+
+    @Override
+    public void preRender(
+            MatrixStack matrices,
+            SelfPropellingBoatEntity entity,
+            BakedGeoModel model,
+            @Nullable VertexConsumerProvider vertexConsumers,
+            @Nullable VertexConsumer buffer,
+            boolean isReRender,
+            float partialTick,
+            int packedLight,
+            int packedOverlay,
+            float red,
+            float green,
+            float blue,
+            float alpha
+    ) {
+        super.preRender(
+                matrices,
+                entity,
+                model,
+                vertexConsumers,
+                buffer,
+                isReRender,
+                partialTick,
+                packedLight,
+                packedOverlay,
+                1.0F,
+                1.0F,
+                1.0F,
+                1.0F
         );
     }
 }
