@@ -2,39 +2,36 @@ package com.minecartmagic.mixin;
 
 import com.minecartmagic.ModEnchantments;
 import net.minecraft.enchantment.Enchantment;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.entity.vehicle.AbstractMinecartEntity;
-import net.minecraft.item.Item;
+import net.minecraft.entity.vehicle.StorageMinecartEntity;
+import net.minecraft.entity.vehicle.TntMinecartEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin(AbstractMinecartEntity.class)
+@Mixin({AbstractMinecartEntity.class, StorageMinecartEntity.class, TntMinecartEntity.class})
 public abstract class MinecartDropItemMixin {
 
-    @Inject(
-            method = "killAndDropItem(Lnet/minecraft/item/Item;)V",
-            at = @At("HEAD"),
-            cancellable = true
+    @Redirect(
+            method = "dropItems",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/entity/Entity;dropStack(Lnet/minecraft/item/ItemStack;)Lnet/minecraft/entity/ItemEntity;"
+            )
     )
-    private void minecartmagic$dropEnchantedMinecart(
-            Item selfAsItem,
-            CallbackInfo ci
+    private ItemEntity minecartmagic$enchantDroppedMinecart(
+            AbstractMinecartEntity minecart,
+            ItemStack stack
     ) {
-        if (!((Object) this instanceof AbstractMinecartEntity minecart)) {
-            return;
-        }
+        int level = ModEnchantments.getTractionLevel(minecart);
 
-        int level =
-                ModEnchantments.getTractionLevel(minecart);
-
-        if (level <= 0) {
-            return;
+        if (level <= 0 || stack.isEmpty() || stack.getItem() != minecart.getItem()) {
+            return minecart.dropStack(stack);
         }
 
         Registry<Enchantment> enchantmentRegistry =
@@ -46,22 +43,13 @@ public abstract class MinecartDropItemMixin {
                         .getEntry(ModEnchantments.TRACTION_KEY)
                         .orElse(null);
 
-        if (traction == null) {
-            return;
+        if (traction != null) {
+            stack.addEnchantment(
+                    traction.value(),
+                    level
+            );
         }
 
-        ItemStack stack =
-                new ItemStack(selfAsItem);
-
-        stack.addEnchantment(
-                traction.value(),
-                level
-        );
-
-        minecart.dropStack(stack);
-
-        minecart.discard();
-
-        ci.cancel();
+        return minecart.dropStack(stack);
     }
 }
