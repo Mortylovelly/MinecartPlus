@@ -16,8 +16,7 @@
     "SelfPropellingBoatVelocityMixin",
     "BoatTailwindDropMixin",
     "EnchantableVehicleItemMixin",
-    "VehicleEnchantmentCandidatesMixin",
-    "VehicleEnchantmentApplicabilityMixin"
+    "VehicleEnchantmentCandidatesMixin"
   ],
   "client": [
     "MinecartGlintMixin",
